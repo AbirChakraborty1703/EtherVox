@@ -161,6 +161,94 @@ npm start
 
 ---
 
+## 🚀 SUPER DETAILED SETUP (For Advanced Users) 
+
+**Want to run everything step by step like a pro?** Here's how to start all the different parts of the app using multiple terminals (command windows). Think of it like starting different machines in a factory! 🏭
+
+### 🔥 Before You Start:
+1. **Open Ganache** and create a development workspace
+2. Make sure it's running on port **7545**
+3. Keep Ganache open the whole time!
+
+### 📟 TERMINAL 1: Smart Contract Console 🤖
+
+**What this does:** Opens a special command window to talk directly to your smart contracts
+
+```bash
+# 1. Open terminal in your project folder
+# 2. Start the truffle console (smart contract controller)
+truffle console
+
+# 3. Inside the console, compile your smart contracts
+compile
+
+# 4. Exit the console when done
+exit
+```
+
+### 📟 TERMINAL 2: Bundle JavaScript Files 📦
+
+**What this does:** Packages all your JavaScript files into one big file for the browser
+
+```bash
+# Bundle app.js with browserify (combines all JS files)
+browserify ./src/js/app.js -o ./src/dist/app.bundle.js
+```
+
+### 📟 TERMINAL 3: Start Main Server 🖥️
+
+**What this does:** Starts the main website server that shows your web pages
+
+```bash
+# Start the node server
+node index.js
+```
+
+**You should see:** "Server running on port 3000" or similar message
+
+### 📟 TERMINAL 4: Start Database Helper 🐍
+
+**What this does:** Starts the Python helper that manages extra data
+
+```bash
+# 1. Go to the Database_API folder
+cd Database_API
+
+# 2. Start the database server
+uvicorn main:app --reload --host 127.0.0.1
+```
+
+**You should see:** "Application startup complete" message
+
+### 📟 TERMINAL 5: Deploy Smart Contracts 🚀
+
+**What this does:** Puts your voting rules (smart contracts) onto the blockchain
+
+```bash
+# Deploy contracts to the blockchain
+truffle migrate
+```
+
+**You should see:** Messages about deploying contracts and gas costs
+
+### 🎉 ALL DONE! Check Your App
+
+**Your app is now running at:** `http://localhost:8080/`
+
+**What should be running:**
+- ✅ Ganache (fake blockchain)
+- ✅ Terminal 3: Main server (website)
+- ✅ Terminal 4: Database helper (data management)
+- ✅ Smart contracts deployed on blockchain
+
+**If something doesn't work:**
+1. Make sure all 5 terminals are still running
+2. Check that Ganache is still open
+3. Look for error messages in any terminal
+4. Try refreshing your browser
+
+---
+
 ## 🎮 How to Use the App
 
 ### For Regular Users (Voters):
