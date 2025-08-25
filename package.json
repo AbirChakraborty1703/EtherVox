@@ -1,9 +1,11 @@
 {
+  "_comment": "EtherVox Package Configuration - Decentralized Voting DApp",
   "name": "ethervox",
   "version": "1.0.0",
   "description": "EtherVox - A decentralized voting application built on Ethereum blockchain using Solidity smart contracts, Web3.js, and Express.js",
   "main": "index.js",
   "scripts": {
+    "_comment": "Available scripts for development and deployment",
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "truffle test",

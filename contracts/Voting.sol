@@ -1,7 +1,16 @@
 
+/**
+ * EtherVox Voting Smart Contract
+ * Author: Abir Chakraborty
+ * Description: Decentralized voting system with candidate management
+ * Version: 1.0.0
+ */
+
 pragma solidity ^0.5.15;
 
+// Main voting contract for EtherVox DApp
 contract Voting {
+    // Structure to store candidate information
     struct Candidate {
         uint id;
         string name;

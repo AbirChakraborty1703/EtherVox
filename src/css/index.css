@@ -1,18 +1,35 @@
+/*
+  EtherVox Decentralized Voting System - Main Interface Styles
+  
+  @file index.css
+  @author EtherVox Development Team
+  @description Comprehensive styling for the voting interface
+  @version 1.0.0
+  
+  Features:
+  - Responsive design with Ethereum-themed background
+  - Modern card-based layout
+  - Interactive voting buttons and forms
+  - Mobile-friendly responsive breakpoints
+*/
+
+/* Main body styling with Ethereum background */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Arial', sans-serif;    /* Clean, readable font */
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 60vh;
+    min-height: 60vh;                    /* Minimum viewport height */
     background: url('../assets/eth5.jpg') no-repeat center center fixed;
-    background-size: cover;
+    background-size: cover;              /* Full background coverage */
   }
   
+  /* Main container for voting interface */
   .container {
-    width: 750px;
+    width: 750px;                        /* Fixed width for desktop */
     max-width: 900px;
     background-color: rgba(0, 0, 0, 0.650);
     padding: 40px;

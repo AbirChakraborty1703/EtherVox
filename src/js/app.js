@@ -1,13 +1,22 @@
+/**
+ * EtherVox Frontend Application Logic
+ * Author: Abir Chakraborty
+ * Description: Handles Web3 interaction, voting functionality, and UI updates
+ */
+
 //import "../css/style.css"
 
+// Web3 and contract interaction imports
 const Web3 = require('web3');
 const contract = require('@truffle/contract');
 
+// Load voting contract artifacts
 const votingArtifacts = require('../../build/contracts/Voting.json');
 var VotingContract = contract(votingArtifacts)
 
-
+// Main application object
 window.App = {
+  // Initialize the application and Web3 connection
   eventStart: function() { 
     window.ethereum.request({ method: 'eth_requestAccounts' });
     VotingContract.setProvider(window.ethereum)

@@ -1,11 +1,19 @@
+/**
+ * EtherVox - Decentralized Voting Application
+ * Main Express Server File
+ * Author: Abir Chakraborty
+ * Description: Handles server routing, authentication, and static file serving
+ */
+
 const express = require('express');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 
+// Load environment variables from .env file
 require('dotenv').config();
 
+// Initialize Express application
 const app = express();
-
 
 // Authorization middleware
 const authorizeUser = (req, res, next) => {
