@@ -113,7 +113,11 @@ app.get('/dist/app.bundle.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/dist/app.bundle.js'));
 });
 
-// Serve the favicon.jpg file
+// Serve the favicon file
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/favicon.ico'));
+});
+
 app.get('/favicon.jpg', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/favicon.ico'));
 });

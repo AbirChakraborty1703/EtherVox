@@ -73,5 +73,12 @@ loginForm.addEventListener('submit', (event) => {
   .catch(error => {
     // Handle and log authentication errors
     console.error('Login failed:', error.message);
+    
+    // Check if it's a network error (Database API not running)
+    if (error.message === 'Failed to fetch') {
+      alert(`🚨 Database API Connection Error!\n\nThe Database API server is not running.\n\nPlease start the Database API by running:\n1. cd Database_API\n2. python main.py\n\nOr use the start-dev.bat script to start all services.`);
+    } else {
+      alert('Login failed: ' + error.message);
+    }
   });
 });
