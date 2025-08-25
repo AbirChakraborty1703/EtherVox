@@ -21,5 +21,18 @@ module.exports = {
       port: 7545,            // Ganache default port
       network_id: "*"        // Match any network id
     }
+  },
+  
+  // Configure compiler
+  compilers: {
+    solc: {
+      version: "0.5.16",    // Use specific Solidity version
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
+        }
+      }
+    }
   }
 }

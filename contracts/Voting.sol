@@ -14,7 +14,7 @@
  * - Input validation for all functions
  */
 
-pragma solidity >=0.5.15 <0.9.0;
+pragma solidity ^0.5.16;
 
 // Main voting contract for EtherVox DApp
 contract Voting {
@@ -49,7 +49,7 @@ contract Voting {
     }
 
     // Constructor sets the contract deployer as owner
-    constructor() {
+    constructor() public {
         owner = msg.sender;
     }
 

@@ -11,7 +11,7 @@
  * and manage migration state across different deployments.
  */
 
-pragma solidity >=0.5.15 <0.9.0;
+pragma solidity ^0.5.16;
 
 contract Migrations {
   address public owner;                    // Contract owner address
@@ -22,8 +22,9 @@ contract Migrations {
     require(msg.sender == owner, "Access restricted to owner");
     _;
   }
+
   // Constructor sets the deployer as the contract owner
-  constructor() {
+  constructor() public {
     owner = msg.sender;
   }
 
