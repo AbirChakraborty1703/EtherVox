@@ -15,22 +15,56 @@ require('dotenv').config();
 // Initialize Express application
 const app = express();
 
-// Authorization middleware
+// Authorization middleware with enhanced security
 const authorizeUser = (req, res, next) => {
-  const token = req.query.Authorization?.split('Bearer ')[1];
+  const authHeader = req.query.Authorization;
+  
+  // Check if authorization header exists
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).send(`
+      <html>
+        <head><title>Unauthorized Access</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
+          <h1 style="color: #dc3545;">🔒 Access Denied</h1>
+          <p>Please <a href="/" style="color: #007bff;">login</a> to continue</p>
+        </body>
+      </html>
+    `);
+  }
+  
+  const token = authHeader.split('Bearer ')[1];
 
   if (!token) {
-    return res.status(401).send('<h1 align="center"> Login to Continue </h1>');
+    return res.status(401).send('<h1 align="center">🔒 Authentication Required - Please Login</h1>');
   }
   
   try {
-    // Verify and decode the token
-    const decodedToken = jwt.verify(token, process.env.SECRET_KEY, { algorithms: ['HS256'] });
+    // Verify and decode the token with proper error handling
+    const decodedToken = jwt.verify(token, process.env.SECRET_KEY, { 
+      algorithms: ['HS256'],
+      maxAge: '24h' // Token expires in 24 hours
+    });
 
+    // Add user info to request object
     req.user = decodedToken;
+    
+    // Check if token is about to expire (less than 1 hour left)
+    const now = Math.floor(Date.now() / 1000);
+    if (decodedToken.exp && decodedToken.exp - now < 3600) {
+      console.warn(`Token for user ${decodedToken.voter_id} expires soon`);
+    }
+    
     next(); // Proceed to the next middleware
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid authorization token' });
+    console.error('JWT verification failed:', error.message);
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).send('<h1 align="center">🕐 Session Expired - Please Login Again</h1>');
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).send('<h1 align="center">🚫 Invalid Token - Please Login Again</h1>');
+    } else {
+      return res.status(401).send('<h1 align="center">❌ Authentication Error - Please Login Again</h1>');
+    }
   }
 };
 

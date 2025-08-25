@@ -14,17 +14,39 @@ const contract = require('@truffle/contract');
 const votingArtifacts = require('../../build/contracts/Voting.json');
 var VotingContract = contract(votingArtifacts)
 
-// Main application object
+// Main application object with enhanced error handling
 window.App = {
   // Initialize the application and Web3 connection
-  eventStart: function() { 
-    window.ethereum.request({ method: 'eth_requestAccounts' });
-    VotingContract.setProvider(window.ethereum)
-    VotingContract.defaults({from: window.ethereum.selectedAddress,gas:6654755})
+  eventStart: async function() { 
+    try {
+      // Check if MetaMask is installed
+      if (typeof window.ethereum === 'undefined') {
+        alert('MetaMask is not installed! Please install MetaMask to use this DApp.');
+        return;
+      }
 
-    // Load account data
-    App.account = window.ethereum.selectedAddress;
-    $("#accountAddress").html("Your Account: " + window.ethereum.selectedAddress);
+      // Request account access
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      
+      // Set up contract
+      VotingContract.setProvider(window.ethereum);
+      VotingContract.defaults({from: window.ethereum.selectedAddress, gas: 6654755});
+
+      // Verify account is selected
+      if (!window.ethereum.selectedAddress) {
+        alert('Please select an account in MetaMask');
+        return;
+      }
+
+      // Load account data
+      App.account = window.ethereum.selectedAddress;
+      $("#accountAddress").html("Your Account: " + window.ethereum.selectedAddress);
+      
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      alert('Failed to connect to MetaMask. Please try again.');
+      return;
+    }
     VotingContract.deployed().then(function(instance){
      instance.getCountCandidates().then(function(countCandidates){
 

@@ -21,8 +21,25 @@ loginForm.addEventListener('submit', (event) => {
   event.preventDefault(); // Prevent default form submission
 
   // Extract user credentials from form inputs
-  const voter_id = document.getElementById('voter-id').value;
+  const voter_id = document.getElementById('voter-id').value.trim();
   const password = document.getElementById('password').value;
+  
+  // Input validation
+  if (!voter_id || !password) {
+    alert('Please enter both Voter ID and Password');
+    return;
+  }
+  
+  if (voter_id.length < 3) {
+    alert('Voter ID must be at least 3 characters long');
+    return;
+  }
+  
+  if (password.length < 6) {
+    alert('Password must be at least 6 characters long');
+    return;
+  }
+  
   const token = voter_id; // Use voter_id as initial token
 
   // Configure headers for API request

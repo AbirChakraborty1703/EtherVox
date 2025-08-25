@@ -67,19 +67,36 @@ except mysql.connector.Error as err:
 async def authenticate(request: Request):
     try:
         # Extract Bearer token from authorization header
-        api_key = request.headers.get('authorization').replace("Bearer ", "")
-        # Verify voter exists in database
-        cursor.execute("SELECT * FROM voters WHERE voter_id = %s", (api_key,))
-        if api_key not in [row[0] for row in cursor.fetchall()]:
+        auth_header = request.headers.get('authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Forbidden"
+                detail="Missing or invalid authorization header"
             )
-    except:
-        # Handle authentication failures
+        
+        api_key = auth_header.replace("Bearer ", "")
+        
+        # Verify voter exists in database using parameterized query
+        cursor.execute("SELECT voter_id FROM voters WHERE voter_id = %s", (api_key,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+            
+    except mysql.connector.Error as db_err:
+        print(f"Database error in authentication: {db_err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database authentication error"
+        )
+    except Exception as e:
+        print(f"Authentication error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Forbidden"
+            detail="Authentication failed"
         )
 
 # Login endpoint for voter authentication and JWT token generation
