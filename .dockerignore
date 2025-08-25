@@ -1,0 +1,14 @@
+# Docker ignore file for EtherVox
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+README.md
+.nyc_output
+coverage
+.coverage
+*.log
+build
+.DS_Store
+Thumbs.db
