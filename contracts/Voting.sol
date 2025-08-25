@@ -49,7 +49,7 @@ contract Voting {
     }
 
     // Constructor sets the contract deployer as owner
-    constructor() public {
+    constructor() {
         owner = msg.sender;
     }
 
