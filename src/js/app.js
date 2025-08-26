@@ -167,30 +167,103 @@ window.App = {
         
         $('#addDate').click(async function(){    
           try {
-            const startDate = Math.floor(Date.parse(document.getElementById("startDate").value) / 1000);
-            const endDate = Math.floor(Date.parse(document.getElementById("endDate").value) / 1000);
+            const startDateValue = document.getElementById("startDate").value;
+            const endDateValue = document.getElementById("endDate").value;
             
-            if (!startDate || !endDate) {
+            console.log('Start date input:', startDateValue);
+            console.log('End date input:', endDateValue);
+            
+            if (!startDateValue || !endDateValue) {
               alert('Please select both start and end dates.');
               return;
             }
             
-            if (startDate >= endDate) {
+            // Convert to Unix timestamps
+            const startDate = Math.floor(Date.parse(startDateValue) / 1000);
+            const endDate = Math.floor(Date.parse(endDateValue) / 1000);
+            const currentTime = Math.floor(Date.now() / 1000);
+            
+            console.log('Start timestamp:', startDate);
+            console.log('End timestamp:', endDate);
+            console.log('Current timestamp:', currentTime);
+            
+            // Client-side validation
+            if (isNaN(startDate) || isNaN(endDate)) {
+              alert('Invalid date format. Please select valid dates.');
+              return;
+            }
+            
+            if (startDate <= currentTime) {
+              alert('Start date must be in the future. Please select a later start date.');
+              return;
+            }
+            
+            if (endDate <= startDate) {
               alert('End date must be after start date.');
               return;
             }
             
+            if (endDate - startDate < 3600) {
+              alert('Voting period must be at least 1 hour long.');
+              return;
+            }
+            
+            // Check if dates are already set
+            try {
+              const existingDates = await instance.getDates();
+              if (existingDates[0].toNumber() > 0 || existingDates[1].toNumber() > 0) {
+                alert('Voting dates have already been set for this election.');
+                return;
+              }
+            } catch (dateCheckError) {
+              console.log('No existing dates found, proceeding...');
+            }
+            
+            console.log('Calling setDates with:', startDate, endDate);
+            
             const result = await instance.setDates(startDate, endDate, {
               from: App.account,
-              gas: 300000
+              gas: 500000  // Increased gas limit
             });
             
             console.log('Dates set successfully:', result);
             alert('Voting dates set successfully!');
             
+            // Reload dates display
+            setTimeout(async () => {
+              try {
+                const newDates = await instance.getDates();
+                const newStartDate = new Date(newDates[0].toNumber() * 1000);
+                const newEndDate = new Date(newDates[1].toNumber() * 1000);
+                $("#dates").text(newStartDate.toDateString() + " - " + newEndDate.toDateString());
+              } catch (reloadError) {
+                console.error('Error reloading dates:', reloadError);
+              }
+            }, 2000);
+            
           } catch (error) {
             console.error('Error setting dates:', error);
-            alert('Failed to set voting dates. Please try again.');
+            
+            // Parse the error to give more specific feedback
+            let errorMessage = 'Failed to set voting dates. ';
+            
+            if (error.message.includes('Voting dates already set')) {
+              errorMessage += 'Voting dates have already been set for this election.';
+            } else if (error.message.includes('Start date must be in the future')) {
+              errorMessage += 'Start date must be in the future.';
+            } else if (error.message.includes('End date must be after start date')) {
+              errorMessage += 'End date must be after start date.';
+            } else if (error.message.includes('Voting period must be at least 1 hour')) {
+              errorMessage += 'Voting period must be at least 1 hour long.';
+            } else if (error.message.includes('Access denied')) {
+              errorMessage += 'Only the contract owner can set voting dates.';
+            } else if (error.message.includes('revert')) {
+              errorMessage += 'Transaction reverted. Please check your inputs and try again.';
+            } else {
+              errorMessage += 'Please try again.';
+            }
+            
+            alert(errorMessage);
           }
         });
       });

@@ -91,9 +91,9 @@ contract Voting {
     // Admin function to set voting dates (only owner, only before voting starts)
     function setDates(uint256 _startDate, uint256 _endDate) public onlyOwner {
         require(votingEnd == 0 && votingStart == 0, "Voting dates already set");
-        require(_startDate >= block.timestamp, "Start date must be in the future");
+        require(_startDate > block.timestamp, "Start date must be in the future");
         require(_endDate > _startDate, "End date must be after start date");
-        require(_endDate > _startDate + 3600, "Voting period must be at least 1 hour"); // Minimum 1 hour voting period
+        require(_endDate >= _startDate + 1800, "Voting period must be at least 30 minutes"); // Reduced to 30 minutes for testing
         
         votingEnd = _endDate;
         votingStart = _startDate;
