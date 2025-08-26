@@ -1,0 +1,21 @@
+# GitHub Language Detection Configuration
+
+# Exclude bundled/generated files from language statistics
+public/app.bundle.js linguist-generated=true
+build/ linguist-generated=true
+node_modules/ linguist-vendored=true
+
+# Mark documentation files
+*.md linguist-documentation=true
+
+# Properly detect language files
+*.sol linguist-language=Solidity
+*.py linguist-language=Python
+*.html linguist-language=HTML
+*.css linguist-language=CSS
+*.js linguist-language=JavaScript
+
+# Mark source directories as detectable
+src/ linguist-detectable=true
+contracts/ linguist-detectable=true
+Database_API/ linguist-detectable=true

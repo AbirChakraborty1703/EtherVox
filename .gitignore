@@ -25,6 +25,12 @@ __pycache__/
 .Python
 
 # Build outputs
+dist/
+build/
+public/app.bundle.js
+*.bundle.js
+
+# Generated files
 build/
 dist/
 out/
