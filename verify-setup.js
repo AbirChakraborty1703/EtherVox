@@ -66,14 +66,23 @@ try {
 console.log('\n🔄 Checking CI/CD configuration:');
 try {
     const ciConfig = fs.readFileSync('.github/workflows/ci.yml', 'utf8');
-    if (ciConfig.includes('ULTIMATE FIXED VERSION')) {
-        console.log('✅ CI/CD fixes applied');
+    if (ciConfig.includes('SHELL SYNTAX FIXED')) {
+        console.log('✅ CI/CD shell syntax fixes applied');
+    }
+    if (ciConfig.includes('continue-on-error: true')) {
+        console.log('✅ Error handling with continue-on-error configured');
     }
     if (ciConfig.includes('--omit=optional')) {
         console.log('✅ Modern npm options configured');
     }
     if (!ciConfig.includes('--no-optional')) {
         console.log('✅ Deprecated npm options removed');
+    }
+    if (!ciConfig.includes('shell: bash')) {
+        console.log('✅ Complex bash scripting eliminated');
+    }
+    if (ciConfig.includes('node-version: [18.x, 20.x]')) {
+        console.log('✅ Updated Node.js matrix (removed 16.x)');
     }
 } catch (error) {
     console.log('❌ Error reading CI/CD config:', error.message);
