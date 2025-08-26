@@ -1,0 +1,1811 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@babel/runtime": {
+      "name": "@babel/runtime",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1104000,
+          "name": "@babel/runtime",
+          "dependency": "@babel/runtime",
+          "title": "Babel has inefficient RegExp complexity in generated code with .replace when transpiling named capturing groups",
+          "url": "https://github.com/advisories/GHSA-968p-4wvh-cqc8",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 6.2,
+            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<7.26.10"
+        }
+      ],
+      "effects": [],
+      "range": "<7.26.10",
+      "nodes": [
+        "node_modules/@babel/runtime"
+      ],
+      "fixAvailable": true
+    },
+    "@ensdomains/ens": {
+      "name": "@ensdomains/ens",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "solc"
+      ],
+      "effects": [
+        "@ensdomains/ensjs"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/@ensdomains/ens"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@ensdomains/ensjs": {
+      "name": "@ensdomains/ensjs",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@ensdomains/ens"
+      ],
+      "effects": [
+        "@truffle/contract",
+        "@truffle/debugger"
+      ],
+      "range": "<=2.1.0",
+      "nodes": [
+        "node_modules/@ensdomains/ensjs"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@ethersproject/providers": {
+      "name": "@ethersproject/providers",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "ws"
+      ],
+      "effects": [
+        "ethers"
+      ],
+      "range": "<=5.7.2",
+      "nodes": [
+        "node_modules/@ethersproject/providers"
+      ],
+      "fixAvailable": false
+    },
+    "@ethersproject/signing-key": {
+      "name": "@ethersproject/signing-key",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "elliptic"
+      ],
+      "effects": [],
+      "range": "<=5.7.0",
+      "nodes": [
+        "node_modules/@ethersproject/signing-key"
+      ],
+      "fixAvailable": true
+    },
+    "@microsoft/api-extractor": {
+      "name": "@microsoft/api-extractor",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@microsoft/api-extractor-model",
+        "@rushstack/node-core-library",
+        "semver"
+      ],
+      "effects": [],
+      "range": "7.9.1 - 7.36.2",
+      "nodes": [
+        "node_modules/ganache/node_modules/@microsoft/api-extractor"
+      ],
+      "fixAvailable": true
+    },
+    "@microsoft/api-extractor-model": {
+      "name": "@microsoft/api-extractor-model",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@rushstack/node-core-library"
+      ],
+      "effects": [],
+      "range": "7.8.12 - 7.27.4",
+      "nodes": [
+        "node_modules/ganache/node_modules/@microsoft/api-extractor-model"
+      ],
+      "fixAvailable": true
+    },
+    "@rushstack/node-core-library": {
+      "name": "@rushstack/node-core-library",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "semver"
+      ],
+      "effects": [
+        "@microsoft/api-extractor-model"
+      ],
+      "range": "3.25.0 - 3.59.5",
+      "nodes": [
+        "node_modules/ganache/node_modules/@rushstack/node-core-library"
+      ],
+      "fixAvailable": true
+    },
+    "@truffle/config": {
+      "name": "@truffle/config",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@truffle/events",
+        "@truffle/provider"
+      ],
+      "effects": [
+        "@truffle/db"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/@truffle/config"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@truffle/contract": {
+      "name": "@truffle/contract",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "@ensdomains/ensjs",
+        "@truffle/interface-adapter",
+        "ethers",
+        "web3"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/@truffle/contract"
+      ],
+      "fixAvailable": false
+    },
+    "@truffle/dashboard-message-bus-client": {
+      "name": "@truffle/dashboard-message-bus-client",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "axios"
+      ],
+      "effects": [
+        "@truffle/events"
+      ],
+      "range": ">=0.1.10",
+      "nodes": [
+        "node_modules/@truffle/dashboard-message-bus-client"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@truffle/db": {
+      "name": "@truffle/db",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@truffle/config"
+      ],
+      "effects": [
+        "@truffle/db-loader",
+        "truffle"
+      ],
+      "range": ">=2.0.13",
+      "nodes": [
+        "node_modules/@truffle/db"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@truffle/db-loader": {
+      "name": "@truffle/db-loader",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@truffle/db"
+      ],
+      "effects": [],
+      "range": ">=0.2.13",
+      "nodes": [
+        "node_modules/@truffle/db-loader"
+      ],
+      "fixAvailable": true
+    },
+    "@truffle/debugger": {
+      "name": "@truffle/debugger",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@ensdomains/ensjs",
+        "web3"
+      ],
+      "effects": [
+        "truffle"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/@truffle/debugger"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@truffle/events": {
+      "name": "@truffle/events",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@truffle/dashboard-message-bus-client"
+      ],
+      "effects": [
+        "@truffle/config"
+      ],
+      "range": ">=0.1.21",
+      "nodes": [
+        "node_modules/@truffle/events"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@truffle/interface-adapter": {
+      "name": "@truffle/interface-adapter",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "ethers",
+        "web3"
+      ],
+      "effects": [
+        "@truffle/provider"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/@truffle/interface-adapter"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@truffle/provider": {
+      "name": "@truffle/provider",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "@truffle/interface-adapter",
+        "web3"
+      ],
+      "effects": [
+        "@truffle/config"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/@truffle/provider"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "@trufflesuite/uws-js-unofficial": {
+      "name": "@trufflesuite/uws-js-unofficial",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "ws"
+      ],
+      "effects": [
+        "ganache"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "axios": {
+      "name": "axios",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1097680,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "Axios Cross-Site Request Forgery Vulnerability",
+          "url": "https://github.com/advisories/GHSA-wf5p-g6vw-rhxx",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-352"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=1.0.0 <1.6.0"
+        },
+        {
+          "source": 1098583,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "Server-Side Request Forgery in axios",
+          "url": "https://github.com/advisories/GHSA-8hc4-vh64-cxmj",
+          "severity": "high",
+          "cwe": [
+            "CWE-918"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=1.3.2 <=1.7.3"
+        },
+        {
+          "source": 1103618,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "axios Requests Vulnerable To Possible SSRF and Credential Leakage via Absolute URL",
+          "url": "https://github.com/advisories/GHSA-jr5f-v2jv-69x6",
+          "severity": "high",
+          "cwe": [
+            "CWE-918"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=1.0.0 <1.8.2"
+        }
+      ],
+      "effects": [
+        "@truffle/dashboard-message-bus-client"
+      ],
+      "range": "1.0.0 - 1.8.1",
+      "nodes": [
+        "node_modules/axios"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "base-x": {
+      "name": "base-x",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1104177,
+          "name": "base-x",
+          "dependency": "base-x",
+          "title": "Homograph attack allows Unicode lookalike characters to bypass validation.",
+          "url": "https://github.com/advisories/GHSA-xq7p-g2vc-g82p",
+          "severity": "high",
+          "cwe": [
+            "CWE-1007"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=3.0.10"
+        }
+      ],
+      "effects": [],
+      "range": "<=3.0.10",
+      "nodes": [
+        "node_modules/base-x"
+      ],
+      "fixAvailable": true
+    },
+    "body-parser": {
+      "name": "body-parser",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1099520,
+          "name": "body-parser",
+          "dependency": "body-parser",
+          "title": "body-parser vulnerable to denial of service when url encoding is enabled",
+          "url": "https://github.com/advisories/GHSA-qwcr-r2fm-qrc7",
+          "severity": "high",
+          "cwe": [
+            "CWE-405"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<1.20.3"
+        }
+      ],
+      "effects": [
+        "express"
+      ],
+      "range": "<1.20.3",
+      "nodes": [
+        "node_modules/body-parser"
+      ],
+      "fixAvailable": true
+    },
+    "brace-expansion": {
+      "name": "brace-expansion",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1105443,
+          "name": "brace-expansion",
+          "dependency": "brace-expansion",
+          "title": "brace-expansion Regular Expression Denial of Service vulnerability",
+          "url": "https://github.com/advisories/GHSA-v6h2-p8h4-qcjw",
+          "severity": "low",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 3.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": ">=1.0.0 <=1.1.11"
+        }
+      ],
+      "effects": [],
+      "range": "1.0.0 - 1.1.11",
+      "nodes": [
+        "node_modules/brace-expansion",
+        "node_modules/ganache/node_modules/brace-expansion"
+      ],
+      "fixAvailable": true
+    },
+    "braces": {
+      "name": "braces",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1098094,
+          "name": "braces",
+          "dependency": "braces",
+          "title": "Uncontrolled resource consumption in braces",
+          "url": "https://github.com/advisories/GHSA-grv7-fg5c-xmjg",
+          "severity": "high",
+          "cwe": [
+            "CWE-400",
+            "CWE-1050"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<3.0.3"
+        }
+      ],
+      "effects": [],
+      "range": "<3.0.3",
+      "nodes": [
+        "node_modules/ganache/node_modules/braces"
+      ],
+      "fixAvailable": true
+    },
+    "browserify-sign": {
+      "name": "browserify-sign",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1102445,
+          "name": "browserify-sign",
+          "dependency": "browserify-sign",
+          "title": "browserify-sign upper bound check issue in `dsaVerify` leads to a signature forgery attack",
+          "url": "https://github.com/advisories/GHSA-x9w5-v3q2-3rhw",
+          "severity": "high",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+          },
+          "range": ">=2.6.0 <=4.2.1"
+        }
+      ],
+      "effects": [],
+      "range": "2.6.0 - 4.2.1",
+      "nodes": [
+        "node_modules/browserify-sign",
+        "node_modules/ganache/node_modules/browserify-sign"
+      ],
+      "fixAvailable": true
+    },
+    "cipher-base": {
+      "name": "cipher-base",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1106989,
+          "name": "cipher-base",
+          "dependency": "cipher-base",
+          "title": "cipher-base is missing type checks, leading to hash rewind and passing on crafted data",
+          "url": "https://github.com/advisories/GHSA-cpq7-6gpm-g9rc",
+          "severity": "critical",
+          "cwe": [
+            "CWE-20"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=1.0.4"
+        }
+      ],
+      "effects": [],
+      "range": "<=1.0.4",
+      "nodes": [
+        "node_modules/cipher-base",
+        "node_modules/ganache/node_modules/cipher-base"
+      ],
+      "fixAvailable": true
+    },
+    "cookie": {
+      "name": "cookie",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1103907,
+          "name": "cookie",
+          "dependency": "cookie",
+          "title": "cookie accepts cookie name, path, and domain with out of bounds characters",
+          "url": "https://github.com/advisories/GHSA-pxg6-pf52-xh8x",
+          "severity": "low",
+          "cwe": [
+            "CWE-74"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<0.7.0"
+        }
+      ],
+      "effects": [
+        "express"
+      ],
+      "range": "<0.7.0",
+      "nodes": [
+        "node_modules/cookie"
+      ],
+      "fixAvailable": true
+    },
+    "cross-spawn": {
+      "name": "cross-spawn",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1104664,
+          "name": "cross-spawn",
+          "dependency": "cross-spawn",
+          "title": "Regular Expression Denial of Service (ReDoS) in cross-spawn",
+          "url": "https://github.com/advisories/GHSA-3xgq-45jj-v275",
+          "severity": "high",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=7.0.0 <7.0.5"
+        }
+      ],
+      "effects": [],
+      "range": "7.0.0 - 7.0.4",
+      "nodes": [
+        "node_modules/ganache/node_modules/cross-spawn"
+      ],
+      "fixAvailable": true
+    },
+    "elliptic": {
+      "name": "elliptic",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1098593,
+          "name": "elliptic",
+          "dependency": "elliptic",
+          "title": "Elliptic's EDDSA missing signature length check",
+          "url": "https://github.com/advisories/GHSA-f7q4-pwc6-w24p",
+          "severity": "low",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N"
+          },
+          "range": ">=4.0.0 <=6.5.6"
+        },
+        {
+          "source": 1098594,
+          "name": "elliptic",
+          "dependency": "elliptic",
+          "title": "Elliptic's ECDSA missing check for whether leading bit of r and s is zero",
+          "url": "https://github.com/advisories/GHSA-977x-g7h5-7qgw",
+          "severity": "low",
+          "cwe": [
+            "CWE-130"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N"
+          },
+          "range": ">=2.0.0 <=6.5.6"
+        },
+        {
+          "source": 1098595,
+          "name": "elliptic",
+          "dependency": "elliptic",
+          "title": "Elliptic allows BER-encoded signatures",
+          "url": "https://github.com/advisories/GHSA-49q7-c7j4-3p7m",
+          "severity": "low",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N"
+          },
+          "range": ">=5.2.1 <=6.5.6"
+        },
+        {
+          "source": 1101424,
+          "name": "elliptic",
+          "dependency": "elliptic",
+          "title": "Elliptic's verify function omits uniqueness validation",
+          "url": "https://github.com/advisories/GHSA-434g-2637-qmqr",
+          "severity": "low",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N"
+          },
+          "range": "<6.5.6"
+        },
+        {
+          "source": 1102901,
+          "name": "elliptic",
+          "dependency": "elliptic",
+          "title": "Elliptic's private key extraction in ECDSA upon signing a malformed input (e.g. a string)",
+          "url": "https://github.com/advisories/GHSA-vjh7-7g9h-fjfh",
+          "severity": "critical",
+          "cwe": [
+            "CWE-200"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=6.6.0"
+        },
+        {
+          "source": 1105750,
+          "name": "elliptic",
+          "dependency": "elliptic",
+          "title": "Valid ECDSA signatures erroneously rejected in Elliptic",
+          "url": "https://github.com/advisories/GHSA-fc9h-whq2-v747",
+          "severity": "low",
+          "cwe": [
+            "CWE-347"
+          ],
+          "cvss": {
+            "score": 4.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:L"
+          },
+          "range": "<6.6.0"
+        }
+      ],
+      "effects": [
+        "@ethersproject/signing-key",
+        "ethers"
+      ],
+      "range": "<=6.6.0",
+      "nodes": [
+        "node_modules/elliptic",
+        "node_modules/ganache/node_modules/elliptic"
+      ],
+      "fixAvailable": false
+    },
+    "eth-lib": {
+      "name": "eth-lib",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "servify",
+        "ws"
+      ],
+      "effects": [
+        "swarm-js"
+      ],
+      "range": "<=0.1.29",
+      "nodes": [
+        "node_modules/eth-lib"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "ethers": {
+      "name": "ethers",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@ethersproject/providers",
+        "@ethersproject/signing-key",
+        "elliptic"
+      ],
+      "effects": [
+        "@truffle/contract",
+        "@truffle/interface-adapter"
+      ],
+      "range": "3.0.0 - 4.0.49 || 5.0.15 - 5.7.2",
+      "nodes": [
+        "node_modules/@ensdomains/ensjs/node_modules/ethers",
+        "node_modules/ethers"
+      ],
+      "fixAvailable": false
+    },
+    "express": {
+      "name": "express",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        {
+          "source": 1096820,
+          "name": "express",
+          "dependency": "express",
+          "title": "Express.js Open Redirect in malformed URLs",
+          "url": "https://github.com/advisories/GHSA-rv95-896h-c2vc",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-601",
+            "CWE-1286"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<4.19.2"
+        },
+        {
+          "source": 1100530,
+          "name": "express",
+          "dependency": "express",
+          "title": "express vulnerable to XSS via response.redirect()",
+          "url": "https://github.com/advisories/GHSA-qw6h-vgh9-j6wx",
+          "severity": "low",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 5,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:L"
+          },
+          "range": "<4.20.0"
+        },
+        "body-parser",
+        "cookie",
+        "path-to-regexp",
+        "send",
+        "serve-static"
+      ],
+      "effects": [],
+      "range": "<=4.21.0 || 5.0.0-alpha.1 - 5.0.0",
+      "nodes": [
+        "node_modules/express"
+      ],
+      "fixAvailable": true
+    },
+    "form-data": {
+      "name": "form-data",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1106509,
+          "name": "form-data",
+          "dependency": "form-data",
+          "title": "form-data uses unsafe random function in form-data for choosing boundary",
+          "url": "https://github.com/advisories/GHSA-fjxv-7rqg-78g4",
+          "severity": "critical",
+          "cwe": [
+            "CWE-330"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<2.5.4"
+        }
+      ],
+      "effects": [
+        "request"
+      ],
+      "range": "<2.5.4",
+      "nodes": [
+        "node_modules/request/node_modules/form-data"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "ganache": {
+      "name": "ganache",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "@trufflesuite/uws-js-unofficial",
+        "secp256k1"
+      ],
+      "effects": [
+        "truffle"
+      ],
+      "range": "<=3.0.0-internal.16 || >=7.0.0-alpha.0",
+      "nodes": [
+        "node_modules/ganache"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "json5": {
+      "name": "json5",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1096544,
+          "name": "json5",
+          "dependency": "json5",
+          "title": "Prototype Pollution in JSON5 via Parse Method",
+          "url": "https://github.com/advisories/GHSA-9c47-m6qq-7p4h",
+          "severity": "high",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 7.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:H/I:L/A:H"
+          },
+          "range": ">=2.0.0 <2.2.2"
+        }
+      ],
+      "effects": [],
+      "range": "2.0.0 - 2.2.1",
+      "nodes": [
+        "node_modules/ganache/node_modules/json5"
+      ],
+      "fixAvailable": true
+    },
+    "micromatch": {
+      "name": "micromatch",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1098681,
+          "name": "micromatch",
+          "dependency": "micromatch",
+          "title": "Regular Expression Denial of Service (ReDoS) in micromatch",
+          "url": "https://github.com/advisories/GHSA-952p-6rrq-rcjv",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+          },
+          "range": "<4.0.8"
+        }
+      ],
+      "effects": [],
+      "range": "<4.0.8",
+      "nodes": [
+        "node_modules/ganache/node_modules/micromatch"
+      ],
+      "fixAvailable": true
+    },
+    "minimatch": {
+      "name": "minimatch",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1096485,
+          "name": "minimatch",
+          "dependency": "minimatch",
+          "title": "minimatch ReDoS vulnerability",
+          "url": "https://github.com/advisories/GHSA-f8q6-p94x-37v3",
+          "severity": "high",
+          "cwe": [
+            "CWE-400",
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<3.0.5"
+        }
+      ],
+      "effects": [
+        "mocha"
+      ],
+      "range": "<3.0.5",
+      "nodes": [
+        "node_modules/ganache/node_modules/minimatch"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "mocha": {
+      "name": "mocha",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "minimatch",
+        "nanoid",
+        "serialize-javascript"
+      ],
+      "effects": [
+        "truffle"
+      ],
+      "range": "5.1.0 - 10.5.2",
+      "nodes": [
+        "node_modules/ganache/node_modules/mocha",
+        "node_modules/mocha"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "nanoid": {
+      "name": "nanoid",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1089011,
+          "name": "nanoid",
+          "dependency": "nanoid",
+          "title": "Exposure of Sensitive Information to an Unauthorized Actor in nanoid",
+          "url": "https://github.com/advisories/GHSA-qrpm-p2h7-hrv2",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-200"
+          ],
+          "cvss": {
+            "score": 5.5,
+            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=3.0.0 <3.1.31"
+        },
+        {
+          "source": 1101163,
+          "name": "nanoid",
+          "dependency": "nanoid",
+          "title": "Predictable results in nanoid generation when given non-integer values",
+          "url": "https://github.com/advisories/GHSA-mwcw-c2x4-8c55",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-835"
+          ],
+          "cvss": {
+            "score": 4.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N"
+          },
+          "range": "<3.3.8"
+        }
+      ],
+      "effects": [
+        "mocha"
+      ],
+      "range": "<=3.3.7",
+      "nodes": [
+        "node_modules/ganache/node_modules/nanoid",
+        "node_modules/nanoid"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "path-to-regexp": {
+      "name": "path-to-regexp",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1101850,
+          "name": "path-to-regexp",
+          "dependency": "path-to-regexp",
+          "title": "path-to-regexp outputs backtracking regular expressions",
+          "url": "https://github.com/advisories/GHSA-9wv6-86v2-598j",
+          "severity": "high",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<0.1.10"
+        },
+        {
+          "source": 1105199,
+          "name": "path-to-regexp",
+          "dependency": "path-to-regexp",
+          "title": "path-to-regexp contains a ReDoS",
+          "url": "https://github.com/advisories/GHSA-rhx6-c78j-4q9w",
+          "severity": "high",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<0.1.12"
+        }
+      ],
+      "effects": [
+        "express"
+      ],
+      "range": "<=0.1.11",
+      "nodes": [
+        "node_modules/path-to-regexp"
+      ],
+      "fixAvailable": true
+    },
+    "pbkdf2": {
+      "name": "pbkdf2",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1105691,
+          "name": "pbkdf2",
+          "dependency": "pbkdf2",
+          "title": "pbkdf2 silently disregards Uint8Array input, returning static keys",
+          "url": "https://github.com/advisories/GHSA-v62p-rq8g-8h59",
+          "severity": "critical",
+          "cwe": [
+            "CWE-20"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=3.1.2"
+        },
+        {
+          "source": 1105692,
+          "name": "pbkdf2",
+          "dependency": "pbkdf2",
+          "title": "pbkdf2 returns predictable uninitialized/zero-filled memory for non-normalized or unimplemented algos",
+          "url": "https://github.com/advisories/GHSA-h7cp-r72f-jxh6",
+          "severity": "critical",
+          "cwe": [
+            "CWE-20"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=3.0.10 <=3.1.2"
+        }
+      ],
+      "effects": [],
+      "range": "<=3.1.2",
+      "nodes": [
+        "node_modules/ganache/node_modules/pbkdf2",
+        "node_modules/pbkdf2"
+      ],
+      "fixAvailable": true
+    },
+    "request": {
+      "name": "request",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1096727,
+          "name": "request",
+          "dependency": "request",
+          "title": "Server-Side Request Forgery in Request",
+          "url": "https://github.com/advisories/GHSA-p8p7-x288-28g6",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-918"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<=2.88.2"
+        },
+        "form-data",
+        "tough-cookie"
+      ],
+      "effects": [
+        "servify"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/request"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "secp256k1": {
+      "name": "secp256k1",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1100205,
+          "name": "secp256k1",
+          "dependency": "secp256k1",
+          "title": "secp256k1-node allows private key extraction over ECDH",
+          "url": "https://github.com/advisories/GHSA-584q-6j8j-r5pm",
+          "severity": "high",
+          "cwe": [
+            "CWE-200",
+            "CWE-354"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": ">=4.0.0 <4.0.4"
+        }
+      ],
+      "effects": [
+        "ganache"
+      ],
+      "range": "4.0.0 - 4.0.3",
+      "nodes": [
+        "node_modules/ganache/node_modules/secp256k1",
+        "node_modules/secp256k1"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "semver": {
+      "name": "semver",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1101088,
+          "name": "semver",
+          "dependency": "semver",
+          "title": "semver vulnerable to Regular Expression Denial of Service",
+          "url": "https://github.com/advisories/GHSA-c2qf-rxjj-qqgw",
+          "severity": "high",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=7.0.0 <7.5.2"
+        },
+        {
+          "source": 1101089,
+          "name": "semver",
+          "dependency": "semver",
+          "title": "semver vulnerable to Regular Expression Denial of Service",
+          "url": "https://github.com/advisories/GHSA-c2qf-rxjj-qqgw",
+          "severity": "high",
+          "cwe": [
+            "CWE-1333"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": "<5.7.2"
+        }
+      ],
+      "effects": [
+        "@microsoft/api-extractor",
+        "@rushstack/node-core-library"
+      ],
+      "range": ">=7.0.0 <7.5.2 || <5.7.2",
+      "nodes": [
+        "node_modules/ganache/node_modules/semver",
+        "node_modules/normalize-package-data/node_modules/semver",
+        "node_modules/solc/node_modules/semver"
+      ],
+      "fixAvailable": true
+    },
+    "send": {
+      "name": "send",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1100526,
+          "name": "send",
+          "dependency": "send",
+          "title": "send vulnerable to template injection that can lead to XSS",
+          "url": "https://github.com/advisories/GHSA-m6fv-jmcg-4jfg",
+          "severity": "low",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 5,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:L"
+          },
+          "range": "<0.19.0"
+        }
+      ],
+      "effects": [
+        "express",
+        "serve-static"
+      ],
+      "range": "<0.19.0",
+      "nodes": [
+        "node_modules/send"
+      ],
+      "fixAvailable": true
+    },
+    "serialize-javascript": {
+      "name": "serialize-javascript",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1105261,
+          "name": "serialize-javascript",
+          "dependency": "serialize-javascript",
+          "title": "Cross-site Scripting (XSS) in serialize-javascript",
+          "url": "https://github.com/advisories/GHSA-76p7-773f-r4q5",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 5.4,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": ">=6.0.0 <6.0.2"
+        }
+      ],
+      "effects": [
+        "mocha"
+      ],
+      "range": "6.0.0 - 6.0.1",
+      "nodes": [
+        "node_modules/ganache/node_modules/serialize-javascript",
+        "node_modules/serialize-javascript"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "serve-static": {
+      "name": "serve-static",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1100528,
+          "name": "serve-static",
+          "dependency": "serve-static",
+          "title": "serve-static vulnerable to template injection that can lead to XSS",
+          "url": "https://github.com/advisories/GHSA-cm22-4g7w-348p",
+          "severity": "low",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 5,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:L/A:L"
+          },
+          "range": "<1.16.0"
+        },
+        "send"
+      ],
+      "effects": [],
+      "range": "<=1.16.0",
+      "nodes": [
+        "node_modules/serve-static"
+      ],
+      "fixAvailable": true
+    },
+    "servify": {
+      "name": "servify",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "request"
+      ],
+      "effects": [
+        "eth-lib"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/servify"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "sha.js": {
+      "name": "sha.js",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1106988,
+          "name": "sha.js",
+          "dependency": "sha.js",
+          "title": "sha.js is missing type checks leading to hash rewind and passing on crafted data",
+          "url": "https://github.com/advisories/GHSA-95m3-7q98-8xr5",
+          "severity": "critical",
+          "cwe": [
+            "CWE-20"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<=2.4.11"
+        }
+      ],
+      "effects": [],
+      "range": "<=2.4.11",
+      "nodes": [
+        "node_modules/ganache/node_modules/sha.js",
+        "node_modules/sha.js"
+      ],
+      "fixAvailable": true
+    },
+    "solc": {
+      "name": "solc",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "yargs"
+      ],
+      "effects": [
+        "@ensdomains/ens"
+      ],
+      "range": "0.3.6 - 0.4.26",
+      "nodes": [
+        "node_modules/solc"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "swarm-js": {
+      "name": "swarm-js",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "eth-lib",
+        "tar"
+      ],
+      "effects": [
+        "web3-bzz"
+      ],
+      "range": ">=0.1.36",
+      "nodes": [
+        "node_modules/swarm-js"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "tar": {
+      "name": "tar",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1097493,
+          "name": "tar",
+          "dependency": "tar",
+          "title": "Denial of service while parsing a tar file due to lack of folders count validation",
+          "url": "https://github.com/advisories/GHSA-f5x3-32g6-xq36",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+          },
+          "range": "<6.2.1"
+        }
+      ],
+      "effects": [
+        "swarm-js"
+      ],
+      "range": "<6.2.1",
+      "nodes": [
+        "node_modules/tar"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "tough-cookie": {
+      "name": "tough-cookie",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1097682,
+          "name": "tough-cookie",
+          "dependency": "tough-cookie",
+          "title": "tough-cookie Prototype Pollution vulnerability",
+          "url": "https://github.com/advisories/GHSA-72xf-g2v4-qvf3",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N"
+          },
+          "range": "<4.1.3"
+        }
+      ],
+      "effects": [
+        "request"
+      ],
+      "range": "<4.1.3",
+      "nodes": [
+        "node_modules/request/node_modules/tough-cookie"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "truffle": {
+      "name": "truffle",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "@truffle/db",
+        "@truffle/db-loader",
+        "@truffle/debugger",
+        "ganache",
+        "mocha"
+      ],
+      "effects": [],
+      "range": "5.1.9-nodeLTS.0 || 5.1.14-alphaTez.0 - 5.1.14-truffleLogger.0 || >=5.1.66",
+      "nodes": [
+        "node_modules/truffle"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "web3": {
+      "name": "web3",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "web3-bzz"
+      ],
+      "effects": [
+        "@truffle/debugger"
+      ],
+      "range": "1.0.0-beta.1 - 3.0.0-rc.0",
+      "nodes": [
+        "node_modules/@truffle/contract/node_modules/web3",
+        "node_modules/@truffle/debugger/node_modules/web3",
+        "node_modules/@truffle/interface-adapter/node_modules/web3",
+        "node_modules/@truffle/provider/node_modules/web3",
+        "node_modules/web3"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "web3-bzz": {
+      "name": "web3-bzz",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "swarm-js"
+      ],
+      "effects": [
+        "web3"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/web3-bzz",
+        "node_modules/web3/node_modules/web3-bzz"
+      ],
+      "fixAvailable": {
+        "name": "web3",
+        "version": "4.16.0",
+        "isSemVerMajor": true
+      }
+    },
+    "webpack": {
+      "name": "webpack",
+      "severity": "critical",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1094471,
+          "name": "webpack",
+          "dependency": "webpack",
+          "title": "Cross-realm object access in Webpack 5",
+          "url": "https://github.com/advisories/GHSA-hc6q-2mpp-qw7j",
+          "severity": "critical",
+          "cwe": [],
+          "cvss": {
+            "score": 9.8,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+          },
+          "range": ">=5.0.0 <5.76.0"
+        },
+        {
+          "source": 1099351,
+          "name": "webpack",
+          "dependency": "webpack",
+          "title": "Webpack's AutoPublicPathRuntimeModule has a DOM Clobbering Gadget that leads to XSS",
+          "url": "https://github.com/advisories/GHSA-4vvj-4cpr-p986",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.4,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:L/A:H"
+          },
+          "range": ">=5.0.0-alpha.0 <5.94.0"
+        }
+      ],
+      "effects": [],
+      "range": "5.0.0-alpha.0 - 5.93.0",
+      "nodes": [
+        "node_modules/ganache/node_modules/webpack"
+      ],
+      "fixAvailable": true
+    },
+    "ws": {
+      "name": "ws",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1098392,
+          "name": "ws",
+          "dependency": "ws",
+          "title": "ws affected by a DoS when handling a request with many HTTP headers",
+          "url": "https://github.com/advisories/GHSA-3h5v-q93c-6h6q",
+          "severity": "high",
+          "cwe": [
+            "CWE-476"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=8.0.0 <8.17.1"
+        },
+        {
+          "source": 1098393,
+          "name": "ws",
+          "dependency": "ws",
+          "title": "ws affected by a DoS when handling a request with many HTTP headers",
+          "url": "https://github.com/advisories/GHSA-3h5v-q93c-6h6q",
+          "severity": "high",
+          "cwe": [
+            "CWE-476"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=7.0.0 <7.5.10"
+        },
+        {
+          "source": 1098395,
+          "name": "ws",
+          "dependency": "ws",
+          "title": "ws affected by a DoS when handling a request with many HTTP headers",
+          "url": "https://github.com/advisories/GHSA-3h5v-q93c-6h6q",
+          "severity": "high",
+          "cwe": [
+            "CWE-476"
+          ],
+          "cvss": {
+            "score": 7.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+          },
+          "range": ">=2.1.0 <5.2.4"
+        }
+      ],
+      "effects": [
+        "@ethersproject/providers",
+        "@trufflesuite/uws-js-unofficial",
+        "eth-lib"
+      ],
+      "range": "2.1.0 - 5.2.3 || 7.0.0 - 7.5.9 || 8.0.0 - 8.17.0",
+      "nodes": [
+        "node_modules/@ethersproject/providers/node_modules/ws",
+        "node_modules/eth-lib/node_modules/ws",
+        "node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/node_modules/ws"
+      ],
+      "fixAvailable": false
+    },
+    "yargs": {
+      "name": "yargs",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "yargs-parser"
+      ],
+      "effects": [
+        "solc"
+      ],
+      "range": "4.0.0-alpha1 - 7.0.0-alpha.3 || 7.1.1",
+      "nodes": [
+        "node_modules/yargs"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    },
+    "yargs-parser": {
+      "name": "yargs-parser",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1088783,
+          "name": "yargs-parser",
+          "dependency": "yargs-parser",
+          "title": "yargs-parser Vulnerable to Prototype Pollution",
+          "url": "https://github.com/advisories/GHSA-p9pc-299p-vxgp",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-915",
+            "CWE-1321"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L"
+          },
+          "range": "<=5.0.0"
+        }
+      ],
+      "effects": [
+        "yargs"
+      ],
+      "range": "<=5.0.0",
+      "nodes": [
+        "node_modules/yargs-parser"
+      ],
+      "fixAvailable": {
+        "name": "truffle",
+        "version": "5.5.7",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 5,
+      "moderate": 18,
+      "high": 29,
+      "critical": 7,
+      "total": 59
+    },
+    "dependencies": {
+      "prod": 688,
+      "dev": 1092,
+      "optional": 580,
+      "peer": 318,
+      "peerOptional": 0,
+      "total": 1780
+    }
+  }
+}
