@@ -35,7 +35,6 @@ jobs:
       shell: bash
       run: |
         set +e
-        npm config set target_platform linux 2>/dev/null || true
         npm config set target_arch x64 2>/dev/null || true
         npm config set optional false 2>/dev/null || true
         npm install --no-optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
@@ -73,7 +72,6 @@ jobs:
       shell: bash
       run: |
         set +e
-        npm config set target_platform linux 2>/dev/null || true
         npm config set target_arch x64 2>/dev/null || true 
         npm config set optional false 2>/dev/null || true
         npm install --no-optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
@@ -116,7 +114,6 @@ jobs:
       shell: bash
       run: |
         set +e
-        npm config set target_platform linux 2>/dev/null || true
         npm config set target_arch x64 2>/dev/null || true
         npm config set optional false 2>/dev/null || true
         npm install --no-optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
@@ -164,7 +161,6 @@ jobs:
       shell: bash
       run: |
         set +e
-        npm config set target_platform linux 2>/dev/null || true
         npm config set target_arch x64 2>/dev/null || true
         npm config set optional false 2>/dev/null || true
         npm install --no-optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
