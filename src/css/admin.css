@@ -29,6 +29,10 @@ h1 {
   margin-bottom: 30px;
 }
 
+.admin-title {
+  color: azure;
+}
+
 legend {
   font-size: 24px;
   color: #ffffff;

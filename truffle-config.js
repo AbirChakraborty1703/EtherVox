@@ -26,7 +26,7 @@ module.exports = {
   // Configure compiler
   compilers: {
     solc: {
-      version: "0.5.16",    // Use specific Solidity version
+      version: "0.8.0",    // Updated to match contract version
       settings: {
         optimizer: {
           enabled: true,
