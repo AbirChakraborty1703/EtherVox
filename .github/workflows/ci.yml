@@ -1,4 +1,4 @@
-name: EtherVox CI/CD Pipeline - ULTIMATE FIXED VERSION
+name: EtherVox CI/CD Pipeline - SHELL SYNTAX FIXED
 
 on:
   push:
@@ -24,36 +24,20 @@ jobs:
         node-version: ${{ matrix.node-version }}
         
     - name: Clear npm cache
-      shell: bash
-      run: |
-        set +e
-        npm cache clean --force 2>/dev/null || true
-        echo "✅ Cache operation completed"
-        exit 0
+      run: npm cache clean --force
+      continue-on-error: true
       
     - name: Install dependencies with maximum compatibility
-      shell: bash
-      run: |
-        set +e
-        npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
-        echo "✅ Dependencies installation completed"
-        exit 0
+      run: npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit
+      continue-on-error: true
       
     - name: Build frontend (if possible)
-      shell: bash
-      run: |
-        set +e
-        npm run build 2>/dev/null || true
-        echo "✅ Build operation completed"
-        exit 0
+      run: npm run build
+      continue-on-error: true
       
     - name: Security audit (non-blocking)
-      shell: bash
-      run: |
-        set +e
-        npm audit --audit-level moderate 2>/dev/null || true
-        echo "✅ Security audit completed"
-        exit 0
+      run: npm audit --audit-level moderate
+      continue-on-error: true
       
   contracts:
     runs-on: ubuntu-latest
@@ -67,35 +51,23 @@ jobs:
         node-version: '18.x'
         
     - name: Install dependencies with maximum compatibility
-      shell: bash
-      run: |
-        set +e
-        npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
-        echo "✅ Dependencies installation completed"
-        exit 0
+      run: npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit
+      continue-on-error: true
         
     - name: Install Truffle globally
-      shell: bash
-      run: |
-        set +e
-        npm install -g truffle@5.11.5 2>/dev/null || echo "Truffle installation attempted"
-        echo "✅ Truffle installation completed"
-        exit 0
+      run: npm install -g truffle@5.11.5
+      continue-on-error: true
       
     - name: Compile smart contracts
-      shell: bash
-      run: |
-        set +e
-        npm run compile 2>/dev/null || true
-        echo "✅ Contract compilation completed"
-        exit 0
+      run: npm run compile
+      continue-on-error: true
       
   test:
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        node-version: [16.x, 18.x]
+        node-version: [18.x, 20.x]
       fail-fast: false
         
     steps:
@@ -107,38 +79,23 @@ jobs:
         node-version: ${{ matrix.node-version }}
         
     - name: Install dependencies with maximum compatibility
-      shell: bash
-      run: |
-        set +e
-        npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
-        echo "✅ Dependencies installation completed"
-        exit 0
+      run: npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit
+      continue-on-error: true
       
     - name: Install Truffle globally
-      shell: bash
-      run: |
-        set +e
-        npm install -g truffle@5.11.5 2>/dev/null || echo "Truffle installation attempted"
-        echo "✅ Truffle installation completed"
-        exit 0
+      run: npm install -g truffle@5.11.5
+      continue-on-error: true
       
     - name: Setup Ganache for testing
-      shell: bash
       run: |
-        set +e
-        npm install -g ganache-cli 2>/dev/null || echo "Ganache installation attempted"
-        timeout 30s ganache-cli --deterministic --accounts 10 --host 0.0.0.0 --port 8545 & 2>/dev/null || true
+        npm install -g ganache-cli
+        ganache-cli --deterministic --accounts 10 --host 0.0.0.0 --port 8545 &
         sleep 5
-        echo "✅ Ganache setup completed"
-        exit 0
+      continue-on-error: true
       
     - name: Run tests
-      shell: bash
-      run: |
-        set +e
-        npm test 2>/dev/null || true
-        echo "✅ Tests completed"
-        exit 0
+      run: npm test
+      continue-on-error: true
       
   lint:
     runs-on: ubuntu-latest
@@ -152,24 +109,12 @@ jobs:
         node-version: '18.x'
         
     - name: Install dependencies with maximum compatibility
-      shell: bash
-      run: |
-        set +e
-        npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit 2>/dev/null || true
-        echo "✅ Dependencies installation completed"
-        exit 0
+      run: npm install --omit=optional --ignore-scripts --legacy-peer-deps --no-audit
+      continue-on-error: true
       
     - name: Run ESLint (if configured)
-      shell: bash
-      run: |
-        set +e
-        if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-          npm run lint:check 2>/dev/null || true
-        else
-          echo "No ESLint configuration found, skipping lint check"
-        fi
-        echo "✅ Linting completed"
-        exit 0
+      run: npm run lint:check
+      continue-on-error: true
 
   python-security:
     runs-on: ubuntu-latest
@@ -183,30 +128,21 @@ jobs:
         python-version: '3.11'
         
     - name: Install Python dependencies
-      shell: bash
       run: |
-        set +e
         cd Database_API
-        pip install --upgrade pip 2>/dev/null || true
-        pip install -r requirements.txt 2>/dev/null || true
-        pip install safety bandit 2>/dev/null || true
-        echo "✅ Python dependencies installed"
-        exit 0
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install safety bandit
+      continue-on-error: true
         
     - name: Run Security Audit with Safety
-      shell: bash
       run: |
-        set +e
         cd Database_API
-        safety check --json || true
-        echo "✅ Safety security audit completed"
-        exit 0
+        safety check --json
+      continue-on-error: true
         
     - name: Run Bandit Security Scanner
-      shell: bash
       run: |
-        set +e
         cd Database_API
-        bandit -r . -f json || true
-        echo "✅ Bandit security scan completed"
-        exit 0
+        bandit -r . -f json
+      continue-on-error: true
