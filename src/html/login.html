@@ -5,30 +5,135 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 ws: wss:;">
-  <title>EtherVox - Secure Login</title>
-  <link rel="stylesheet" type="text/css" href="../css/login.css">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 ws: wss:;">
+  <title>EtherVox - Secure Login Portal</title>
+  <link rel="stylesheet" type="text/css" href="/css/login.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
-  <h1 align="center" style="color: azure;">Decentralized Voting Using Ethereum Blockchain</h1>
-  <div class="container mt-5">
-    <h1>Login</h1>
-    <form id="loginForm">
-      <div class="form-group">
-        <label for="voter-id"><h3>Voter ID</h3></label>
-        <input type="text" class="form-control" id="voter-id" name="voter-id" placeholder="Voter id">
-      </div>
-      <div class="form-group">
-        <label for="password"><h3>Password</h3></label>
-        <input type="password" class="form-control" id="password" name="password" placeholder="Password">
-      </div>
-      <button type="submit" class="btn btn-primary"><b>Login</b></button>
-    </form>
+  <!-- Animated Background -->
+  <div class="background-animation">
+    <div class="floating-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+      <div class="shape shape-5"></div>
+    </div>
   </div>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-section">
+        <i class="fas fa-vote-yea logo-icon"></i>
+        <h1 class="logo-text">EtherVox</h1>
+      </div>
+      <p class="subtitle">🔐 Secure Blockchain Voting Platform</p>
+    </div>
+
+    <!-- Login Container -->
+    <div class="login-container">
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button class="tab-btn active" data-tab="admin">
+          <i class="fas fa-crown"></i>
+          <span>Admin Login</span>
+        </button>
+        <button class="tab-btn" data-tab="user">
+          <i class="fas fa-user"></i>
+          <span>User Login</span>
+        </button>
+      </div>
+
+      <!-- Admin Login Form -->
+      <div class="tab-content active" id="admin-tab">
+        <div class="form-header">
+          <i class="fas fa-shield-alt admin-icon"></i>
+          <h2>Administrator Access</h2>
+          <p>Manage elections and oversee the voting process</p>
+        </div>
+        
+        <form id="adminLoginForm" class="login-form">
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-user-shield input-icon"></i>
+              <input type="text" id="admin-id" name="admin-id" placeholder="Administrator ID" required>
+              <label for="admin-id">Administrator ID</label>
+            </div>
+          </div>
+          
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="admin-password" name="admin-password" placeholder="Password" required>
+              <label for="admin-password">Password</label>
+              <button type="button" class="toggle-password" data-target="admin-password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="login-btn admin-btn">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Access Admin Panel</span>
+            <div class="btn-glow"></div>
+          </button>
+        </form>
+      </div>
+
+      <!-- User Login Form -->
+      <div class="tab-content" id="user-tab">
+        <div class="form-header">
+          <i class="fas fa-vote-yea user-icon"></i>
+          <h2>Voter Access</h2>
+          <p>Cast your vote securely on the blockchain</p>
+        </div>
+        
+        <form id="userLoginForm" class="login-form">
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-id-card input-icon"></i>
+              <input type="text" id="voter-id" name="voter-id" placeholder="Voter ID" required>
+              <label for="voter-id">Voter ID</label>
+            </div>
+          </div>
+          
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="user-password" name="user-password" placeholder="Password" required>
+              <label for="user-password">Password</label>
+              <button type="button" class="toggle-password" data-target="user-password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="login-btn user-btn">
+            <i class="fas fa-vote-yea"></i>
+            <span>Enter Voting Portal</span>
+            <div class="btn-glow"></div>
+          </button>
+        </form>
+      </div>
+
+      <!-- Error/Success Messages -->
+      <div id="message-container" class="message-container"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>🔗 Powered by Ethereum Blockchain • Secure • Transparent • Decentralized</p>
+    </div>
+  </div>
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
-  <script src="../js/login.js" type="module"></script>
+  <script src="/js/login.js" type="module"></script>
 </body>
 
 </html>

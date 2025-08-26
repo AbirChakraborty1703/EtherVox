@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from mysql.connector import errorcode
 import jwt
+from datetime import datetime, timedelta
 
 # Loading the environment variables for database configuration
 dotenv.load_dotenv()
@@ -48,20 +49,29 @@ app.add_middleware(
 # Establish MySQL database connection using environment variables
 try:
     cnx = mysql.connector.connect(
-        user=os.environ['MYSQL_USER'],        # Database username
-        password=os.environ['MYSQL_PASSWORD'], # Database password
-        host=os.environ['MYSQL_HOST'],        # Database host
-        database=os.environ['MYSQL_DB'],      # Database name
+        user=os.environ.get('MYSQL_USER', 'root'),              # Database username
+        password=os.environ.get('MYSQL_PASSWORD', ''),          # Database password
+        host=os.environ.get('MYSQL_HOST', 'localhost'),         # Database host
+        port=int(os.environ.get('MYSQL_PORT', '3306')),         # Database port
+        database=os.environ.get('MYSQL_DB', 'ethervox_voting'), # Database name
+        charset='utf8mb4',                                       # Character set
+        collation='utf8mb4_unicode_ci',                         # Collation
+        autocommit=True                                         # Auto-commit transactions
     )
-    cursor = cnx.cursor()  # Create database cursor for queries
+    cursor = cnx.cursor(dictionary=True)  # Create database cursor for queries with dictionary results
+    print("✅ Database connection established successfully!")
+    print(f"Connected to MySQL database: {os.environ.get('MYSQL_DB', 'ethervox_voting')}")
 except mysql.connector.Error as err:
     # Handle database connection errors
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        print("Something is wrong with your user name or password")
+        print("❌ Something is wrong with your MySQL username or password")
+        print("Please check your .env file and MySQL credentials")
     elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        print("Database does not exist")
+        print("❌ Database does not exist")
+        print("Please run the setup_database.sql script in MySQL Workbench first")
     else:
-        print(err)
+        print(f"❌ Database connection error: {err}")
+    exit(1)
 
 # Authentication middleware to verify voter credentials
 async def authenticate(request: Request):
@@ -101,33 +111,116 @@ async def authenticate(request: Request):
 
 # Login endpoint for voter authentication and JWT token generation
 @app.get("/login")
-async def login(request: Request, voter_id: str, password: str):
-    await authenticate(request)  # Verify request authorization
-    role = await get_role(voter_id, password)  # Get user role
+async def login(voter_id: str, password: str):
+    """
+    Authenticate user and return JWT token
+    
+    Args:
+        voter_id (str): The voter's unique identifier
+        password (str): The voter's password
+    
+    Returns:
+        dict: Contains JWT token and user role
+    """
+    try:
+        # Check if user exists and credentials are valid
+        cursor.execute(
+            "SELECT voter_id FROM voters WHERE voter_id = %s AND password = %s", 
+            (voter_id, password)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid voter ID or password"
+            )
+        
+        # Try to get role if column exists, otherwise default to 'user'
+        try:
+            cursor.execute("SELECT role FROM voters WHERE voter_id = %s", (voter_id,))
+            role_result = cursor.fetchone()
+            user_role = role_result['role'] if role_result and 'role' in role_result else 'user'
+        except mysql.connector.Error:
+            # Role column doesn't exist, default to 'user' for regular users, 'admin' for A-prefixed IDs
+            user_role = 'admin' if voter_id.startswith('A') else 'user'
+        
+        # Generate JWT token with user information
+        token_payload = {
+            'voter_id': user['voter_id'],
+            'role': user_role,
+            'exp': datetime.utcnow() + timedelta(hours=24)  # Token expires in 24 hours
+        }
+        
+        token = jwt.encode(token_payload, os.environ.get('SECRET_KEY', 'default_secret'), algorithm='HS256')
+        
+        return {
+            'success': True,
+            'token': token,
+            'role': user_role,
+            'user': {
+                'voter_id': user['voter_id']
+            }
+        }
+        
+    except mysql.connector.Error as db_err:
+        print(f"Database error in login: {db_err}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error during authentication"
+        )
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )
 
-    # Generate JWT token with user credentials and role
-    token = jwt.encode({'password': password, 'voter_id': voter_id, 'role': role}, os.environ['SECRET_KEY'], algorithm='HS256')
-
-    return {'token': token, 'role': role}
-
-# Helper function to determine user role based on credentials
+# Helper function to determine user role based on credentials (deprecated - now handled in login)
 async def get_role(voter_id, password):
     try:
-        # Query database for user role with credentials
-        cursor.execute("SELECT role FROM voters WHERE voter_id = %s AND password = %s", (voter_id, password,))
-        role = cursor.fetchone()
-        if role:
-            return role[0]  # Return the role if found
+        # Query database for user with credentials
+        cursor.execute("SELECT voter_id FROM voters WHERE voter_id = %s AND password = %s", (voter_id, password,))
+        result = cursor.fetchone()
+        if result:
+            # Default role logic: admin if starts with 'A', otherwise user
+            return 'admin' if voter_id.startswith('A') else 'user'
         else:
             # Raise exception for invalid credentials
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid voter id or password"
             )
-    except mysql.connector.Error as err:
-        # Handle database query errors
-        print(err)
+    except mysql.connector.Error as db_err:
+        print(f"Database error in get_role: {db_err}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error"
         )
+# Health check endpoint
+@app.get("/")
+async def root():
+    """API health check endpoint"""
+    return {
+        "message": "EtherVox Database API is running!",
+        "status": "healthy",
+        "database": "connected"
+    }
+
+# Server startup
+if __name__ == "__main__":
+    import uvicorn
+    
+    print("🚀 Starting EtherVox Database API...")
+    print("📊 API Documentation: http://127.0.0.1:8000/docs")
+    print("🔗 Health Check: http://127.0.0.1:8000")
+    print("🔑 Login Endpoint: http://127.0.0.1:8000/login")
+    print()
+    
+    uvicorn.run(
+        app, 
+        host="127.0.0.1", 
+        port=8000, 
+        log_level="info",
+        reload=False
+    )
