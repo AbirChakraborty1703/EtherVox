@@ -3,10 +3,10 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-jose[cryptography]==3.3.0
-python-multipart==0.0.6
+python-multipart==0.0.18
 
 # Database connectivity
-mysql-connector-python==8.2.0
+mysql-connector-python==9.1.0
 
 # Security and authentication
 PyJWT==2.8.0
@@ -16,7 +16,7 @@ passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 
 # HTTP requests (if needed)
-requests==2.31.0
+requests==2.32.4
 
 # Development dependencies
 pytest==7.4.3
