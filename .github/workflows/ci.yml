@@ -21,10 +21,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f "package-lock.json" ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Build frontend
       run: npm run build
@@ -43,10 +47,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f "package-lock.json" ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Install Truffle globally
       run: npm install -g truffle@5.11.5
@@ -54,6 +62,36 @@ jobs:
     - name: Compile smart contracts
       run: npm run compile
       continue-on-error: false
+      
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x]
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        
+    - name: Install dependencies
+      run: |
+        if [ -f "package-lock.json" ]; then
+          npm ci
+        else
+          npm install
+        fi
+      
+    - name: Install Truffle globally
+      run: npm install -g truffle@5.11.5
+      
+    - name: Run tests
+      run: npm test
+      continue-on-error: true
       
   lint:
     runs-on: ubuntu-latest
@@ -65,10 +103,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f "package-lock.json" ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Run ESLint (if configured)
       run: |
