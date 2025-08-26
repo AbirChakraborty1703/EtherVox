@@ -1,33 +1,29 @@
-# EtherVox Database API Dependencies - Latest Versions 2025
+# EtherVox Database API Dependencies - Security-Patched Versions 2025
 # Core FastAPI framework and dependencies
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
 python-jose[cryptography]==3.3.0
-python-multipart==0.0.6
+python-multipart==0.0.12
 
-# Database connectivity
-mysql-connector-python==8.3.0
-pymongo==4.6.1
-motor==3.3.2
+# Database connectivity  
+mysql-connector-python==9.0.0
+pymongo==4.8.0
+motor==3.5.1
 
-# Security and authentication
-PyJWT==2.8.0
+# Security and authentication (PATCHED VERSIONS)
+PyJWT==2.9.0
 passlib[bcrypt]==1.7.4
 
 # Environment and configuration
 python-dotenv==1.0.1
 
-# HTTP requests and additional utilities
-requests==2.31.0
-pydantic==2.5.3
+# HTTP requests and additional utilities (PATCHED VERSIONS)
+requests==2.32.3
+pydantic==2.9.1
 
-# Development and testing dependencies
-pytest==8.0.0
-pytest-asyncio==0.23.4
+# Development and testing dependencies (UNIFIED VERSIONS)
+pytest==8.3.2
+pytest-asyncio==0.24.0
 
 # CORS support
 python-cors==1.7.0
-
-# Development dependencies
-pytest==7.4.3
-pytest-asyncio==0.21.1
