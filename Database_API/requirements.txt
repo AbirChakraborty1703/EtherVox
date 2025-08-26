@@ -7,6 +7,8 @@ python-multipart==0.0.6
 
 # Database connectivity
 mysql-connector-python==8.3.0
+pymongo==4.6.1
+motor==3.3.2
 
 # Security and authentication
 PyJWT==2.8.0

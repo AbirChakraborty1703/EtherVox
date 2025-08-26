@@ -23,11 +23,19 @@ contract Voting {
     // Contract owner for administrative functions
     address public owner;
     
-    // Structure to store candidate information
+    // Structure to store comprehensive candidate information
     struct Candidate {
         uint256 id;
         string name;
+        uint256 age;
+        string dateOfBirth;       // Format: DD-MM-YYYY
+        string electionCenter;    // Election center address
         string party; 
+        string candidateAddress;  // Candidate's personal address
+        string email;
+        string phoneNumber;
+        string candidateId;       // Unique candidate ID
+        string candidatePassword; // Candidate password (hashed)
         uint256 voteCount;
     }
 
@@ -53,6 +61,7 @@ contract Voting {
     error AlreadyVoted(address voter);
     error InvalidCandidate(uint256 candidateId);
     error EmptyString(string field);
+    error InvalidAge(uint256 age);
     error InvalidTimeRange();
     error VotingAlreadyInitialized();
 
@@ -76,13 +85,46 @@ contract Voting {
         emit OwnershipTransferred(address(0), msg.sender);
     }
 
-    // Admin function to add candidates (only owner)
-    function addCandidate(string memory name, string memory party) public onlyOwner returns(uint256) {
+    // Admin function to add comprehensive candidate information (only owner)
+    function addCandidate(
+        string memory name,
+        uint256 age,
+        string memory dateOfBirth,
+        string memory electionCenter,
+        string memory party,
+        string memory candidateAddress,
+        string memory email,
+        string memory phoneNumber,
+        string memory candidateId,
+        string memory candidatePassword
+    ) public onlyOwner returns(uint256) {
+        // Input validation
         if (bytes(name).length == 0) revert EmptyString("name");
+        if (age == 0 || age < 18) revert InvalidAge(age);
+        if (bytes(dateOfBirth).length == 0) revert EmptyString("dateOfBirth");
+        if (bytes(electionCenter).length == 0) revert EmptyString("electionCenter");
         if (bytes(party).length == 0) revert EmptyString("party");
+        if (bytes(candidateAddress).length == 0) revert EmptyString("candidateAddress");
+        if (bytes(email).length == 0) revert EmptyString("email");
+        if (bytes(phoneNumber).length == 0) revert EmptyString("phoneNumber");
+        if (bytes(candidateId).length == 0) revert EmptyString("candidateId");
+        if (bytes(candidatePassword).length == 0) revert EmptyString("candidatePassword");
         
         countCandidates++;
-        candidates[countCandidates] = Candidate(countCandidates, name, party, 0);
+        candidates[countCandidates] = Candidate(
+            countCandidates,
+            name,
+            age,
+            dateOfBirth,
+            electionCenter,
+            party,
+            candidateAddress,
+            email,
+            phoneNumber,
+            candidateId,
+            candidatePassword,
+            0
+        );
         
         emit CandidateAdded(countCandidates, name, party);
         return countCandidates;
@@ -120,13 +162,37 @@ contract Voting {
         return countCandidates;
     }
 
-    // Get candidate details by ID
-    function getCandidate(uint256 candidateID) public view returns (uint256, string memory, string memory, uint256) {
+    // Get candidate details by ID - returns all candidate information
+    function getCandidate(uint256 candidateID) public view returns (
+        uint256 id,
+        string memory name,
+        uint256 age,
+        string memory dateOfBirth,
+        string memory electionCenter,
+        string memory party,
+        string memory candidateAddress,
+        string memory email,
+        string memory phoneNumber,
+        string memory candidateId,
+        uint256 voteCount
+    ) {
         if (candidateID == 0 || candidateID > countCandidates) {
             revert InvalidCandidate(candidateID);
         }
         Candidate memory candidate = candidates[candidateID];
-        return (candidateID, candidate.name, candidate.party, candidate.voteCount);
+        return (
+            candidateID,
+            candidate.name,
+            candidate.age,
+            candidate.dateOfBirth,
+            candidate.electionCenter,
+            candidate.party,
+            candidate.candidateAddress,
+            candidate.email,
+            candidate.phoneNumber,
+            candidate.candidateId,
+            candidate.voteCount
+        );
     }
 
     // Get all candidates (gas-optimized)

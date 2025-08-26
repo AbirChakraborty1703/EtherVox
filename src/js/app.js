@@ -139,17 +139,36 @@ window.App = {
       
       // Set up event handlers
       $(document).ready(function(){
-        $('#addCandidate').click(async function() {
+        // Enhanced Add Candidate Handler
+        $('#candidateForm').on('submit', async function(e) {
+          e.preventDefault();
+          
           try {
-            const nameCandidate = $('#name').val();
-            const partyCandidate = $('#party').val();
-            
-            if (!nameCandidate || !partyCandidate) {
-              alert('Please enter both candidate name and party.');
+            // Collect all form data
+            const candidateData = {
+              name: $('#name').val().trim(),
+              age: parseInt($('#age').val()),
+              dateOfBirth: $('#dateOfBirth').val(),
+              electionCenter: $('#electionCenter').val().trim(),
+              party: $('#party').val().trim(),
+              candidateAddress: $('#candidateAddress').val().trim(),
+              email: $('#email').val().trim(),
+              phoneNumber: $('#phoneNumber').val().trim(),
+              candidateId: $('#candidateId').val().trim(),
+              candidatePassword: $('#candidatePassword').val(),
+              confirmPassword: $('#confirmPassword').val()
+            };
+
+            // Client-side validation
+            if (!App.validateCandidateData(candidateData)) {
               return;
             }
 
-            console.log('Attempting to add candidate:', nameCandidate, partyCandidate);
+            // Show loading status
+            App.showStatus('Processing candidate registration...', 'info');
+            $('#addCandidate').prop('disabled', true);
+
+            console.log('Attempting to add candidate:', candidateData.name, candidateData.party);
             console.log('Using contract:', App.contracts.Voting);
             console.log('From account:', App.account);
 
@@ -161,40 +180,140 @@ window.App = {
               console.log('Is current account owner?', contractOwner.toLowerCase() === App.account.toLowerCase());
               
               if (contractOwner.toLowerCase() !== App.account.toLowerCase()) {
-                alert(`Only the contract owner can add candidates. Current owner: ${contractOwner}, Your account: ${App.account}`);
+                App.showStatus(`Only the contract owner can add candidates. Current owner: ${contractOwner}`, 'error');
                 return;
               }
             } catch (ownerError) {
               console.error('Error checking owner:', ownerError);
+              App.showStatus('Error checking contract owner permissions.', 'error');
+              return;
             }
 
-            // First, let's try to estimate gas
+            // Hash the password for security (simple hash for demo)
+            const hashedPassword = await App.hashPassword(candidateData.candidatePassword);
+
+            // First, save candidate to MongoDB
             try {
-              const gasEstimate = await instance.methods.addCandidate(nameCandidate, partyCandidate).estimateGas({
+              App.showStatus('Saving candidate to database...', 'info');
+              
+              const mongoResponse = await fetch('http://127.0.0.1:8001/candidates', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  name: candidateData.name,
+                  age: candidateData.age,
+                  dateOfBirth: candidateData.dateOfBirth,
+                  electionCenter: candidateData.electionCenter,
+                  party: candidateData.party,
+                  candidateAddress: candidateData.candidateAddress,
+                  email: candidateData.email,
+                  phoneNumber: candidateData.phoneNumber,
+                  candidateId: candidateData.candidateId,
+                  candidatePassword: candidateData.candidatePassword
+                })
+              });
+
+              if (!mongoResponse.ok) {
+                const errorData = await mongoResponse.json();
+                throw new Error(`Database error: ${errorData.detail || 'Failed to save candidate'}`);
+              }
+
+              const mongoResult = await mongoResponse.json();
+              console.log('Candidate saved to MongoDB:', mongoResult);
+              const mongoId = mongoResult.mongodb_id;
+              
+              App.showStatus('Candidate saved to database. Adding to blockchain...', 'info');
+
+              // Now add to blockchain with MongoDB reference
+              const gasEstimate = await instance.methods.addCandidate(
+                candidateData.name,
+                candidateData.age,
+                candidateData.dateOfBirth,
+                candidateData.electionCenter,
+                candidateData.party,
+                candidateData.candidateAddress,
+                candidateData.email,
+                candidateData.phoneNumber,
+                candidateData.candidateId,
+                hashedPassword
+              ).estimateGas({
                 from: App.account
               });
+              
               console.log('Gas estimate:', gasEstimate);
               
-              const result = await instance.methods.addCandidate(nameCandidate, partyCandidate).send({
+              const blockchainResult = await instance.methods.addCandidate(
+                candidateData.name,
+                candidateData.age,
+                candidateData.dateOfBirth,
+                candidateData.electionCenter,
+                candidateData.party,
+                candidateData.candidateAddress,
+                candidateData.email,
+                candidateData.phoneNumber,
+                candidateData.candidateId,
+                hashedPassword
+              ).send({
                 from: App.account,
-                gas: gasEstimate + 10000 // Add buffer to gas estimate
+                gas: gasEstimate + 50000 // Add buffer to gas estimate
               });
               
-              console.log('Candidate added successfully:', result);
-              alert('Candidate added successfully!');
-              window.location.reload();
+              console.log('Candidate added to blockchain:', blockchainResult);
               
+              // Update MongoDB record with blockchain transaction hash
+              try {
+                await fetch(`http://127.0.0.1:8001/candidates/${mongoId}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    ...candidateData,
+                    blockchainAddress: blockchainResult.transactionHash
+                  })
+                });
+              } catch (updateError) {
+                console.error('Error updating MongoDB with blockchain reference:', updateError);
+              }
+
+              App.showStatus(`Candidate "${candidateData.name}" registered successfully in both database and blockchain!`, 'success');
+              $('#candidateForm')[0].reset();
+              
+            } catch (mongoError) {
+              console.error('MongoDB save failed:', mongoError);
+              App.showStatus(`Database error: ${mongoError.message}. Candidate not saved.`, 'error');
+              return;
+            }
+
             } catch (gasError) {
-              console.error('Gas estimation failed:', gasError);
-              // Try with fixed gas if estimation fails
-              const result = await instance.methods.addCandidate(nameCandidate, partyCandidate).send({
-                from: App.account,
-                gas: 500000
-              });
+              console.error('Gas estimation failed, trying with fixed gas:', gasError);
               
-              console.log('Candidate added successfully:', result);
-              alert('Candidate added successfully!');
-              window.location.reload();
+              try {
+                const result = await instance.methods.addCandidate(
+                  candidateData.name,
+                  candidateData.age,
+                  candidateData.dateOfBirth,
+                  candidateData.electionCenter,
+                  candidateData.party,
+                  candidateData.candidateAddress,
+                  candidateData.email,
+                  candidateData.phoneNumber,
+                  candidateData.candidateId,
+                  hashedPassword
+                ).send({
+                  from: App.account,
+                  gas: 800000
+                });
+                
+                console.log('Candidate added successfully:', result);
+                App.showStatus(`Candidate "${candidateData.name}" added successfully!`, 'success');
+                $('#candidateForm')[0].reset();
+              } catch (fixedGasError) {
+                console.error('Fixed gas transaction also failed:', fixedGasError);
+                App.showStatus(`Blockchain error: ${fixedGasError.message || 'Transaction failed'}`, 'error');
+              }
             }
             
           } catch (error) {
@@ -403,8 +522,163 @@ window.App = {
         $("#msg").html("<p>Failed to cast vote. Please try again.</p>");
       }
     }
+  },
+
+  // Utility Functions for Enhanced Admin Interface
+  
+  // Validate candidate data
+  validateCandidateData: function(data) {
+    // Check required fields
+    const requiredFields = ['name', 'age', 'dateOfBirth', 'electionCenter', 'party', 'candidateAddress', 'email', 'phoneNumber', 'candidateId', 'candidatePassword'];
+    
+    for (let field of requiredFields) {
+      if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
+        App.showStatus(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`, 'error');
+        return false;
+      }
+    }
+
+    // Age validation
+    if (data.age < 18 || data.age > 120) {
+      App.showStatus('Age must be between 18 and 120 years.', 'error');
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      App.showStatus('Please enter a valid email address.', 'error');
+      return false;
+    }
+
+    // Phone validation (basic)
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    if (!phoneRegex.test(data.phoneNumber.replace(/[\s\-\(\)]/g, ''))) {
+      App.showStatus('Please enter a valid phone number.', 'error');
+      return false;
+    }
+
+    // Password validation
+    if (data.candidatePassword.length < 8) {
+      App.showStatus('Password must be at least 8 characters long.', 'error');
+      return false;
+    }
+
+    if (data.candidatePassword !== data.confirmPassword) {
+      App.showStatus('Passwords do not match.', 'error');
+      return false;
+    }
+
+    // Date of birth validation
+    const dob = new Date(data.dateOfBirth);
+    const today = new Date();
+    const age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+
+    if (age !== data.age) {
+      App.showStatus('Age does not match the date of birth.', 'error');
+      return false;
+    }
+
+    return true;
+  },
+
+  // Show status messages
+  showStatus: function(message, type = 'info') {
+    const statusDiv = $('#candidateStatus');
+    statusDiv.removeClass('success error info').addClass(type);
+    statusDiv.text(message).fadeIn();
+    
+    // Auto-hide after 5 seconds for success messages
+    if (type === 'success') {
+      setTimeout(() => {
+        statusDiv.fadeOut();
+      }, 5000);
+    }
+    
+    // Re-enable the submit button
+    $('#addCandidate').prop('disabled', false);
+  },
+
+  // Simple password hashing (for demo purposes - use proper hashing in production)
+  hashPassword: async function(password) {
+    // In production, use a proper hashing library like bcrypt
+    // For demo purposes, we'll use a simple hash
+    let hash = 0;
+    if (password.length === 0) return hash.toString();
+    
+    for (let i = 0; i < password.length; i++) {
+      const char = password.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return Math.abs(hash).toString();
+  },
+
+  // Fetch candidates from MongoDB
+  fetchCandidatesFromDB: async function() {
+    try {
+      const response = await fetch('http://127.0.0.1:8001/candidates');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Candidates from MongoDB:', data);
+      
+      return data.candidates || [];
+    } catch (error) {
+      console.error('Error fetching candidates from database:', error);
+      return [];
+    }
+  },
+
+  // Display candidates in the UI
+  displayCandidates: async function() {
+    try {
+      const candidates = await App.fetchCandidatesFromDB();
+      
+      // Update candidate list display (if there's a candidates list element)
+      const candidatesList = $('#candidatesList');
+      if (candidatesList.length > 0) {
+        candidatesList.empty();
+        
+        if (candidates.length === 0) {
+          candidatesList.append('<p>No candidates registered yet.</p>');
+          return;
+        }
+        
+        candidates.forEach(candidate => {
+          const candidateCard = `
+            <div class="candidate-card">
+              <h3>${candidate.name}</h3>
+              <p><strong>Party:</strong> ${candidate.party}</p>
+              <p><strong>Age:</strong> ${candidate.age}</p>
+              <p><strong>Election Center:</strong> ${candidate.electionCenter}</p>
+              <p><strong>Email:</strong> ${candidate.email}</p>
+              <p><strong>Phone:</strong> ${candidate.phoneNumber}</p>
+              <p><strong>Candidate ID:</strong> ${candidate.candidateId}</p>
+              <p><strong>Registered:</strong> ${new Date(candidate.createdAt).toLocaleDateString()}</p>
+            </div>
+          `;
+          candidatesList.append(candidateCard);
+        });
+      }
+      
+      return candidates;
+    } catch (error) {
+      console.error('Error displaying candidates:', error);
+    }
   }
-};// Initialize the application when page loads
+};
+
+// Initialize the application when page loads
 window.addEventListener("load", function() {
   App.eventStart();
 });

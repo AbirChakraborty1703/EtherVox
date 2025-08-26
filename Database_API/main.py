@@ -24,6 +24,11 @@ from fastapi.encoders import jsonable_encoder
 from mysql.connector import errorcode
 import jwt
 from datetime import datetime, timedelta
+from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 
 # Loading the environment variables for database configuration
 dotenv.load_dotenv()
@@ -35,6 +40,8 @@ app = FastAPI()
 origins = [
     "http://localhost:8080",    # Local development server
     "http://127.0.0.1:8080",   # Alternative localhost address
+    "http://localhost:8081",    # New port for Express server
+    "http://127.0.0.1:8081",   # Alternative localhost address for new port
 ]
 
 # Configure CORS middleware for cross-origin requests
@@ -45,6 +52,10 @@ app.add_middleware(
     allow_methods=["*"],        # Allow all HTTP methods
     allow_headers=["*"],        # Allow all headers
 )
+
+# ===============================================
+# DATABASE CONNECTIONS
+# ===============================================
 
 # Establish MySQL database connection using environment variables
 try:
@@ -59,7 +70,7 @@ try:
         autocommit=True                                         # Auto-commit transactions
     )
     cursor = cnx.cursor(dictionary=True)  # Create database cursor for queries with dictionary results
-    print("✅ Database connection established successfully!")
+    print("✅ MySQL Database connection established successfully!")
     print(f"Connected to MySQL database: {os.environ.get('MYSQL_DB', 'ethervox_voting')}")
 except mysql.connector.Error as err:
     # Handle database connection errors
@@ -72,6 +83,69 @@ except mysql.connector.Error as err:
     else:
         print(f"❌ Database connection error: {err}")
     exit(1)
+
+# Establish MongoDB connection for candidate data storage
+try:
+    # MongoDB connection URL from environment variables
+    MONGODB_URL = os.environ.get('MONGODB_URL', 'mongodb://localhost:27017')
+    MONGODB_DB = os.environ.get('MONGODB_DB', 'ethervox_candidates')
+    MONGODB_COLLECTION = os.environ.get('MONGODB_COLLECTION', 'candidates')
+    
+    # Create MongoDB client
+    mongo_client = AsyncIOMotorClient(MONGODB_URL)
+    mongo_db = mongo_client[MONGODB_DB]
+    candidates_collection = mongo_db[MONGODB_COLLECTION]
+    
+    print("✅ MongoDB Database connection established successfully!")
+    print(f"Connected to MongoDB database: {MONGODB_DB}")
+    print(f"Candidate collection: {MONGODB_COLLECTION}")
+    
+except Exception as err:
+    print(f"❌ MongoDB connection error: {err}")
+    print("Make sure MongoDB is running on your system")
+    exit(1)
+
+# ===============================================
+# DATA MODELS
+# ===============================================
+
+# Pydantic model for candidate data
+class CandidateModel(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    age: int = Field(..., ge=18, le=120)
+    dateOfBirth: str = Field(..., description="Date in YYYY-MM-DD format")
+    electionCenter: str = Field(..., min_length=1, max_length=200)
+    party: str = Field(..., min_length=1, max_length=100)
+    candidateAddress: str = Field(..., min_length=1, max_length=300)
+    email: str = Field(..., pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+    phoneNumber: str = Field(..., min_length=10, max_length=15)
+    candidateId: str = Field(..., min_length=1, max_length=50)
+    candidatePassword: str = Field(..., min_length=8)
+    createdAt: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
+    blockchainAddress: Optional[str] = None
+    isActive: bool = Field(default=True)
+
+class CandidateResponse(BaseModel):
+    id: str = Field(alias="_id")
+    name: str
+    age: int
+    dateOfBirth: str
+    electionCenter: str
+    party: str
+    candidateAddress: str
+    email: str
+    phoneNumber: str
+    candidateId: str
+    createdAt: str
+    blockchainAddress: Optional[str] = None
+    isActive: bool
+
+    class Config:
+        populate_by_name = True
+
+# ===============================================
+# AUTHENTICATION MIDDLEWARE
+# ===============================================
 
 # Authentication middleware to verify voter credentials
 async def authenticate(request: Request):
@@ -197,6 +271,258 @@ async def get_role(voter_id, password):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database error"
         )
+
+# ===============================================
+# CANDIDATE MANAGEMENT ENDPOINTS (MongoDB)
+# ===============================================
+
+@app.post("/candidates")
+async def create_candidate(candidate: CandidateModel):
+    """
+    Create a new candidate profile in MongoDB
+    
+    Args:
+        candidate (CandidateModel): Candidate data
+    
+    Returns:
+        dict: Created candidate information with MongoDB ID
+    """
+    try:
+        # Convert pydantic model to dict and prepare for MongoDB
+        candidate_dict = candidate.dict()
+        
+        # Hash the password before storing (in production, use proper hashing)
+        import hashlib
+        candidate_dict['candidatePassword'] = hashlib.sha256(
+            candidate_dict['candidatePassword'].encode()
+        ).hexdigest()
+        
+        # Insert candidate into MongoDB
+        result = await candidates_collection.insert_one(candidate_dict)
+        
+        # Get the created candidate
+        created_candidate = await candidates_collection.find_one(
+            {"_id": result.inserted_id}
+        )
+        
+        # Convert ObjectId to string for JSON response
+        created_candidate["_id"] = str(created_candidate["_id"])
+        
+        return {
+            "message": "Candidate created successfully",
+            "candidate": created_candidate,
+            "mongodb_id": str(result.inserted_id)
+        }
+        
+    except Exception as e:
+        print(f"Error creating candidate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create candidate: {str(e)}"
+        )
+
+@app.get("/candidates")
+async def get_all_candidates():
+    """
+    Get all candidates from MongoDB
+    
+    Returns:
+        dict: List of all candidates
+    """
+    try:
+        candidates = []
+        async for candidate in candidates_collection.find({"isActive": True}):
+            candidate["_id"] = str(candidate["_id"])
+            # Remove password from response
+            candidate.pop("candidatePassword", None)
+            candidates.append(candidate)
+        
+        return {
+            "message": "Candidates retrieved successfully",
+            "count": len(candidates),
+            "candidates": candidates
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidates: {str(e)}"
+        )
+
+@app.get("/candidates/{candidate_id}")
+async def get_candidate_by_id(candidate_id: str):
+    """
+    Get a specific candidate by MongoDB ID
+    
+    Args:
+        candidate_id (str): MongoDB ObjectId of the candidate
+    
+    Returns:
+        dict: Candidate information
+    """
+    try:
+        # Find candidate by MongoDB ObjectId
+        candidate = await candidates_collection.find_one(
+            {"_id": ObjectId(candidate_id)}
+        )
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        
+        # Convert ObjectId to string and remove password
+        candidate["_id"] = str(candidate["_id"])
+        candidate.pop("candidatePassword", None)
+        
+        return {
+            "message": "Candidate retrieved successfully",
+            "candidate": candidate
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidate: {str(e)}"
+        )
+
+@app.get("/candidates/search/{candidate_unique_id}")
+async def get_candidate_by_unique_id(candidate_unique_id: str):
+    """
+    Get a candidate by their unique candidate ID
+    
+    Args:
+        candidate_unique_id (str): Unique candidate ID
+    
+    Returns:
+        dict: Candidate information
+    """
+    try:
+        candidate = await candidates_collection.find_one(
+            {"candidateId": candidate_unique_id, "isActive": True}
+        )
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        
+        # Convert ObjectId to string and remove password
+        candidate["_id"] = str(candidate["_id"])
+        candidate.pop("candidatePassword", None)
+        
+        return {
+            "message": "Candidate retrieved successfully",
+            "candidate": candidate
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidate: {str(e)}"
+        )
+
+@app.put("/candidates/{candidate_id}")
+async def update_candidate(candidate_id: str, candidate: CandidateModel):
+    """
+    Update a candidate's information
+    
+    Args:
+        candidate_id (str): MongoDB ObjectId of the candidate
+        candidate (CandidateModel): Updated candidate data
+    
+    Returns:
+        dict: Updated candidate information
+    """
+    try:
+        # Convert pydantic model to dict
+        update_dict = candidate.dict()
+        
+        # Hash password if provided
+        if update_dict.get('candidatePassword'):
+            import hashlib
+            update_dict['candidatePassword'] = hashlib.sha256(
+                update_dict['candidatePassword'].encode()
+            ).hexdigest()
+        
+        # Update the document
+        result = await candidates_collection.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {"$set": update_dict}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        
+        # Get updated candidate
+        updated_candidate = await candidates_collection.find_one(
+            {"_id": ObjectId(candidate_id)}
+        )
+        
+        # Convert ObjectId to string and remove password
+        updated_candidate["_id"] = str(updated_candidate["_id"])
+        updated_candidate.pop("candidatePassword", None)
+        
+        return {
+            "message": "Candidate updated successfully",
+            "candidate": updated_candidate
+        }
+        
+    except Exception as e:
+        print(f"Error updating candidate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update candidate: {str(e)}"
+        )
+
+@app.delete("/candidates/{candidate_id}")
+async def delete_candidate(candidate_id: str):
+    """
+    Soft delete a candidate (mark as inactive)
+    
+    Args:
+        candidate_id (str): MongoDB ObjectId of the candidate
+    
+    Returns:
+        dict: Deletion confirmation
+    """
+    try:
+        # Soft delete by setting isActive to False
+        result = await candidates_collection.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {"$set": {"isActive": False}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        
+        return {
+            "message": "Candidate deleted successfully",
+            "candidate_id": candidate_id
+        }
+        
+    except Exception as e:
+        print(f"Error deleting candidate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete candidate: {str(e)}"
+        )
+
+# ===============================================
+# HEALTH CHECK ENDPOINT
+# ===============================================
+
 # Health check endpoint
 @app.get("/")
 async def root():
@@ -212,15 +538,15 @@ if __name__ == "__main__":
     import uvicorn
     
     print("🚀 Starting EtherVox Database API...")
-    print("📊 API Documentation: http://127.0.0.1:8000/docs")
-    print("🔗 Health Check: http://127.0.0.1:8000")
-    print("🔑 Login Endpoint: http://127.0.0.1:8000/login")
+    print("📊 API Documentation: http://127.0.0.1:8001/docs")
+    print("🔗 Health Check: http://127.0.0.1:8001")
+    print("🔑 Login Endpoint: http://127.0.0.1:8001/login")
     print()
     
     uvicorn.run(
         app, 
         host="127.0.0.1", 
-        port=8000, 
+        port=8001, 
         log_level="info",
         reload=False
     )

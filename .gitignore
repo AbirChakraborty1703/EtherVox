@@ -110,3 +110,27 @@ SETUP_*.md
 STATUS_*.md
 AUDIT_*.md
 FIX_*.md
+
+# MongoDB data directory
+Database_API/mongodb_data/
+
+# Temporary screen clips and system files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+TempState/
+ScreenClip/
+
+# System and editor temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup

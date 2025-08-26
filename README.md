@@ -1,21 +1,36 @@
-# 🗳️ EtherVox - Modern Decentralized Voting Platform
+# EtherVox - Decentralized Voting System ️
 
-## 🚀 **NEW & IMPROVED** - Complete Modern UI & Database Integration!
+[![EtherVox CI/CD Pipeline](https://github.com/AbirChakraborty1703/EtherVox/actions/workflows/ci.yml/badge.svg)](https://github.com/AbirChakraborty1703/EtherVox/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.19-blue)](https://soliditylang.org/)
 
-### 🎯 What's New in This Version:
-- ✨ **Beautiful Modern Login System** with glass morphism effects
+A modern, secure, and scalable decentralized voting application built on Ethereum blockchain with multi-database architecture.
+
+## 🚀 New Features - Multi-Database Integration
+
+### Enhanced Admin Interface
+- ✨ **Beautiful Modern Login System** with glass morphism effects  
 - 🔐 **Dual Authentication** (Admin/User) with role-based access
 - 🛡️ **Enhanced Security** with JWT tokens and proper validation
-- 💾 **MySQL Database Integration** with FastAPI backend
+- 💾 **Multi-Database Integration** with MySQL + MongoDB
 - 🎨 **Professional Responsive Design** with animations
 - 🔒 **Content Security Policy (CSP)** implementation
-- 🚀 **Production-Ready** clean architecture
 
----
+## 🏗️ Architecture Overview
 
-## 🤔 What is EtherVox?
+### Multi-Database System
+- **MySQL Database**: User authentication, admin data, structured voting records
+- **MongoDB Database**: Candidate profiles, unstructured data, flexible schemas  
+- **Ethereum Blockchain**: Smart contracts, vote immutability, transparency
 
-EtherVox is a **modern, secure, and beautiful** decentralized voting platform that combines the power of blockchain technology with a professional user interface. It's like having a **magic voting box** that's both secure and gorgeous to use!
+### Technology Stack  
+- **Frontend**: Web3.js, jQuery, Responsive CSS Grid
+- **Backend**: Express.js (Frontend) + FastAPI (Database API)
+- **Smart Contracts**: Solidity 0.8.19 with Truffle framework
+- **Build System**: Webpack 5 with modern JavaScript support
+- **Databases**: MySQL 8.0, MongoDB 8.0
+- **Development**: ESLint, Nodemon, Hot reload
 
 ### 🎮 Real Life Example:
 - **Old Way**: Paper ballots, manual counting, potential for human error

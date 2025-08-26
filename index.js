@@ -238,7 +238,7 @@ app.listen(PORT, () => {
 
 📊 Status: Ready for connections
 🛡️  Security: JWT authentication enabled
-🔗 Database API: http://127.0.0.1:8000 (make sure to start separately)
+🔗 Database API: http://127.0.0.1:8001 (make sure to start separately)
 
 === STARTUP CHECKLIST ===
 1. ✅ Express server running on port ${PORT}

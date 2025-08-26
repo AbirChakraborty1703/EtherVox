@@ -19,14 +19,86 @@
 
     <div class="container">
      <legend>Add Candidate</legend>  
-     <table  class="table text-center"> 
-              <tr>
-                <th>Name </th><td>  <input id="name" type="text" name="name" placeholder ="Candidates name" autocomplete="off"></td>  
-                <th>Party</th><td><input id="party" type="text" name="party" placeholder ="Candidates party"></td> 
-              </tr>
-      </table> 
-      <input id="addCandidate" type="submit" name="submit" value="Add Candidate">
-      <p id="Aday"></p>
+     <form id="candidateForm" class="candidate-form">
+       <div class="form-grid">
+         <!-- Basic Information -->
+         <div class="form-section">
+           <h3>Basic Information</h3>
+           <div class="form-group">
+             <label for="name">Full Name *</label>
+             <input id="name" type="text" name="name" placeholder="Candidate's full name" autocomplete="off" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="age">Age *</label>
+             <input id="age" type="number" name="age" placeholder="Age (18+)" min="18" max="120" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="dateOfBirth">Date of Birth *</label>
+             <input id="dateOfBirth" type="date" name="dateOfBirth" required>
+           </div>
+         </div>
+
+         <!-- Contact Information -->
+         <div class="form-section">
+           <h3>Contact Information</h3>
+           <div class="form-group">
+             <label for="email">Email Address *</label>
+             <input id="email" type="email" name="email" placeholder="candidate@example.com" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="phoneNumber">Phone Number *</label>
+             <input id="phoneNumber" type="tel" name="phoneNumber" placeholder="+1234567890" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="candidateAddress">Personal Address *</label>
+             <textarea id="candidateAddress" name="candidateAddress" placeholder="Full residential address" rows="3" required></textarea>
+           </div>
+         </div>
+
+         <!-- Election Information -->
+         <div class="form-section">
+           <h3>Election Information</h3>
+           <div class="form-group">
+             <label for="party">Political Party *</label>
+             <input id="party" type="text" name="party" placeholder="Party name" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="electionCenter">Election Center Address *</label>
+             <textarea id="electionCenter" name="electionCenter" placeholder="Election center full address" rows="3" required></textarea>
+           </div>
+         </div>
+
+         <!-- Credentials -->
+         <div class="form-section">
+           <h3>Candidate Credentials</h3>
+           <div class="form-group">
+             <label for="candidateId">Unique Candidate ID *</label>
+             <input id="candidateId" type="text" name="candidateId" placeholder="CID-XXXX-XXXX" pattern="[A-Za-z0-9-]+" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="candidatePassword">Candidate Password *</label>
+             <input id="candidatePassword" type="password" name="candidatePassword" placeholder="Secure password" minlength="8" required>
+           </div>
+           
+           <div class="form-group">
+             <label for="confirmPassword">Confirm Password *</label>
+             <input id="confirmPassword" type="password" name="confirmPassword" placeholder="Confirm password" minlength="8" required>
+           </div>
+         </div>
+       </div>
+       
+       <div class="form-actions">
+         <button id="addCandidate" type="submit" class="btn-primary">Add Candidate</button>
+         <button type="reset" class="btn-secondary">Clear Form</button>
+       </div>
+     </form>
+     <div id="candidateStatus" class="status-message"></div>
     </div>
 
     <div class="container">
