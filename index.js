@@ -41,8 +41,7 @@ const authorizeUser = (req, res, next) => {
   try {
     // Verify and decode the token with proper error handling
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY, { 
-      algorithms: ['HS256'],
-      maxAge: '24h' // Token expires in 24 hours
+      algorithms: ['HS256']
     });
 
     // Add user info to request object

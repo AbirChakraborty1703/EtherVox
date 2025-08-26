@@ -16,120 +16,269 @@ var VotingContract = contract(votingArtifacts)
 
 // Main application object with enhanced error handling
 window.App = {
+  web3: null,
+  account: null,
+  contracts: {},
+
   // Initialize the application and Web3 connection
   eventStart: async function() { 
     try {
-      // Check if MetaMask is installed
-      if (typeof window.ethereum === 'undefined') {
-        alert('MetaMask is not installed! Please install MetaMask to use this DApp.');
-        return;
-      }
-
-      // Request account access
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
-      // Set up contract
-      VotingContract.setProvider(window.ethereum);
-      VotingContract.defaults({from: window.ethereum.selectedAddress, gas: 6654755});
-
-      // Verify account is selected
-      if (!window.ethereum.selectedAddress) {
-        alert('Please select an account in MetaMask');
-        return;
-      }
-
-      // Load account data
-      App.account = window.ethereum.selectedAddress;
-      $("#accountAddress").html("Your Account: " + window.ethereum.selectedAddress);
-      
+      return await App.initWeb3();
     } catch (error) {
       console.error('Error initializing app:', error);
-      alert('Failed to connect to MetaMask. Please try again.');
-      return;
+      alert('Failed to initialize the application. Please check your connection and try again.');
     }
-    VotingContract.deployed().then(function(instance){
-     instance.getCountCandidates().then(function(countCandidates){
-
-            $(document).ready(function(){
-              $('#addCandidate').click(function() {
-                  var nameCandidate = $('#name').val();
-                  var partyCandidate = $('#party').val();
-                 instance.addCandidate(nameCandidate,partyCandidate).then(function(result){ })
-
-            });   
-              $('#addDate').click(function(){             
-                  var startDate = Date.parse(document.getElementById("startDate").value)/1000;
-
-                  var endDate =  Date.parse(document.getElementById("endDate").value)/1000;
-           
-                  instance.setDates(startDate,endDate).then(function(rslt){ 
-                    console.log("tarihler verildi");
-                  });
-
-              });     
-
-               instance.getDates().then(function(result){
-                var startDate = new Date(result[0]*1000);
-                var endDate = new Date(result[1]*1000);
-
-                $("#dates").text( startDate.toDateString(("#DD#/#MM#/#YYYY#")) + " - " + endDate.toDateString("#DD#/#MM#/#YYYY#"));
-              }).catch(function(err){ 
-                console.error("ERROR! " + err.message)
-              });           
-          });
-             
-          for (var i = 0; i < countCandidates; i++ ){
-            instance.getCandidate(i+1).then(function(data){
-              var id = data[0];
-              var name = data[1];
-              var party = data[2];
-              var voteCount = data[3];
-              var viewCandidates = `<tr><td> <input class="form-check-input" type="radio" name="candidate" value="${id}" id=${id}>` + name + "</td><td>" + party + "</td><td>" + voteCount + "</td></tr>"
-              $("#boxCandidate").append(viewCandidates)
-            })
-        }
-        
-        window.countCandidates = countCandidates 
-      });
-
-      instance.checkVote().then(function (voted) {
-          console.log(voted);
-          if(!voted)  {
-            $("#voteButton").attr("disabled", false);
-
-          }
-      });
-
-    }).catch(function(err){ 
-      console.error("ERROR! " + err.message)
-    })
   },
 
-  vote: function() {    
-    var candidateID = $("input[name='candidate']:checked").val();
-    if (!candidateID) {
-      $("#msg").html("<p>Please vote for a candidate.</p>")
-      return
-    }
-    VotingContract.deployed().then(function(instance){
-      instance.vote(parseInt(candidateID)).then(function(result){
-        $("#voteButton").attr("disabled", true);
-        $("#msg").html("<p>Voted</p>");
-         window.location.reload(1);
-      })
-    }).catch(function(err){ 
-      console.error("ERROR! " + err.message)
-    })
-  }
-}
+  // Initialize Web3 with modern MetaMask integration
+  initWeb3: async function() {
+    // Modern dapp browsers...
+    if (window.ethereum) {
+      App.web3 = new Web3(window.ethereum);
+      try {
+        // Request account access if needed
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        
+        if (accounts.length === 0) {
+          alert('Please connect to MetaMask.');
+          return;
+        }
+        
+        App.account = accounts[0];
+        console.log('Connected account:', App.account);
+        
+        // Listen for account changes
+        window.ethereum.on('accountsChanged', function(accounts) {
+          if (accounts.length === 0) {
+            alert('Please connect to MetaMask.');
+          } else {
+            App.account = accounts[0];
+            window.location.reload();
+          }
+        });
 
-window.addEventListener("load", function() {
-  if (typeof web3 !== "undefined") {
-    console.warn("Using web3 detected from external source like Metamask")
-    window.eth = new Web3(window.ethereum)
-  } else {
-    console.warn("No web3 detected. Falling back to http://localhost:9545. You should remove this fallback when you deploy live, as it's inherently insecure. Consider switching to Metamask for deployment. More info here: http://truffleframework.com/tutorials/truffle-and-metamask")
-    window.eth = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:9545"))
+        // Listen for network changes
+        window.ethereum.on('chainChanged', function(chainId) {
+          console.log('Network changed to:', chainId);
+          window.location.reload();
+        });
+
+        // Check network
+        const networkId = await App.web3.eth.net.getId();
+        console.log('Connected to network ID:', networkId);
+        
+        // Warn if not on local development network
+        if (networkId !== 5777 && networkId !== 1337) {
+          console.warn('You are not connected to the local development network. Please switch to Ganache (localhost:7545)');
+          alert('Please connect MetaMask to your local Ganache network (localhost:7545, Chain ID: 1337 or 5777)');
+        }
+
+        return App.initContract();
+        
+      } catch (error) {
+        if (error.code === 4001) {
+          alert('Please connect to MetaMask.');
+        } else {
+          console.error('Error accessing accounts:', error);
+          alert('Error connecting to MetaMask. Please try again.');
+        }
+        return;
+      }
+    }
+    // Legacy dapp browsers...
+    else if (window.web3) {
+      App.web3 = new Web3(window.web3.currentProvider);
+      const accounts = await App.web3.eth.getAccounts();
+      App.account = accounts[0];
+      return App.initContract();
+    }
+    // Non-dapp browsers...
+    else {
+      console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
+      alert('Please install MetaMask to use this DApp.');
+      return;
+    }
+  },
+
+  // Initialize the smart contract
+  initContract: async function() {
+    try {
+      // Set up contract
+      VotingContract.setProvider(App.web3.currentProvider);
+      
+      // Set default account and gas limit
+      VotingContract.defaults({
+        from: App.account,
+        gas: 6654755
+      });
+
+      // Store contract reference
+      const contractInstance = await VotingContract.deployed();
+      App.contracts.Voting = contractInstance;
+
+      // Update UI with account
+      $("#accountAddress").html("Your Account: " + App.account);
+      
+      return App.loadVotingData();
+      
+    } catch (error) {
+      console.error('Error initializing contract:', error);
+      alert('Failed to load voting contract. Please check if it is deployed.');
+    }
+  },
+
+  // Load voting data from the blockchain
+  loadVotingData: async function() {
+    try {
+      const instance = App.contracts.Voting;
+      
+      // Get candidate count
+      const countCandidates = await instance.getCountCandidates();
+      window.countCandidates = countCandidates.toNumber();
+      
+      // Set up event handlers
+      $(document).ready(function(){
+        $('#addCandidate').click(async function() {
+          try {
+            const nameCandidate = $('#name').val();
+            const partyCandidate = $('#party').val();
+            
+            if (!nameCandidate || !partyCandidate) {
+              alert('Please enter both candidate name and party.');
+              return;
+            }
+            
+            const result = await instance.addCandidate(nameCandidate, partyCandidate, {
+              from: App.account,
+              gas: 300000
+            });
+            
+            console.log('Candidate added successfully:', result);
+            alert('Candidate added successfully!');
+            window.location.reload();
+            
+          } catch (error) {
+            console.error('Error adding candidate:', error);
+            alert('Failed to add candidate. Please try again.');
+          }
+        });   
+        
+        $('#addDate').click(async function(){    
+          try {
+            const startDate = Math.floor(Date.parse(document.getElementById("startDate").value) / 1000);
+            const endDate = Math.floor(Date.parse(document.getElementById("endDate").value) / 1000);
+            
+            if (!startDate || !endDate) {
+              alert('Please select both start and end dates.');
+              return;
+            }
+            
+            if (startDate >= endDate) {
+              alert('End date must be after start date.');
+              return;
+            }
+            
+            const result = await instance.setDates(startDate, endDate, {
+              from: App.account,
+              gas: 300000
+            });
+            
+            console.log('Dates set successfully:', result);
+            alert('Voting dates set successfully!');
+            
+          } catch (error) {
+            console.error('Error setting dates:', error);
+            alert('Failed to set voting dates. Please try again.');
+          }
+        });
+      });
+
+      // Load voting dates
+      try {
+        const dates = await instance.getDates();
+        const startDate = new Date(dates[0].toNumber() * 1000);
+        const endDate = new Date(dates[1].toNumber() * 1000);
+        $("#dates").text(startDate.toDateString() + " - " + endDate.toDateString());
+      } catch (error) {
+        console.warn('No voting dates set yet:', error.message);
+      }
+      
+      // Load candidates
+      for (let i = 0; i < window.countCandidates; i++) {
+        try {
+          const data = await instance.getCandidate(i + 1);
+          const id = data[0].toNumber();
+          const name = data[1];
+          const party = data[2];
+          const voteCount = data[3].toNumber();
+          
+          const viewCandidates = `<tr><td><input class="form-check-input" type="radio" name="candidate" value="${id}" id="${id}"> ${name}</td><td>${party}</td><td>${voteCount}</td></tr>`;
+          $("#boxCandidate").append(viewCandidates);
+        } catch (error) {
+          console.error(`Error loading candidate ${i + 1}:`, error);
+        }
+      }
+
+      // Check if user has already voted
+      try {
+        const hasVoted = await instance.checkVote({ from: App.account });
+        if (!hasVoted) {
+          $("#voteButton").attr("disabled", false);
+        } else {
+          $("#voteButton").attr("disabled", true);
+          $("#msg").html("<p>You have already voted.</p>");
+        }
+      } catch (error) {
+        console.error('Error checking vote status:', error);
+      }
+      
+    } catch (error) {
+      console.error('Error loading voting data:', error);
+      alert('Failed to load voting data. Please refresh the page.');
+    }
+  },
+
+  // Vote for a candidate
+  vote: async function() {
+    const candidateID = $("input[name='candidate']:checked").val();
+    
+    if (!candidateID) {
+      $("#msg").html("<p>Please select a candidate to vote for.</p>");
+      return;
+    }
+
+    try {
+      $("#voteButton").attr("disabled", true);
+      $("#msg").html("<p>Processing vote...</p>");
+      
+      const instance = App.contracts.Voting;
+      const result = await instance.vote(parseInt(candidateID), {
+        from: App.account,
+        gas: 300000
+      });
+      
+      console.log('Vote cast successfully:', result);
+      $("#msg").html("<p>Vote cast successfully!</p>");
+      
+      // Reload page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error voting:', error);
+      $("#voteButton").attr("disabled", false);
+      
+      if (error.message.includes('revert')) {
+        $("#msg").html("<p>Voting failed. You may have already voted or voting is not active.</p>");
+      } else {
+        $("#msg").html("<p>Failed to cast vote. Please try again.</p>");
+      }
+    }
   }
-  window.App.eventStart()
-})
+};// Initialize the application when page loads
+window.addEventListener("load", function() {
+  App.eventStart();
+});

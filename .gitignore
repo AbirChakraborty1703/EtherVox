@@ -17,6 +17,13 @@ pids
 .env.test.local
 .env.production.local
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
 # Build outputs
 build/
 dist/
