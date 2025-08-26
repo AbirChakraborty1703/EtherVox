@@ -1,4 +1,4 @@
-name: EtherVox CI/CD Pipeline
+name: EtherVox CI/CD Pipeline - FIXED
 
 on:
   push:
