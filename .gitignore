@@ -36,7 +36,6 @@ dist/
 out/
 
 # Package managers
-package-lock.json
 yarn.lock
 
 # IDE and Editor files
