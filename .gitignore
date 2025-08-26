@@ -77,3 +77,36 @@ __pycache__/
 
 # Ganache and blockchain data
 .ganache/
+
+# Testing and temporary files
+*test*.bat
+*_test.*
+test_*.*
+*-test.*
+setup*.bat
+start*.bat
+check*.bat
+*_TEMP.*
+*_temp.*
+TEMP_*
+temp_*
+*_BACKUP.*
+*_backup.*
+BACKUP_*
+backup_*
+
+# Temporary documentation
+*_OLD.*
+*_old.*
+OLD_*
+old_*
+*_NEW.*
+*_new.*
+NEW_*
+new_*
+README_*.md
+GUIDE_*.md
+SETUP_*.md
+STATUS_*.md
+AUDIT_*.md
+FIX_*.md
