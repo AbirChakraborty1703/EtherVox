@@ -11,11 +11,12 @@
     "test": "truffle test",
     "compile": "truffle compile",
     "migrate": "truffle migrate --reset",
-    "build": "browserify src/js/app.js -o public/app.bundle.js",
-    "build:dev": "npm run build && npm run start",
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development --watch",
+    "serve": "npm run build && npm run start",
     "lint": "eslint . --ext .js --ignore-path .gitignore",
     "security": "npm audit --audit-level moderate",
-    "clean": "rm -rf build/ public/app.bundle.js",
+    "clean": "rm -rf build/ public/app.bundle.js* node_modules/.cache/",
     "deploy": "npm run clean && npm run compile && npm run migrate"
   },
   "keywords": [
@@ -41,19 +42,34 @@
   },
   "homepage": "https://github.com/AbirChakraborty1703/EtherVox#readme",
   "dependencies": {
-    "jsonwebtoken": "^9.0.2",
     "@truffle/contract": "^4.6.31",
-    "browserify": "^17.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "web3": "^4.2.1",
-    "cors": "^2.8.5",
-    "helmet": "^7.0.0"
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "web3": "^1.10.4"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "assert": "^2.0.0",
+    "babel-loader": "^9.1.3",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
     "eslint": "^8.48.0",
-    "truffle": "^5.11.5"
+    "https-browserify": "^1.0.0",
+    "nodemon": "^3.0.1",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "truffle": "^5.11.5",
+    "url": "^0.11.3",
+    "util": "^0.12.5",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
   },
   "engines": {
     "node": ">=18.0.0",

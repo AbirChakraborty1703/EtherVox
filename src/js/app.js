@@ -8,11 +8,9 @@
 
 // Web3 and contract interaction imports
 const Web3 = require('web3');
-const contract = require('@truffle/contract');
 
 // Load voting contract artifacts
 const votingArtifacts = require('../../build/contracts/Voting.json');
-var VotingContract = contract(votingArtifacts)
 
 // Main application object with enhanced error handling
 window.App = {
@@ -105,18 +103,19 @@ window.App = {
   // Initialize the smart contract
   initContract: async function() {
     try {
-      // Set up contract
-      VotingContract.setProvider(App.web3.currentProvider);
+      // Get the network ID to find the deployed contract address
+      const networkId = await App.web3.eth.net.getId();
+      const deployedNetwork = votingArtifacts.networks[networkId];
       
-      // Set default account and gas limit
-      VotingContract.defaults({
-        from: App.account,
-        gas: 6654755
-      });
+      if (!deployedNetwork) {
+        throw new Error('Contract not deployed on current network');
+      }
 
-      // Store contract reference
-      const contractInstance = await VotingContract.deployed();
-      App.contracts.Voting = contractInstance;
+      // Create contract instance using Web3.js
+      App.contracts.Voting = new App.web3.eth.Contract(
+        votingArtifacts.abi,
+        deployedNetwork.address
+      );
 
       // Update UI with account
       $("#accountAddress").html("Your Account: " + App.account);
@@ -135,8 +134,8 @@ window.App = {
       const instance = App.contracts.Voting;
       
       // Get candidate count
-      const countCandidates = await instance.getCountCandidates();
-      window.countCandidates = countCandidates.toNumber();
+      const countCandidates = await instance.methods.getCountCandidates().call();
+      window.countCandidates = parseInt(countCandidates);
       
       // Set up event handlers
       $(document).ready(function(){
@@ -149,19 +148,73 @@ window.App = {
               alert('Please enter both candidate name and party.');
               return;
             }
-            
-            const result = await instance.addCandidate(nameCandidate, partyCandidate, {
-              from: App.account,
-              gas: 300000
-            });
-            
-            console.log('Candidate added successfully:', result);
-            alert('Candidate added successfully!');
-            window.location.reload();
+
+            console.log('Attempting to add candidate:', nameCandidate, partyCandidate);
+            console.log('Using contract:', App.contracts.Voting);
+            console.log('From account:', App.account);
+
+            // Check who the contract owner is
+            try {
+              const contractOwner = await instance.methods.owner().call();
+              console.log('Contract owner:', contractOwner);
+              console.log('Current account:', App.account);
+              console.log('Is current account owner?', contractOwner.toLowerCase() === App.account.toLowerCase());
+              
+              if (contractOwner.toLowerCase() !== App.account.toLowerCase()) {
+                alert(`Only the contract owner can add candidates. Current owner: ${contractOwner}, Your account: ${App.account}`);
+                return;
+              }
+            } catch (ownerError) {
+              console.error('Error checking owner:', ownerError);
+            }
+
+            // First, let's try to estimate gas
+            try {
+              const gasEstimate = await instance.methods.addCandidate(nameCandidate, partyCandidate).estimateGas({
+                from: App.account
+              });
+              console.log('Gas estimate:', gasEstimate);
+              
+              const result = await instance.methods.addCandidate(nameCandidate, partyCandidate).send({
+                from: App.account,
+                gas: gasEstimate + 10000 // Add buffer to gas estimate
+              });
+              
+              console.log('Candidate added successfully:', result);
+              alert('Candidate added successfully!');
+              window.location.reload();
+              
+            } catch (gasError) {
+              console.error('Gas estimation failed:', gasError);
+              // Try with fixed gas if estimation fails
+              const result = await instance.methods.addCandidate(nameCandidate, partyCandidate).send({
+                from: App.account,
+                gas: 500000
+              });
+              
+              console.log('Candidate added successfully:', result);
+              alert('Candidate added successfully!');
+              window.location.reload();
+            }
             
           } catch (error) {
             console.error('Error adding candidate:', error);
-            alert('Failed to add candidate. Please try again.');
+            console.error('Error details:', {
+              message: error.message,
+              code: error.code,
+              data: error.data
+            });
+            
+            // More specific error messages
+            if (error.message.includes('User denied')) {
+              alert('Transaction was cancelled by user.');
+            } else if (error.message.includes('insufficient funds')) {
+              alert('Insufficient funds for gas. Please ensure you have enough ETH.');
+            } else if (error.message.includes('execution reverted')) {
+              alert('Transaction failed. Contract execution reverted. Please check if you have the right permissions.');
+            } else {
+              alert(`Failed to add candidate: ${error.message}`);
+            }
           }
         });   
         
@@ -210,8 +263,8 @@ window.App = {
             
             // Check if dates are already set
             try {
-              const existingDates = await instance.getDates();
-              if (existingDates[0].toNumber() > 0 || existingDates[1].toNumber() > 0) {
+              const existingDates = await instance.methods.getDates().call();
+              if (parseInt(existingDates[0]) > 0 || parseInt(existingDates[1]) > 0) {
                 alert('Voting dates have already been set for this election.');
                 return;
               }
@@ -221,7 +274,7 @@ window.App = {
             
             console.log('Calling setDates with:', startDate, endDate);
             
-            const result = await instance.setDates(startDate, endDate, {
+            const result = await instance.methods.setDates(startDate, endDate).send({
               from: App.account,
               gas: 500000  // Increased gas limit
             });
@@ -232,9 +285,9 @@ window.App = {
             // Reload dates display
             setTimeout(async () => {
               try {
-                const newDates = await instance.getDates();
-                const newStartDate = new Date(newDates[0].toNumber() * 1000);
-                const newEndDate = new Date(newDates[1].toNumber() * 1000);
+                const newDates = await instance.methods.getDates().call();
+                const newStartDate = new Date(parseInt(newDates[0]) * 1000);
+                const newEndDate = new Date(parseInt(newDates[1]) * 1000);
                 $("#dates").text(newStartDate.toDateString() + " - " + newEndDate.toDateString());
               } catch (reloadError) {
                 console.error('Error reloading dates:', reloadError);
@@ -270,9 +323,9 @@ window.App = {
 
       // Load voting dates
       try {
-        const dates = await instance.getDates();
-        const startDate = new Date(dates[0].toNumber() * 1000);
-        const endDate = new Date(dates[1].toNumber() * 1000);
+        const dates = await instance.methods.getDates().call();
+        const startDate = new Date(parseInt(dates[0]) * 1000);
+        const endDate = new Date(parseInt(dates[1]) * 1000);
         $("#dates").text(startDate.toDateString() + " - " + endDate.toDateString());
       } catch (error) {
         console.warn('No voting dates set yet:', error.message);
@@ -281,11 +334,11 @@ window.App = {
       // Load candidates
       for (let i = 0; i < window.countCandidates; i++) {
         try {
-          const data = await instance.getCandidate(i + 1);
-          const id = data[0].toNumber();
+          const data = await instance.methods.getCandidate(i + 1).call();
+          const id = parseInt(data[0]);
           const name = data[1];
           const party = data[2];
-          const voteCount = data[3].toNumber();
+          const voteCount = parseInt(data[3]);
           
           const viewCandidates = `<tr><td><input class="form-check-input" type="radio" name="candidate" value="${id}" id="${id}"> ${name}</td><td>${party}</td><td>${voteCount}</td></tr>`;
           $("#boxCandidate").append(viewCandidates);
@@ -296,7 +349,7 @@ window.App = {
 
       // Check if user has already voted
       try {
-        const hasVoted = await instance.checkVote({ from: App.account });
+        const hasVoted = await instance.methods.checkVote().call({ from: App.account });
         if (!hasVoted) {
           $("#voteButton").attr("disabled", false);
         } else {
@@ -327,7 +380,7 @@ window.App = {
       $("#msg").html("<p>Processing vote...</p>");
       
       const instance = App.contracts.Voting;
-      const result = await instance.vote(parseInt(candidateID), {
+      const result = await instance.methods.vote(parseInt(candidateID)).send({
         from: App.account,
         gas: 300000
       });

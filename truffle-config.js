@@ -47,6 +47,15 @@ module.exports = {
       network_id: "1337",
       gas: 6721975,
       gasPrice: 20000000000
+    },
+
+    // Local network for Ganache CLI with network ID 5777
+    local: {
+      host: "127.0.0.1",
+      port: 8545,
+      network_id: "5777",    // Match the network ID you're seeing
+      gas: 6721975,
+      gasPrice: 20000000000
     }
   },
 
