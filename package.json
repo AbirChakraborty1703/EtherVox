@@ -1,8 +1,8 @@
 {
-  "_comment": "EtherVox Package Configuration - Decentralized Voting DApp",
+  "_comment": "EtherVox Package Configuration - Modern Decentralized Voting DApp",
   "name": "ethervox",
-  "version": "1.0.0",
-  "description": "EtherVox - A decentralized voting application built on Ethereum blockchain using Solidity smart contracts, Web3.js, and Express.js",
+  "version": "2.0.0",
+  "description": "EtherVox - A modern decentralized voting application built on Ethereum blockchain using latest Solidity smart contracts, Web3.js, Express.js and FastAPI",
   "main": "index.js",
   "scripts": {
     "_comment": "Available scripts for development and deployment",
@@ -10,9 +10,13 @@
     "dev": "nodemon index.js",
     "test": "truffle test",
     "compile": "truffle compile",
-    "migrate": "truffle migrate",
+    "migrate": "truffle migrate --reset",
     "build": "browserify src/js/app.js -o public/app.bundle.js",
-    "build:dev": "npm run build && npm run start"
+    "build:dev": "npm run build && npm run start",
+    "lint": "eslint . --ext .js --ignore-path .gitignore",
+    "security": "npm audit --audit-level moderate",
+    "clean": "rm -rf build/ public/app.bundle.js",
+    "deploy": "npm run clean && npm run compile && npm run migrate"
   },
   "keywords": [
     "ethereum",
@@ -21,7 +25,10 @@
     "solidity",
     "web3",
     "decentralized",
-    "dapp"
+    "dapp",
+    "fastapi",
+    "jwt",
+    "mysql"
   ],
   "author": "AbirChakraborty1703",
   "license": "MIT",
@@ -34,18 +41,22 @@
   },
   "homepage": "https://github.com/AbirChakraborty1703/EtherVox#readme",
   "dependencies": {
-    "jsonwebtoken": "^9.0.0",
-    "@truffle/contract": "^4.6.18",
+    "jsonwebtoken": "^9.0.2",
+    "@truffle/contract": "^4.6.31",
     "browserify": "^17.0.0",
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "web3": "^1.9.0"
+    "web3": "^4.2.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "eslint": "^8.48.0",
+    "truffle": "^5.11.5"
   },
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }

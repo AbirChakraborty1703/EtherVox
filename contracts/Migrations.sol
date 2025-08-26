@@ -5,13 +5,13 @@
  * @title Migrations
  * @author EtherVox Development Team
  * @description Truffle framework migration tracking contract
- * @version 1.0.0
+ * @version 2.0.0 - Updated for Solidity 0.8+
  * 
  * This contract helps Truffle keep track of deployed contracts
  * and manage migration state across different deployments.
  */
 
-pragma solidity ^0.5.16;
+pragma solidity ^0.8.0;
 
 contract Migrations {
   address public owner;                    // Contract owner address
@@ -24,7 +24,7 @@ contract Migrations {
   }
 
   // Constructor sets the deployer as the contract owner
-  constructor() public {
+  constructor() {
     owner = msg.sender;
   }
 

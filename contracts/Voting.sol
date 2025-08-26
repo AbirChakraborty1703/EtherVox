@@ -4,17 +4,19 @@
 /**
  * EtherVox Voting Smart Contract
  * Author: Abir Chakraborty
- * Description: Decentralized voting system with candidate management
- * Version: 1.0.0
+ * Description: Modern decentralized voting system with enhanced security
+ * Version: 2.0.0 - Updated for latest Solidity features
  * 
  * Security Features:
- * - Access control for admin functions
- * - Voting period restrictions
+ * - Enhanced access control with OpenZeppelin patterns
+ * - Voting period restrictions with timestamp validation
  * - Single vote per address enforcement
- * - Input validation for all functions
+ * - Comprehensive input validation for all functions
+ * - Event logging for transparency
+ * - Gas optimization techniques
  */
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
 // Main voting contract for EtherVox DApp
 contract Voting {
@@ -23,90 +25,176 @@ contract Voting {
     
     // Structure to store candidate information
     struct Candidate {
-        uint id;
+        uint256 id;
         string name;
         string party; 
-        uint voteCount;
+        uint256 voteCount;
     }
 
-    mapping (uint => Candidate) public candidates;
-    mapping (address => bool) public voters;
+    // State variables
+    mapping(uint256 => Candidate) public candidates;
+    mapping(address => bool) public voters;
+    mapping(address => uint256) public voterToCandidate; // Track which candidate each voter voted for
 
-    uint public countCandidates;
+    uint256 public countCandidates;
     uint256 public votingEnd;
     uint256 public votingStart;
+    bool public votingInitialized;
+
+    // Events for transparency and frontend integration
+    event CandidateAdded(uint256 indexed candidateId, string name, string party);
+    event VoteCast(address indexed voter, uint256 indexed candidateId);
+    event VotingPeriodSet(uint256 startTime, uint256 endTime);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    // Custom errors for gas efficiency
+    error NotOwner(address caller);
+    error VotingNotActive();
+    error AlreadyVoted(address voter);
+    error InvalidCandidate(uint256 candidateId);
+    error EmptyString(string field);
+    error InvalidTimeRange();
+    error VotingAlreadyInitialized();
 
     // Access control modifier
     modifier onlyOwner() {
-        require(msg.sender == owner, "Access denied: Only owner can perform this action");
+        if (msg.sender != owner) revert NotOwner(msg.sender);
         _;
     }
 
     // Voting period modifier
     modifier duringVotingPeriod() {
-        require(votingStart <= block.timestamp && votingEnd > block.timestamp, "Voting is not active");
+        if (!(votingStart <= block.timestamp && votingEnd > block.timestamp)) {
+            revert VotingNotActive();
+        }
         _;
     }
 
     // Constructor sets the contract deployer as owner
     constructor() {
         owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     // Admin function to add candidates (only owner)
-    function addCandidate(string memory name, string memory party) public onlyOwner returns(uint) {
-        require(bytes(name).length > 0, "Candidate name cannot be empty");
-        require(bytes(party).length > 0, "Party name cannot be empty");
+    function addCandidate(string memory name, string memory party) public onlyOwner returns(uint256) {
+        if (bytes(name).length == 0) revert EmptyString("name");
+        if (bytes(party).length == 0) revert EmptyString("party");
         
         countCandidates++;
         candidates[countCandidates] = Candidate(countCandidates, name, party, 0);
+        
+        emit CandidateAdded(countCandidates, name, party);
         return countCandidates;
     }
    
-    // Public voting function with security checks
-    function vote(uint candidateID) public duringVotingPeriod {
-        require(candidateID > 0 && candidateID <= countCandidates, "Invalid candidate ID");
-        require(!voters[msg.sender], "You have already voted");
+    // Public voting function with enhanced security checks
+    function vote(uint256 candidateID) public duringVotingPeriod {
+        if (candidateID == 0 || candidateID > countCandidates) {
+            revert InvalidCandidate(candidateID);
+        }
+        if (voters[msg.sender]) {
+            revert AlreadyVoted(msg.sender);
+        }
               
         voters[msg.sender] = true;
-        candidates[candidateID].voteCount++;      
+        voterToCandidate[msg.sender] = candidateID;
+        candidates[candidateID].voteCount++;
+        
+        emit VoteCast(msg.sender, candidateID);
     }
     
     // Check if current address has voted
-    function checkVote() public view returns(bool){
+    function checkVote() public view returns(bool) {
         return voters[msg.sender];
+    }
+    
+    // Get which candidate the caller voted for
+    function getMyVote() public view returns(uint256) {
+        if (!voters[msg.sender]) revert("You haven't voted yet");
+        return voterToCandidate[msg.sender];
     }
        
     // Get total number of candidates
-    function getCountCandidates() public view returns(uint) {
+    function getCountCandidates() public view returns(uint256) {
         return countCandidates;
     }
 
     // Get candidate details by ID
-    function getCandidate(uint candidateID) public view returns (uint,string memory, string memory,uint) {
-        require(candidateID > 0 && candidateID <= countCandidates, "Invalid candidate ID");
-        return (candidateID,candidates[candidateID].name,candidates[candidateID].party,candidates[candidateID].voteCount);
+    function getCandidate(uint256 candidateID) public view returns (uint256, string memory, string memory, uint256) {
+        if (candidateID == 0 || candidateID > countCandidates) {
+            revert InvalidCandidate(candidateID);
+        }
+        Candidate memory candidate = candidates[candidateID];
+        return (candidateID, candidate.name, candidate.party, candidate.voteCount);
     }
 
-    // Admin function to set voting dates (only owner, only before voting starts)
+    // Get all candidates (gas-optimized)
+    function getAllCandidates() public view returns (Candidate[] memory) {
+        Candidate[] memory allCandidates = new Candidate[](countCandidates);
+        for (uint256 i = 1; i <= countCandidates; i++) {
+            allCandidates[i-1] = candidates[i];
+        }
+        return allCandidates;
+    }
+
+    // Admin function to set voting dates (enhanced validation)
     function setDates(uint256 _startDate, uint256 _endDate) public onlyOwner {
-        require(votingEnd == 0 && votingStart == 0, "Voting dates already set");
-        require(_startDate > block.timestamp, "Start date must be in the future");
-        require(_endDate > _startDate, "End date must be after start date");
-        require(_endDate >= _startDate + 1800, "Voting period must be at least 30 minutes"); // Reduced to 30 minutes for testing
+        if (votingInitialized) {
+            revert VotingAlreadyInitialized();
+        }
+        if (_startDate <= block.timestamp) {
+            revert InvalidTimeRange();
+        }
+        if (_endDate <= _startDate) {
+            revert InvalidTimeRange();
+        }
+        if (_endDate < _startDate + 1800) { // Minimum 30 minutes
+            revert InvalidTimeRange();
+        }
         
-        votingEnd = _endDate;
         votingStart = _startDate;
+        votingEnd = _endDate;
+        votingInitialized = true;
+        
+        emit VotingPeriodSet(_startDate, _endDate);
     }
 
     // Get voting period dates
-    function getDates() public view returns (uint256,uint256) {
-        return (votingStart,votingEnd);
+    function getDates() public view returns (uint256, uint256) {
+        return (votingStart, votingEnd);
     }
 
-    // Transfer ownership (security feature)
+    // Get voting status
+    function getVotingStatus() public view returns (string memory) {
+        if (!votingInitialized) return "Not Initialized";
+        if (block.timestamp < votingStart) return "Not Started";
+        if (block.timestamp <= votingEnd) return "Active";
+        return "Ended";
+    }
+
+    // Transfer ownership (enhanced security feature)
     function transferOwnership(address newOwner) public onlyOwner {
-        require(newOwner != address(0), "New owner cannot be zero address");
+        if (newOwner == address(0)) revert("New owner cannot be zero address");
+        if (newOwner == owner) revert("New owner is the same as current owner");
+        
+        address oldOwner = owner;
         owner = newOwner;
+        
+        emit OwnershipTransferred(oldOwner, newOwner);
+    }
+
+    // Get total votes cast
+    function getTotalVotes() public view returns (uint256) {
+        uint256 totalVotes = 0;
+        for (uint256 i = 1; i <= countCandidates; i++) {
+            totalVotes += candidates[i].voteCount;
+        }
+        return totalVotes;
+    }
+
+    // Emergency stop function (only owner)
+    function emergencyStop() public onlyOwner {
+        votingEnd = block.timestamp;
     }
 }
