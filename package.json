@@ -10,7 +10,9 @@
     "dev": "nodemon index.js",
     "test": "truffle test",
     "compile": "truffle compile",
-    "migrate": "truffle migrate"
+    "migrate": "truffle migrate",
+    "build": "browserify src/js/app.js -o public/app.bundle.js",
+    "build:dev": "npm run build && npm run start"
   },
   "keywords": [
     "ethereum",
