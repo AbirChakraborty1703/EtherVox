@@ -68,6 +68,9 @@ class PermanentMetaMaskConnection {
     try {
       console.log('🔗 Attempting MetaMask connection...');
       
+      // Update UI to show connecting state
+      this.updateUIConnecting();
+      
       // Add/switch to Ganache network automatically
       await this.ensureCorrectNetwork();
       
@@ -84,6 +87,7 @@ class PermanentMetaMaskConnection {
         console.log('✅ MetaMask connected permanently!');
         console.log('🏦 Account:', this.account);
         
+        // Update UI to show connected state
         this.updateUI();
         return true;
       }
@@ -124,11 +128,13 @@ class PermanentMetaMaskConnection {
       if (accounts.length === 0) {
         this.isConnected = false;
         this.account = null;
+        this.updateUI(); // Update UI to show disconnected
         console.log('🔄 Account disconnected, attempting reconnect...');
         setTimeout(() => this.connect(), 1000);
       } else {
         this.account = accounts[0];
-        this.updateUI();
+        this.isConnected = true;
+        this.updateUI(); // Update UI to show new account
       }
     });
     
@@ -146,12 +152,14 @@ class PermanentMetaMaskConnection {
     window.ethereum.on('connect', (connectInfo) => {
       console.log('🔗 MetaMask connected:', connectInfo);
       this.isConnected = true;
+      this.updateUI(); // Update UI when connected
     });
     
     // Disconnect listener
     window.ethereum.on('disconnect', (error) => {
       console.log('🔌 MetaMask disconnected:', error);
       this.isConnected = false;
+      this.updateUI(); // Update UI when disconnected
       // Auto-reconnect after disconnect
       setTimeout(() => this.connect(), 3000);
     });
@@ -175,17 +183,37 @@ class PermanentMetaMaskConnection {
     }, 30000);
   }
   
+  updateUIConnecting() {
+    // Update connection status to show connecting
+    const statusElement = document.getElementById('connectionStatus');
+    if (statusElement) {
+      statusElement.innerHTML = `
+        <div class="connection-status connecting">
+          🟡 Connecting to MetaMask...
+        </div>
+      `;
+    }
+  }
+
   updateUI() {
     // Update connection status in UI
     const statusElement = document.getElementById('connectionStatus');
     if (statusElement) {
-      statusElement.innerHTML = `
-        <div class="connection-status connected">
-          🟢 MetaMask Connected (Permanent)
-          <br>
-          <small>Account: ${this.account?.slice(0, 6)}...${this.account?.slice(-4)}</small>
-        </div>
-      `;
+      if (this.isConnected && this.account) {
+        statusElement.innerHTML = `
+          <div class="connection-status connected">
+            🟢 MetaMask Connected (Permanent)
+            <br>
+            <small>Account: ${this.account?.slice(0, 6)}...${this.account?.slice(-4)}</small>
+          </div>
+        `;
+      } else {
+        statusElement.innerHTML = `
+          <div class="connection-status disconnected">
+            🔴 MetaMask Disconnected
+          </div>
+        `;
+      }
     }
     
     // Update account display
