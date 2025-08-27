@@ -18,6 +18,20 @@ const app = express();
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// Serve static files from public directory (includes js/, favicon, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve CSS files from src directory
+app.use('/css', express.static(path.join(__dirname, 'src/css')));
+
+// Debug middleware to log static file requests
+app.use((req, res, next) => {
+  if (req.path.includes('.js') || req.path.includes('.css')) {
+    console.log(`Static file request: ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 // Authorization middleware with enhanced security
 const authorizeUser = (req, res, next) => {
   const authHeader = req.query.Authorization;
@@ -226,7 +240,7 @@ app.use('*', (req, res) => {
 // ===============================================
 
 // Start the server
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
   console.log(`
 🚀 EtherVox Server Started Successfully!

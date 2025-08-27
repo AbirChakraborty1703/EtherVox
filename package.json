@@ -9,6 +9,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "start:all": "node start-ethervox.js",
+    "start:everything": "start-complete-full.bat",
     "start:mongo": "mongod --dbpath Database_API/mongodb_data",
     "start:api": "cd Database_API && python main.py",
     "test": "echo \"Running smart contract tests...\" && (truffle test --network development || echo \"Tests completed with issues - this is expected during development\")",
@@ -18,8 +19,6 @@
     "build": "webpack --mode production || echo \"Build completed with warnings\"",
     "build:dev": "webpack --mode development --watch",
     "serve": "npm run build && npm run start",
-    "lint": "eslint src/js/ --ext .js --fix || echo \"Linting completed\"",
-    "lint:check": "eslint src/js/ --ext .js || echo \"Lint check completed\"",
     "security": "npm audit --audit-level moderate || echo \"Security audit completed\"",
     "clean": "rm -rf build/ public/app.bundle.js* node_modules/.cache/ || echo \"Cleanup completed\"",
     "deploy": "npm run clean && npm run compile && npm run migrate"

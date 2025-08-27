@@ -4,10 +4,9 @@
  * Description: Handles Web3 interaction, voting functionality, and UI updates
  */
 
-//import "../css/style.css"
-
 // Web3 and contract interaction imports
-const Web3 = require('web3');
+// Web3.js v4 import syntax
+const { Web3 } = require('web3');
 
 // Load voting contract artifacts
 const votingArtifacts = require('../../build/contracts/Voting.json');
@@ -47,75 +46,74 @@ window.App = {
         App.account = accounts[0];
         console.log('Connected account:', App.account);
         
+        // Check network connection
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log('Connected to chain ID:', chainId);
+        
+        // Check if connected to Ganache (chain ID 1337 or 5777)
+        if (chainId === '0x539' || chainId === '0x1691') { // 1337 or 5777 in hex
+          console.log('Connected to Ganache network');
+        } else {
+          console.warn('Not connected to Ganache. Current chain:', chainId);
+          alert('Please connect MetaMask to your local Ganache network (localhost:7545 or localhost:8545)');
+        }
+        
         // Listen for account changes
-        window.ethereum.on('accountsChanged', function(accounts) {
+        window.ethereum.on('accountsChanged', function (accounts) {
           if (accounts.length === 0) {
             alert('Please connect to MetaMask.');
           } else {
             App.account = accounts[0];
-            window.location.reload();
+            console.log('Account changed to:', App.account);
+            $("#accountAddress").html("Your Account: " + App.account);
           }
         });
-
-        // Listen for network changes
-        window.ethereum.on('chainChanged', function(chainId) {
-          console.log('Network changed to:', chainId);
-          window.location.reload();
-        });
-
-        // Check network
-        const networkId = await App.web3.eth.net.getId();
-        console.log('Connected to network ID:', networkId);
         
-        // Warn if not on local development network
-        if (networkId !== 5777 && networkId !== 1337) {
-          console.warn('You are not connected to the local development network. Please switch to Ganache (localhost:7545)');
-          alert('Please connect MetaMask to your local Ganache network (localhost:7545, Chain ID: 1337 or 5777)');
-        }
-
         return App.initContract();
-        
       } catch (error) {
-        if (error.code === 4001) {
-          alert('Please connect to MetaMask.');
-        } else {
-          console.error('Error accessing accounts:', error);
-          alert('Error connecting to MetaMask. Please try again.');
-        }
-        return;
+        console.error('Error connecting to MetaMask:', error);
+        alert('Error connecting to MetaMask. Please make sure MetaMask is installed and unlocked.');
       }
-    }
-    // Legacy dapp browsers...
-    else if (window.web3) {
-      App.web3 = new Web3(window.web3.currentProvider);
-      const accounts = await App.web3.eth.getAccounts();
-      App.account = accounts[0];
-      return App.initContract();
-    }
-    // Non-dapp browsers...
-    else {
-      console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
-      alert('Please install MetaMask to use this DApp.');
-      return;
+    } else {
+      alert('Please install MetaMask to use this application.');
     }
   },
 
   // Initialize the smart contract
   initContract: async function() {
     try {
-      // Get the network ID to find the deployed contract address
+      // Get network ID and check deployment
       const networkId = await App.web3.eth.net.getId();
-      const deployedNetwork = votingArtifacts.networks[networkId];
+      console.log('Current network ID:', networkId);
       
+      // Check if contract is deployed on this network
+      const deployedNetwork = votingArtifacts.networks[networkId];
       if (!deployedNetwork) {
-        throw new Error('Contract not deployed on current network');
+        console.error('Contract not deployed on network:', networkId);
+        console.log('Available networks:', Object.keys(votingArtifacts.networks));
+        alert(`Contract not deployed on current network (ID: ${networkId}). Please deploy the contract or switch to the correct network.`);
+        return;
       }
 
-      // Create contract instance using Web3.js
+      // Get the necessary contract artifact file and instantiate it with truffle-contract
       App.contracts.Voting = new App.web3.eth.Contract(
         votingArtifacts.abi,
         deployedNetwork.address
       );
+
+      console.log('Contract initialized:', App.contracts.Voting.options.address);
+      console.log('Contract ABI methods:', Object.keys(App.contracts.Voting.methods));
+
+      // Test basic contract connection
+      try {
+        const owner = await App.contracts.Voting.methods.owner().call();
+        console.log('Contract owner:', owner);
+        console.log('Current account:', App.account);
+      } catch (testError) {
+        console.error('Contract connection test failed:', testError);
+        alert('Contract connection failed. Please check Ganache is running and contract is deployed.');
+        return;
+      }
 
       // Update UI with account
       $("#accountAddress").html("Your Account: " + App.account);
@@ -124,7 +122,7 @@ window.App = {
       
     } catch (error) {
       console.error('Error initializing contract:', error);
-      alert('Failed to load voting contract. Please check if it is deployed.');
+      alert('Failed to load voting contract. Please check if Ganache is running and contract is deployed.');
     }
   },
 
@@ -138,308 +136,8 @@ window.App = {
       window.countCandidates = parseInt(countCandidates);
       
       // Set up event handlers
-      $(document).ready(function(){
-        // Enhanced Add Candidate Handler
-        $('#candidateForm').on('submit', async function(e) {
-          e.preventDefault();
-          
-          try {
-            // Collect all form data
-            const candidateData = {
-              name: $('#name').val().trim(),
-              age: parseInt($('#age').val()),
-              dateOfBirth: $('#dateOfBirth').val(),
-              electionCenter: $('#electionCenter').val().trim(),
-              party: $('#party').val().trim(),
-              candidateAddress: $('#candidateAddress').val().trim(),
-              email: $('#email').val().trim(),
-              phoneNumber: $('#phoneNumber').val().trim(),
-              candidateId: $('#candidateId').val().trim(),
-              candidatePassword: $('#candidatePassword').val(),
-              confirmPassword: $('#confirmPassword').val()
-            };
-
-            // Client-side validation
-            if (!App.validateCandidateData(candidateData)) {
-              return;
-            }
-
-            // Show loading status
-            App.showStatus('Processing candidate registration...', 'info');
-            $('#addCandidate').prop('disabled', true);
-
-            console.log('Attempting to add candidate:', candidateData.name, candidateData.party);
-            console.log('Using contract:', App.contracts.Voting);
-            console.log('From account:', App.account);
-
-            // Check who the contract owner is
-            try {
-              const contractOwner = await instance.methods.owner().call();
-              console.log('Contract owner:', contractOwner);
-              console.log('Current account:', App.account);
-              console.log('Is current account owner?', contractOwner.toLowerCase() === App.account.toLowerCase());
-              
-              if (contractOwner.toLowerCase() !== App.account.toLowerCase()) {
-                App.showStatus(`Only the contract owner can add candidates. Current owner: ${contractOwner}`, 'error');
-                return;
-              }
-            } catch (ownerError) {
-              console.error('Error checking owner:', ownerError);
-              App.showStatus('Error checking contract owner permissions.', 'error');
-              return;
-            }
-
-            // Hash the password for security (simple hash for demo)
-            const hashedPassword = await App.hashPassword(candidateData.candidatePassword);
-
-            // First, save candidate to MongoDB
-            try {
-              App.showStatus('Saving candidate to database...', 'info');
-              
-              const mongoResponse = await fetch('http://127.0.0.1:8001/candidates', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  name: candidateData.name,
-                  age: candidateData.age,
-                  dateOfBirth: candidateData.dateOfBirth,
-                  electionCenter: candidateData.electionCenter,
-                  party: candidateData.party,
-                  candidateAddress: candidateData.candidateAddress,
-                  email: candidateData.email,
-                  phoneNumber: candidateData.phoneNumber,
-                  candidateId: candidateData.candidateId,
-                  candidatePassword: candidateData.candidatePassword
-                })
-              });
-
-              if (!mongoResponse.ok) {
-                const errorData = await mongoResponse.json();
-                throw new Error(`Database error: ${errorData.detail || 'Failed to save candidate'}`);
-              }
-
-              const mongoResult = await mongoResponse.json();
-              console.log('Candidate saved to MongoDB:', mongoResult);
-              const mongoId = mongoResult.mongodb_id;
-              
-              App.showStatus('Candidate saved to database. Adding to blockchain...', 'info');
-
-              // Now add to blockchain with MongoDB reference
-              const gasEstimate = await instance.methods.addCandidate(
-                candidateData.name,
-                candidateData.age,
-                candidateData.dateOfBirth,
-                candidateData.electionCenter,
-                candidateData.party,
-                candidateData.candidateAddress,
-                candidateData.email,
-                candidateData.phoneNumber,
-                candidateData.candidateId,
-                hashedPassword
-              ).estimateGas({
-                from: App.account
-              });
-              
-              console.log('Gas estimate:', gasEstimate);
-              
-              const blockchainResult = await instance.methods.addCandidate(
-                candidateData.name,
-                candidateData.age,
-                candidateData.dateOfBirth,
-                candidateData.electionCenter,
-                candidateData.party,
-                candidateData.candidateAddress,
-                candidateData.email,
-                candidateData.phoneNumber,
-                candidateData.candidateId,
-                hashedPassword
-              ).send({
-                from: App.account,
-                gas: gasEstimate + 50000 // Add buffer to gas estimate
-              });
-              
-              console.log('Candidate added to blockchain:', blockchainResult);
-              
-              // Update MongoDB record with blockchain transaction hash
-              try {
-                await fetch(`http://127.0.0.1:8001/candidates/${mongoId}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    ...candidateData,
-                    blockchainAddress: blockchainResult.transactionHash
-                  })
-                });
-              } catch (updateError) {
-                console.error('Error updating MongoDB with blockchain reference:', updateError);
-              }
-
-              App.showStatus(`Candidate "${candidateData.name}" registered successfully in both database and blockchain!`, 'success');
-              $('#candidateForm')[0].reset();
-              
-            } catch (mongoError) {
-              console.error('MongoDB save failed:', mongoError);
-              App.showStatus(`Database error: ${mongoError.message}. Candidate not saved.`, 'error');
-              return;
-            }
-
-            } catch (gasError) {
-              console.error('Gas estimation failed, trying with fixed gas:', gasError);
-              
-              try {
-                const result = await instance.methods.addCandidate(
-                  candidateData.name,
-                  candidateData.age,
-                  candidateData.dateOfBirth,
-                  candidateData.electionCenter,
-                  candidateData.party,
-                  candidateData.candidateAddress,
-                  candidateData.email,
-                  candidateData.phoneNumber,
-                  candidateData.candidateId,
-                  hashedPassword
-                ).send({
-                  from: App.account,
-                  gas: 800000
-                });
-                
-                console.log('Candidate added successfully:', result);
-                App.showStatus(`Candidate "${candidateData.name}" added successfully!`, 'success');
-                $('#candidateForm')[0].reset();
-              } catch (fixedGasError) {
-                console.error('Fixed gas transaction also failed:', fixedGasError);
-                App.showStatus(`Blockchain error: ${fixedGasError.message || 'Transaction failed'}`, 'error');
-              }
-            }
-            
-          } catch (error) {
-            console.error('Error adding candidate:', error);
-            console.error('Error details:', {
-              message: error.message,
-              code: error.code,
-              data: error.data
-            });
-            
-            // More specific error messages
-            if (error.message.includes('User denied')) {
-              alert('Transaction was cancelled by user.');
-            } else if (error.message.includes('insufficient funds')) {
-              alert('Insufficient funds for gas. Please ensure you have enough ETH.');
-            } else if (error.message.includes('execution reverted')) {
-              alert('Transaction failed. Contract execution reverted. Please check if you have the right permissions.');
-            } else {
-              alert(`Failed to add candidate: ${error.message}`);
-            }
-          }
-        });   
-        
-        $('#addDate').click(async function(){    
-          try {
-            const startDateValue = document.getElementById("startDate").value;
-            const endDateValue = document.getElementById("endDate").value;
-            
-            console.log('Start date input:', startDateValue);
-            console.log('End date input:', endDateValue);
-            
-            if (!startDateValue || !endDateValue) {
-              alert('Please select both start and end dates.');
-              return;
-            }
-            
-            // Convert to Unix timestamps
-            const startDate = Math.floor(Date.parse(startDateValue) / 1000);
-            const endDate = Math.floor(Date.parse(endDateValue) / 1000);
-            const currentTime = Math.floor(Date.now() / 1000);
-            
-            console.log('Start timestamp:', startDate);
-            console.log('End timestamp:', endDate);
-            console.log('Current timestamp:', currentTime);
-            
-            // Client-side validation
-            if (isNaN(startDate) || isNaN(endDate)) {
-              alert('Invalid date format. Please select valid dates.');
-              return;
-            }
-            
-            if (startDate <= currentTime) {
-              alert('Start date must be in the future. Please select a later start date.');
-              return;
-            }
-            
-            if (endDate <= startDate) {
-              alert('End date must be after start date.');
-              return;
-            }
-            
-            if (endDate - startDate < 3600) {
-              alert('Voting period must be at least 1 hour long.');
-              return;
-            }
-            
-            // Check if dates are already set
-            try {
-              const existingDates = await instance.methods.getDates().call();
-              if (parseInt(existingDates[0]) > 0 || parseInt(existingDates[1]) > 0) {
-                alert('Voting dates have already been set for this election.');
-                return;
-              }
-            } catch (dateCheckError) {
-              console.log('No existing dates found, proceeding...');
-            }
-            
-            console.log('Calling setDates with:', startDate, endDate);
-            
-            const result = await instance.methods.setDates(startDate, endDate).send({
-              from: App.account,
-              gas: 500000  // Increased gas limit
-            });
-            
-            console.log('Dates set successfully:', result);
-            alert('Voting dates set successfully!');
-            
-            // Reload dates display
-            setTimeout(async () => {
-              try {
-                const newDates = await instance.methods.getDates().call();
-                const newStartDate = new Date(parseInt(newDates[0]) * 1000);
-                const newEndDate = new Date(parseInt(newDates[1]) * 1000);
-                $("#dates").text(newStartDate.toDateString() + " - " + newEndDate.toDateString());
-              } catch (reloadError) {
-                console.error('Error reloading dates:', reloadError);
-              }
-            }, 2000);
-            
-          } catch (error) {
-            console.error('Error setting dates:', error);
-            
-            // Parse the error to give more specific feedback
-            let errorMessage = 'Failed to set voting dates. ';
-            
-            if (error.message.includes('Voting dates already set')) {
-              errorMessage += 'Voting dates have already been set for this election.';
-            } else if (error.message.includes('Start date must be in the future')) {
-              errorMessage += 'Start date must be in the future.';
-            } else if (error.message.includes('End date must be after start date')) {
-              errorMessage += 'End date must be after start date.';
-            } else if (error.message.includes('Voting period must be at least 1 hour')) {
-              errorMessage += 'Voting period must be at least 1 hour long.';
-            } else if (error.message.includes('Access denied')) {
-              errorMessage += 'Only the contract owner can set voting dates.';
-            } else if (error.message.includes('revert')) {
-              errorMessage += 'Transaction reverted. Please check your inputs and try again.';
-            } else {
-              errorMessage += 'Please try again.';
-            }
-            
-            alert(errorMessage);
-          }
-        });
-      });
-
+      App.setupEventHandlers();
+      
       // Load voting dates
       try {
         const dates = await instance.methods.getDates().call();
@@ -448,22 +146,7 @@ window.App = {
         $("#dates").text(startDate.toDateString() + " - " + endDate.toDateString());
       } catch (error) {
         console.warn('No voting dates set yet:', error.message);
-      }
-      
-      // Load candidates
-      for (let i = 0; i < window.countCandidates; i++) {
-        try {
-          const data = await instance.methods.getCandidate(i + 1).call();
-          const id = parseInt(data[0]);
-          const name = data[1];
-          const party = data[2];
-          const voteCount = parseInt(data[3]);
-          
-          const viewCandidates = `<tr><td><input class="form-check-input" type="radio" name="candidate" value="${id}" id="${id}"> ${name}</td><td>${party}</td><td>${voteCount}</td></tr>`;
-          $("#boxCandidate").append(viewCandidates);
-        } catch (error) {
-          console.error(`Error loading candidate ${i + 1}:`, error);
-        }
+        $("#dates").text("No voting dates set yet");
       }
 
       // Check if user has already voted
@@ -479,9 +162,211 @@ window.App = {
         console.error('Error checking vote status:', error);
       }
       
+      // Load candidates from both blockchain and database
+      await App.loadCandidates();
+      
     } catch (error) {
       console.error('Error loading voting data:', error);
       alert('Failed to load voting data. Please refresh the page.');
+    }
+  },
+
+  // Load candidates from database and display them
+  loadCandidates: async function() {
+    try {
+      const response = await fetch('http://127.0.0.1:8001/candidates');
+      if (response.ok) {
+        const data = await response.json();
+        // Check if response has candidates array property
+        const candidates = data.candidates || data;
+        if (Array.isArray(candidates)) {
+          App.displayCandidates(candidates);
+        } else {
+          console.warn('Candidates data is not an array:', data);
+        }
+      } else {
+        console.warn('Failed to fetch candidates from database');
+      }
+    } catch (error) {
+      console.error('Error fetching candidates:', error);
+    }
+  },
+
+  // Display candidates in the UI
+  displayCandidates: function(candidates) {
+    const candidateContainer = $("#candidate table tbody");
+    candidateContainer.empty();
+    
+    // Safety check: ensure candidates is an array
+    if (!Array.isArray(candidates)) {
+      console.error('displayCandidates: candidates is not an array', candidates);
+      return;
+    }
+    
+    candidates.forEach((candidate, index) => {
+      const row = `
+        <tr>
+          <td>
+            <input type="radio" name="candidate" value="${index}" id="candidate${index}">
+          </td>
+          <td>
+            <label for="candidate${index}">
+              <strong>${candidate.name}</strong><br>
+              <small>Age: ${candidate.age} | Party: ${candidate.party}</small>
+            </label>
+          </td>
+        </tr>
+      `;
+      candidateContainer.append(row);
+    });
+  },
+
+  // Set up event handlers
+  setupEventHandlers: function() {
+    // Enhanced Add Candidate Handler
+    $('#candidateForm').on('submit', async function(e) {
+      e.preventDefault();
+      await App.addCandidate();
+    });
+    
+    // Vote Handler
+    $('#voteButton').click(async function() {
+      await App.vote();
+    });
+  },
+
+  // Add candidate functionality
+  addCandidate: async function() {
+    try {
+      // Get form data
+      const formData = {
+        name: document.getElementById('name').value,
+        age: parseInt(document.getElementById('age').value),
+        dateOfBirth: document.getElementById('dateOfBirth').value,
+        email: document.getElementById('email').value,
+        phoneNumber: document.getElementById('phoneNumber').value,
+        candidateAddress: document.getElementById('candidateAddress').value,
+        party: document.getElementById('party').value,
+        electionCenter: document.getElementById('electionCenter').value,
+        candidateId: document.getElementById('candidateId').value,
+        candidatePassword: document.getElementById('candidatePassword').value,
+        electionStartDate: document.getElementById('electionStartDate').value,
+        electionEndDate: document.getElementById('electionEndDate').value
+      };
+
+      // Validate election dates
+      const startDate = new Date(formData.electionStartDate);
+      const endDate = new Date(formData.electionEndDate);
+      const currentDate = new Date();
+
+      if (startDate <= currentDate) {
+        App.showStatus('Election start date must be in the future', 'error');
+        return;
+      }
+
+      if (endDate <= startDate) {
+        App.showStatus('Election end date must be after start date', 'error');
+        return;
+      }
+
+      // Validate password confirmation
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      if (formData.candidatePassword !== confirmPassword) {
+        App.showStatus('Passwords do not match', 'error');
+        return;
+      }
+
+      // Check Web3 connection before proceeding
+      if (!App.contracts.Voting || !App.account) {
+        App.showStatus('Web3 connection not initialized. Please connect to MetaMask.', 'error');
+        return;
+      }
+
+      App.showStatus('Adding candidate to blockchain...', 'info');
+
+      // First add candidate to blockchain (this will deduct ETH)
+      const instance = App.contracts.Voting;
+      
+      try {
+        // Add candidate to blockchain with gas estimation
+        const gasEstimate = await instance.methods.addCandidate(
+          formData.name,
+          formData.age,
+          formData.dateOfBirth,
+          formData.electionCenter,
+          formData.party,
+          formData.candidateAddress,
+          formData.email,
+          formData.phoneNumber,
+          formData.candidateId,
+          formData.candidatePassword
+        ).estimateGas({ from: App.account });
+
+        console.log('Estimated gas:', gasEstimate);
+
+        // Convert BigInt to number for gas calculation
+        const gasBuffer = Math.ceil(Number(gasEstimate) * 1.2); // Add 20% buffer
+
+        const tx = await instance.methods.addCandidate(
+          formData.name,
+          formData.age,
+          formData.dateOfBirth,
+          formData.electionCenter,
+          formData.party,
+          formData.candidateAddress,
+          formData.email,
+          formData.phoneNumber,
+          formData.candidateId,
+          formData.candidatePassword
+        ).send({ 
+          from: App.account,
+          gas: gasBuffer,
+          gasPrice: '20000000000' // 20 gwei
+        });
+
+        console.log('Blockchain transaction hash:', tx.transactionHash);
+        
+        // Get the candidate ID from blockchain
+        const candidateCount = await instance.methods.getCountCandidates().call();
+        formData.blockchainAddress = tx.transactionHash;
+
+        App.showStatus('Candidate added to blockchain! Now saving to database...', 'info');
+
+      } catch (blockchainError) {
+        console.error('Blockchain error:', blockchainError);
+        
+        if (blockchainError.code === 4001) {
+          App.showStatus('Transaction rejected by user', 'error');
+          return;
+        } else if (blockchainError.message && blockchainError.message.includes('NotOwner')) {
+          App.showStatus('Error: Only the contract owner can add candidates', 'error');
+          return;
+        } else {
+          App.showStatus('Blockchain error: ' + blockchainError.message, 'error');
+          return;
+        }
+      }
+
+      // Then save to MongoDB database
+      const response = await fetch('http://127.0.0.1:8001/candidates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        App.showStatus('Candidate added successfully to blockchain and database! ETH deducted from your wallet.', 'success');
+        document.getElementById('candidateForm').reset();
+        await App.loadCandidates(); // Refresh candidate list
+      } else {
+        const error = await response.json();
+        App.showStatus('Blockchain success but database error: ' + error.detail, 'warning');
+      }
+    } catch (error) {
+      console.error('Error adding candidate:', error);
+      App.showStatus('Error adding candidate: ' + error.message, 'error');
     }
   },
 
@@ -495,190 +380,91 @@ window.App = {
     }
 
     try {
-      $("#voteButton").attr("disabled", true);
-      $("#msg").html("<p>Processing vote...</p>");
-      
       const instance = App.contracts.Voting;
-      const result = await instance.methods.vote(parseInt(candidateID)).send({
-        from: App.account,
-        gas: 300000
-      });
-      
-      console.log('Vote cast successfully:', result);
-      $("#msg").html("<p>Vote cast successfully!</p>");
-      
-      // Reload page after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-      
+      await instance.methods.vote(parseInt(candidateID)).send({ from: App.account });
+      $("#msg").html("<p>Your vote has been recorded successfully!</p>");
+      $("#voteButton").attr("disabled", true);
     } catch (error) {
       console.error('Error voting:', error);
-      $("#voteButton").attr("disabled", false);
-      
-      if (error.message.includes('revert')) {
-        $("#msg").html("<p>Voting failed. You may have already voted or voting is not active.</p>");
-      } else {
-        $("#msg").html("<p>Failed to cast vote. Please try again.</p>");
-      }
+      $("#msg").html(`<p>Error voting: ${error.message}</p>`);
     }
   },
 
-  // Utility Functions for Enhanced Admin Interface
-  
   // Validate candidate data
   validateCandidateData: function(data) {
-    // Check required fields
-    const requiredFields = ['name', 'age', 'dateOfBirth', 'electionCenter', 'party', 'candidateAddress', 'email', 'phoneNumber', 'candidateId', 'candidatePassword'];
+    if (!data.name || data.name.length < 2) {
+      alert('Please enter a valid name (at least 2 characters).');
+      return false;
+    }
     
-    for (let field of requiredFields) {
-      if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
-        App.showStatus(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`, 'error');
-        return false;
-      }
-    }
-
-    // Age validation
-    if (data.age < 18 || data.age > 120) {
-      App.showStatus('Age must be between 18 and 120 years.', 'error');
+    if (!data.age || data.age < 18 || data.age > 100) {
+      alert('Please enter a valid age (18-100).');
       return false;
     }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-      App.showStatus('Please enter a valid email address.', 'error');
+    
+    if (!data.dateOfBirth) {
+      alert('Please enter the date of birth.');
       return false;
     }
-
-    // Phone validation (basic)
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    if (!phoneRegex.test(data.phoneNumber.replace(/[\s\-\(\)]/g, ''))) {
-      App.showStatus('Please enter a valid phone number.', 'error');
+    
+    if (!data.email || !data.email.includes('@')) {
+      alert('Please enter a valid email address.');
       return false;
     }
-
-    // Password validation
-    if (data.candidatePassword.length < 8) {
-      App.showStatus('Password must be at least 8 characters long.', 'error');
+    
+    if (!data.phoneNumber || data.phoneNumber.length < 10) {
+      alert('Please enter a valid phone number.');
       return false;
     }
-
+    
+    if (!data.candidateAddress || data.candidateAddress.length < 10) {
+      alert('Please enter a valid address.');
+      return false;
+    }
+    
+    if (!data.party || data.party.length < 2) {
+      alert('Please enter a valid political party.');
+      return false;
+    }
+    
+    if (!data.electionCenter || data.electionCenter.length < 5) {
+      alert('Please enter a valid election center address.');
+      return false;
+    }
+    
+    if (!data.candidateId || data.candidateId.length < 3) {
+      alert('Please enter a valid candidate ID.');
+      return false;
+    }
+    
+    if (!data.candidatePassword || data.candidatePassword.length < 8) {
+      alert('Please enter a password with at least 8 characters.');
+      return false;
+    }
+    
     if (data.candidatePassword !== data.confirmPassword) {
-      App.showStatus('Passwords do not match.', 'error');
+      alert('Passwords do not match. Please confirm your password.');
       return false;
     }
-
-    // Date of birth validation
-    const dob = new Date(data.dateOfBirth);
-    const today = new Date();
-    const age = today.getFullYear() - dob.getFullYear();
-    const monthDiff = today.getMonth() - dob.getMonth();
     
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
-
-    if (age !== data.age) {
-      App.showStatus('Age does not match the date of birth.', 'error');
-      return false;
-    }
-
     return true;
   },
 
-  // Show status messages
+  // Show status message
   showStatus: function(message, type = 'info') {
-    const statusDiv = $('#candidateStatus');
-    statusDiv.removeClass('success error info').addClass(type);
-    statusDiv.text(message).fadeIn();
-    
-    // Auto-hide after 5 seconds for success messages
-    if (type === 'success') {
-      setTimeout(() => {
-        statusDiv.fadeOut();
-      }, 5000);
-    }
-    
-    // Re-enable the submit button
-    $('#addCandidate').prop('disabled', false);
-  },
-
-  // Simple password hashing (for demo purposes - use proper hashing in production)
-  hashPassword: async function(password) {
-    // In production, use a proper hashing library like bcrypt
-    // For demo purposes, we'll use a simple hash
-    let hash = 0;
-    if (password.length === 0) return hash.toString();
-    
-    for (let i = 0; i < password.length; i++) {
-      const char = password.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    
-    return Math.abs(hash).toString();
-  },
-
-  // Fetch candidates from MongoDB
-  fetchCandidatesFromDB: async function() {
-    try {
-      const response = await fetch('http://127.0.0.1:8001/candidates');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Candidates from MongoDB:', data);
-      
-      return data.candidates || [];
-    } catch (error) {
-      console.error('Error fetching candidates from database:', error);
-      return [];
-    }
-  },
-
-  // Display candidates in the UI
-  displayCandidates: async function() {
-    try {
-      const candidates = await App.fetchCandidatesFromDB();
-      
-      // Update candidate list display (if there's a candidates list element)
-      const candidatesList = $('#candidatesList');
-      if (candidatesList.length > 0) {
-        candidatesList.empty();
-        
-        if (candidates.length === 0) {
-          candidatesList.append('<p>No candidates registered yet.</p>');
-          return;
-        }
-        
-        candidates.forEach(candidate => {
-          const candidateCard = `
-            <div class="candidate-card">
-              <h3>${candidate.name}</h3>
-              <p><strong>Party:</strong> ${candidate.party}</p>
-              <p><strong>Age:</strong> ${candidate.age}</p>
-              <p><strong>Election Center:</strong> ${candidate.electionCenter}</p>
-              <p><strong>Email:</strong> ${candidate.email}</p>
-              <p><strong>Phone:</strong> ${candidate.phoneNumber}</p>
-              <p><strong>Candidate ID:</strong> ${candidate.candidateId}</p>
-              <p><strong>Registered:</strong> ${new Date(candidate.createdAt).toLocaleDateString()}</p>
-            </div>
-          `;
-          candidatesList.append(candidateCard);
-        });
-      }
-      
-      return candidates;
-    } catch (error) {
-      console.error('Error displaying candidates:', error);
+    const statusElement = $('#status');
+    if (statusElement.length) {
+      statusElement.removeClass('info error success warning')
+                  .addClass(type)
+                  .text(message)
+                  .show();
+    } else {
+      console.log(`Status (${type}): ${message}`);
     }
   }
 };
 
-// Initialize the application when page loads
-window.addEventListener("load", function() {
+// Initialize the app when the window loads
+$(window).on('load', function() {
   App.eventStart();
 });

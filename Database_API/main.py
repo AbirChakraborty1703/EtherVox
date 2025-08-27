@@ -17,6 +17,7 @@ Features:
 # Import required modules for API functionality
 import dotenv
 import os
+import sys
 import mysql.connector
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +30,16 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
+
+# Set UTF-8 encoding for Windows console
+if sys.platform.startswith('win'):
+    try:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except:
+        # Fallback if UTF-8 setting fails
+        pass
 
 # Loading the environment variables for database configuration
 dotenv.load_dotenv()
@@ -70,18 +81,18 @@ try:
         autocommit=True                                         # Auto-commit transactions
     )
     cursor = cnx.cursor(dictionary=True)  # Create database cursor for queries with dictionary results
-    print("✅ MySQL Database connection established successfully!")
+    print("[OK] MySQL Database connection established successfully!")
     print(f"Connected to MySQL database: {os.environ.get('MYSQL_DB', 'ethervox_voting')}")
 except mysql.connector.Error as err:
     # Handle database connection errors
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        print("❌ Something is wrong with your MySQL username or password")
+        print("[ERROR] Something is wrong with your MySQL username or password")
         print("Please check your .env file and MySQL credentials")
     elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        print("❌ Database does not exist")
+        print("[ERROR] Database does not exist")
         print("Please run the setup_database.sql script in MySQL Workbench first")
     else:
-        print(f"❌ Database connection error: {err}")
+        print(f"[ERROR] Database connection error: {err}")
     exit(1)
 
 # Establish MongoDB connection for candidate data storage
@@ -96,12 +107,12 @@ try:
     mongo_db = mongo_client[MONGODB_DB]
     candidates_collection = mongo_db[MONGODB_COLLECTION]
     
-    print("✅ MongoDB Database connection established successfully!")
+    print("[OK] MongoDB Database connection established successfully!")
     print(f"Connected to MongoDB database: {MONGODB_DB}")
     print(f"Candidate collection: {MONGODB_COLLECTION}")
     
 except Exception as err:
-    print(f"❌ MongoDB connection error: {err}")
+    print(f"[ERROR] MongoDB connection error: {err}")
     print("Make sure MongoDB is running on your system")
     exit(1)
 
@@ -121,6 +132,8 @@ class CandidateModel(BaseModel):
     phoneNumber: str = Field(..., min_length=10, max_length=15)
     candidateId: str = Field(..., min_length=1, max_length=50)
     candidatePassword: str = Field(..., min_length=8)
+    electionStartDate: str = Field(..., description="Election start date in ISO format")
+    electionEndDate: str = Field(..., description="Election end date in ISO format")
     createdAt: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
     blockchainAddress: Optional[str] = None
     isActive: bool = Field(default=True)
@@ -136,6 +149,8 @@ class CandidateResponse(BaseModel):
     email: str
     phoneNumber: str
     candidateId: str
+    electionStartDate: str
+    electionEndDate: str
     createdAt: str
     blockchainAddress: Optional[str] = None
     isActive: bool
@@ -537,10 +552,10 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     
-    print("🚀 Starting EtherVox Database API...")
-    print("📊 API Documentation: http://127.0.0.1:8001/docs")
-    print("🔗 Health Check: http://127.0.0.1:8001")
-    print("🔑 Login Endpoint: http://127.0.0.1:8001/login")
+    print("[STARTUP] Starting EtherVox Database API...")
+    print("[INFO] API Documentation: http://127.0.0.1:8001/docs")
+    print("[INFO] Health Check: http://127.0.0.1:8001")
+    print("[INFO] Login Endpoint: http://127.0.0.1:8001/login")
     print()
     
     uvicorn.run(

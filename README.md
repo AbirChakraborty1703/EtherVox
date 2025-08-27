@@ -177,7 +177,7 @@ node index.js
 ```
 
 ### Step 6: Access Your Modern Platform! 🎉
-- **🌐 Login Portal**: http://localhost:8080
+- **🌐 Login Portal**: http://localhost:8081
 - **📊 API Documentation**: http://127.0.0.1:8000/docs
 - **🔗 Health Check**: http://127.0.0.1:8000
 

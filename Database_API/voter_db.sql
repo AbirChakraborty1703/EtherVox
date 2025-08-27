@@ -15,6 +15,7 @@ CREATE TABLE voters (
 INSERT INTO voters (voter_id, role, password) VALUES
 -- Admins (2)
 ('A001', 'admin', 'adminPass001'),
+('A002', 'admin', 'adminPass002'),
 
 -- Users (48 unique)
 ('U001', 'user', 'userPass001'),
@@ -66,7 +67,6 @@ INSERT INTO voters (voter_id, role, password) VALUES
 ('U043', 'user', 'userPass043'),
 ('U044', 'user', 'userPass044'),
 ('U045', 'user', 'userPass045'),
-('U046', 'user', 'userPass046'),
-('U047', 'user', 'userPass047');
+('U046', 'user', 'userPass046');
 
 SELECT * FROM voters;

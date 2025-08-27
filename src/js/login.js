@@ -153,14 +153,11 @@ async function handleAdminLogin(event) {
     const response = await authenticateUser(adminId, password, 'admin');
     
     if (response.success && response.data.role === 'admin') {
-      showMessage('🎉 Admin authentication successful! Redirecting...', 'success');
-      
-      // Store admin token
-      localStorage.setItem('jwtTokenAdmin', response.data.token);
+      showMessage('🎉 Admin authentication successful! Welcome to the control panel...', 'success');
       
       // Redirect to admin panel
       setTimeout(() => {
-        window.location.replace(`http://localhost:8080/admin.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`http://localhost:8081/admin.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {
@@ -203,7 +200,7 @@ async function handleUserLogin(event) {
       
       // Redirect to voting interface
       setTimeout(() => {
-        window.location.replace(`http://localhost:8080/index.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`http://localhost:8081/index.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {

@@ -14,16 +14,16 @@ const path = require('path');
 const fs = require('fs');
 
 console.log(`
-🚀 EtherVox Multi-Database Voting System Startup
+[STARTUP] EtherVox Multi-Database Voting System Startup
 ===============================================
 
-📊 Database Architecture:
-   MySQL     → User authentication & voting records
-   MongoDB   → Candidate profiles & unstructured data
+[INFO] Database Architecture:
+   MySQL     -> User authentication & voting records
+   MongoDB   -> Candidate profiles & unstructured data
    
-🔗 Blockchain: Ethereum smart contracts
-📡 Frontend:   Express.js + Web3.js
-🔧 Backend:    FastAPI with dual database support
+[INFO] Blockchain: Ethereum smart contracts
+[INFO] Frontend:   Express.js + Web3.js
+[INFO] Backend:    FastAPI with dual database support
 
 ===============================================
 `);
@@ -35,7 +35,7 @@ const DATABASE_API_PATH = path.join(__dirname, 'Database_API');
 // Ensure MongoDB data directory exists
 if (!fs.existsSync(MONGODB_DATA_PATH)) {
     fs.mkdirSync(MONGODB_DATA_PATH, { recursive: true });
-    console.log('✅ Created MongoDB data directory');
+    console.log('[OK] Created MongoDB data directory');
 }
 
 let mongoProcess, apiProcess, frontendProcess;
@@ -43,7 +43,7 @@ let mongoProcess, apiProcess, frontendProcess;
 // Start MongoDB
 function startMongoDB() {
     return new Promise((resolve, reject) => {
-        console.log('🔄 Starting MongoDB server...');
+        console.log('[STARTUP] Starting MongoDB server...');
         
         mongoProcess = spawn('mongod', ['--dbpath', MONGODB_DATA_PATH], {
             stdio: 'pipe'
@@ -51,23 +51,26 @@ function startMongoDB() {
 
         let mongoStarted = false;
 
-        mongoProcess.stdout.on('data', (data) => {
-            const output = data.toString();
-            if (output.includes('Waiting for connections')) {
+    mongoProcess.stdout.on('data', (data) => {
+        const output = data.toString().trim();
+        if (output) {
+            console.log(`[MongoDB]: ${output}`);
+            
+            // Check if MongoDB is ready
+            if (output.includes('Waiting for connections') || output.includes('waiting for connections')) {
+                console.log('[OK] MongoDB server is ready!');
                 if (!mongoStarted) {
                     mongoStarted = true;
-                    console.log('✅ MongoDB server started successfully');
                     resolve();
                 }
             }
-        });
-
-        mongoProcess.stderr.on('data', (data) => {
+        }
+    });        mongoProcess.stderr.on('data', (data) => {
             console.error('MongoDB Error:', data.toString());
         });
 
         mongoProcess.on('close', (code) => {
-            console.log(`❌ MongoDB process exited with code ${code}`);
+            console.log(`[ERROR] MongoDB process exited with code ${code}`);
         });
 
         // Timeout after 30 seconds
@@ -82,7 +85,7 @@ function startMongoDB() {
 // Start FastAPI Backend
 function startBackend() {
     return new Promise((resolve, reject) => {
-        console.log('🔄 Starting FastAPI backend with multi-database support...');
+        console.log('[STARTUP] Starting FastAPI backend with multi-database support...');
         
         apiProcess = spawn('python', ['main.py'], {
             cwd: DATABASE_API_PATH,
@@ -95,24 +98,30 @@ function startBackend() {
             const output = data.toString();
             console.log('Backend:', output.trim());
             
-            if (output.includes('Uvicorn running')) {
+            if (output.includes('Uvicorn running') || output.includes('Application startup complete')) {
                 if (!backendStarted) {
                     backendStarted = true;
-                    console.log('✅ FastAPI backend started successfully');
+                    console.log('[OK] FastAPI backend started successfully');
                     resolve();
                 }
             }
         });
 
         apiProcess.stderr.on('data', (data) => {
-            const error = data.toString();
-            if (!error.includes('INFO:') && !error.includes('WARNING:')) {
-                console.error('Backend Error:', error);
+            const output = data.toString();
+            console.log('Backend:', output.trim());
+            
+            if (output.includes('Uvicorn running') || output.includes('Application startup complete')) {
+                if (!backendStarted) {
+                    backendStarted = true;
+                    console.log('[OK] FastAPI backend started successfully');
+                    resolve();
+                }
             }
         });
 
         apiProcess.on('close', (code) => {
-            console.log(`❌ Backend process exited with code ${code}`);
+            console.log(`[ERROR] Backend process exited with code ${code}`);
         });
 
         // Timeout after 30 seconds
@@ -127,7 +136,7 @@ function startBackend() {
 // Start Express Frontend
 function startFrontend() {
     return new Promise((resolve, reject) => {
-        console.log('🔄 Starting Express frontend server...');
+        console.log('[STARTUP] Starting Express frontend server...');
         
         frontendProcess = spawn('node', ['index.js'], {
             env: { ...process.env, PORT: '8081' },
@@ -143,7 +152,7 @@ function startFrontend() {
             if (output.includes('EtherVox Server Started Successfully')) {
                 if (!frontendStarted) {
                     frontendStarted = true;
-                    console.log('✅ Express frontend started successfully');
+                    console.log('[OK] Express frontend started successfully');
                     resolve();
                 }
             }
@@ -154,7 +163,7 @@ function startFrontend() {
         });
 
         frontendProcess.on('close', (code) => {
-            console.log(`❌ Frontend process exited with code ${code}`);
+            console.log(`[ERROR] Frontend process exited with code ${code}`);
         });
 
         // Timeout after 30 seconds
@@ -178,18 +187,18 @@ async function startAllServices() {
         await startFrontend();
 
         console.log(`
-🎉 All services started successfully!
+[SUCCESS] All services started successfully!
 
-🌐 Application URLs:
+[URLS] Application URLs:
    • Frontend:     http://localhost:8081
    • Backend API:  http://localhost:8001
    • API Docs:     http://localhost:8001/docs
    
-📊 Database Status:
+[STATUS] Database Status:
    • MongoDB:      Running on port 27017
    • MySQL:        Connected to voter_db
    
-🔧 Services Running:
+[SERVICES] Services Running:
    • MongoDB Server
    • FastAPI Backend (Multi-Database)
    • Express Frontend
@@ -198,31 +207,31 @@ Press Ctrl+C to stop all services
         `);
 
     } catch (error) {
-        console.error('❌ Startup failed:', error.message);
+        console.error('[ERROR] Startup failed:', error.message);
         process.exit(1);
     }
 }
 
 // Cleanup function
 function cleanup() {
-    console.log('\n🔄 Shutting down services...');
+    console.log('\n[SHUTDOWN] Shutting down services...');
     
     if (frontendProcess) {
         frontendProcess.kill();
-        console.log('🛑 Frontend server stopped');
+        console.log('[STOP] Frontend server stopped');
     }
     
     if (apiProcess) {
         apiProcess.kill();
-        console.log('🛑 Backend API stopped');
+        console.log('[STOP] Backend API stopped');
     }
     
     if (mongoProcess) {
         mongoProcess.kill();
-        console.log('🛑 MongoDB server stopped');
+        console.log('[STOP] MongoDB server stopped');
     }
     
-    console.log('✅ All services stopped');
+    console.log('[OK] All services stopped');
     process.exit(0);
 }
 
