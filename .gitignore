@@ -94,6 +94,14 @@ temp_*
 BACKUP_*
 backup_*
 
+# Verification and status files
+verify-setup.js
+*-STATUS-REPORT.md
+*-FIXES-SUMMARY.md
+audit-report.json
+security-report.*
+cicd-report.*
+
 # Temporary documentation
 *_OLD.*
 *_old.*
