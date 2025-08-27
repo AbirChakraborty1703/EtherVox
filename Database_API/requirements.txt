@@ -3,11 +3,11 @@
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-jose[cryptography]==3.3.0
-python-multipart==0.0.6
+python-multipart==0.0.18
 
 # Database connectivity
-mysql-connector-python==8.3.0
-pymongo==4.6.1
+mysql-connector-python==9.1.0
+pymongo==4.6.3
 motor==3.3.2
 
 # Security and authentication
@@ -18,7 +18,7 @@ passlib[bcrypt]==1.7.4
 python-dotenv==1.0.1
 
 # HTTP requests and additional utilities
-requests==2.31.0
+requests==2.32.4
 pydantic==2.5.3
 
 # Development and testing dependencies
