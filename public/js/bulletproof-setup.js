@@ -234,4 +234,18 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// Global logout function for admin page
+window.logout = function() {
+  // Clear any stored authentication tokens
+  localStorage.removeItem('jwtTokenVoter');
+  localStorage.removeItem('jwtTokenAdmin');
+  sessionStorage.clear();
+  
+  // Show confirmation message
+  if (confirm('Are you sure you want to logout?')) {
+    // Redirect to login page
+    window.location.replace('http://localhost:8081/login.html');
+  }
+};
+
 console.log('🔧 EtherVox Bulletproof Configuration Script Loaded Successfully!');

@@ -9,9 +9,17 @@
     <title>Admin portal</title>
 
     <link rel="stylesheet" type="text/css" href="/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
   </head>
   <body>
+    <!-- Logout button -->
+    <div class="logout-container">
+      <button id="logoutButton" class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+    
     <div id="head" class="text-center">
       <h1 align="center" class="admin-title">Decentralized Voting Using Ethereum Blockchain</h1>
       <br/> 
@@ -114,6 +122,21 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
     <script src="/js/bulletproof-setup.js"></script>
+    <script>
+      // Global logout function
+      function logout() {
+        // Clear any stored authentication tokens
+        localStorage.removeItem('jwtTokenVoter');
+        localStorage.removeItem('jwtTokenAdmin');
+        sessionStorage.clear();
+        
+        // Show confirmation message
+        if (confirm('Are you sure you want to logout?')) {
+          // Redirect to login page
+          window.location.replace('http://localhost:8081/login.html');
+        }
+      }
+    </script>
   <script src="/app.bundle.js" type="module"></script>
   </body>
 </html>
