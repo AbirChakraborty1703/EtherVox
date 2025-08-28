@@ -26,9 +26,17 @@
 
     <!-- Link to custom stylesheet for voting interface -->
     <link rel="stylesheet" type="text/css" href="/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
   </head>
   <body>
+    <!-- Logout button -->
+    <div class="logout-container">
+      <button id="logoutButton" class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+    
     <!-- Main header section -->
     <div id="head" class="text-center">
       <h1 align="center">Decentralized Voting Using Ethereum Blockchain</h1>
@@ -63,6 +71,31 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
     <script src="/js/permanent-metamask.js"></script>
+    <script>
+      // Logout function for user page
+      function logout() {
+        if (confirm('🔐 Are you sure you want to logout?\n\nThis will end your current voting session.')) {
+          try {
+            localStorage.removeItem('jwtTokenVoter');
+            localStorage.removeItem('jwtTokenAdmin');
+            sessionStorage.clear();
+            
+            const logoutBtn = document.getElementById('logoutButton');
+            if (logoutBtn) {
+              logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging out...';
+              logoutBtn.disabled = true;
+            }
+            
+            setTimeout(() => {
+              window.location.replace('/login.html');
+            }, 800);
+          } catch (error) {
+            console.error('Logout error:', error);
+            window.location.replace('/login.html');
+          }
+        }
+      }
+    </script>
   <script src="/app.bundle.js" type="module"></script>
   </body>
 </html>

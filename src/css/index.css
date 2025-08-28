@@ -110,9 +110,57 @@ body {
     margin-top: 20px;
   }
   
+  /* Logout button styling */
+  .logout-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
+  
+  .logout-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 100px;
+    justify-content: center;
+  }
+  
+  .logout-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ee5a24, #ff6b6b);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  }
+  
+  .logout-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #999, #666);
+  }
+  
   @media (max-width: 768px) {
     .container {
       width: 90%;
+    }
+    
+    .logout-container {
+      top: 15px;
+      right: 15px;
+    }
+    
+    .logout-btn {
+      padding: 10px 16px;
+      font-size: 13px;
     }
   }
   

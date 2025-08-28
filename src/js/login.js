@@ -155,6 +155,9 @@ async function handleAdminLogin(event) {
     if (response.success && response.data.role === 'admin') {
       showMessage('🎉 Admin authentication successful! Welcome to the control panel...', 'success');
       
+      // Store admin token
+      localStorage.setItem('jwtTokenAdmin', response.data.token);
+      
       // Redirect to admin panel
       setTimeout(() => {
         window.location.replace(`http://localhost:8081/admin.html?Authorization=Bearer ${response.data.token}`);

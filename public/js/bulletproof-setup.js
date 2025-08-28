@@ -211,27 +211,8 @@ window.verifyConnection = verifyConnection;
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🔧 EtherVox Bulletproof Configuration Loaded');
   
-  // Add setup button to page if it doesn't exist
-  if (!document.getElementById('bulletproof-setup-btn')) {
-    const setupBtn = document.createElement('button');
-    setupBtn.id = 'bulletproof-setup-btn';
-    setupBtn.innerHTML = '🛡️ Bulletproof Setup';
-    setupBtn.style.cssText = `
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 9999;
-      background: #ff6b35;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-    `;
-    setupBtn.onclick = bulletproofSetup;
-    document.body.appendChild(setupBtn);
-  }
+  // Bulletproof setup button removed to avoid UI conflicts with logout button
+  // The setup functionality is still available programmatically
 });
 
 console.log('🔧 EtherVox Bulletproof Configuration Script Loaded Successfully!');
