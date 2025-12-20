@@ -30,7 +30,11 @@ try:
     
     users = [
         ('A001', 'adminPass001', 'admin'),
-        ('U001', 'userPass001', 'user')
+        ('U001', 'userPass001', 'user'),
+        ('U002', 'userPass002', 'user'),
+        ('U003', 'userPass003', 'user'),
+        ('U004', 'userPass004', 'user'),
+        ('U005', 'userPass005', 'user')
     ]
     
     cursor.executemany(sql, users)
