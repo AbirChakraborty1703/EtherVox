@@ -113,92 +113,146 @@ Our updated architecture combines cutting-edge technologies for optimal performa
 
 ---
 
-## 🚀 **New Installation Process** (Updated!)
+## 🚀 **Installation Process** (Simplified!)
 
-### Step 1: Clone & Install 📥
-```bash
-git clone https://github.com/AbirChakraborty1703/EtherVox.git
-cd EtherVox
-npm install
-```
+### Quick Start - All-in-One Launcher 🎯
+**Easiest way to run the entire system with one command:**
 
-### Step 2: Database Setup 🗄️
-**New MySQL Integration:**
-
-1. **Install & Start MySQL Server**
-2. **Open MySQL Workbench**
-3. **Create Connection**:
-   - Host: `localhost:3306`
-   - Username: `root`
-   - Password: `[your-mysql-password]`
-
-4. **Run Database Setup**:
-   ```sql
-   -- Execute this in MySQL Workbench
-   SOURCE Database_API/setup_database.sql;
+1. **Clone & Install**:
+   ```bash
+   git clone https://github.com/AbirChakraborty1703/EtherVox.git
+   cd EtherVox
+   npm install
    ```
 
-5. **Configure Environment**:
-   Update `.env` file:
+2. **Install Python Dependencies**:
+   ```bash
+   cd Database_API
+   pip install -r requirements.txt
+   cd ..
+   ```
+
+3. **Configure Environment**:
+   Create/Update `.env` file in root and `Database_API/.env`:
    ```env
    SECRET_KEY="your-secret-key-here"
    MYSQL_HOST=localhost
    MYSQL_USER=root
    MYSQL_PASSWORD=your_mysql_password
    MYSQL_DB=voter_db
+   MONGO_URI=mongodb://localhost:27017
+   MONGO_DB=ethervox_candidates
    ```
 
-### Step 3: Install Python Dependencies 🐍
+4. **Launch Everything** 🚀:
+   ```bash
+   start-ethervox.bat
+   ```
+   
+   **This single command will**:
+   - ✅ Start MongoDB server
+   - ✅ Setup MySQL database with test users
+   - ✅ Launch Ganache blockchain
+   - ✅ Deploy smart contracts
+   - ✅ Start FastAPI backend (port 8001)
+   - ✅ Start Express frontend (port 8081)
+   - ✅ Open browser automatically
+
+---
+
+### Manual Setup (Alternative Method) 🛠️
+
+If you prefer to run services manually:
+
+#### Step 1: Clone & Install 📥
+```bash
+git clone https://github.com/AbirChakraborty1703/EtherVox.git
+cd EtherVox
+npm install
+```
+
+#### Step 2: Database Setup 🗄️
+**MySQL Integration:**
+
+1. **Install & Start MySQL Server**
+2. **Create voter_db database**
+3. **Configure Environment** (same as above)
+4. **Populate Test Users**:
+   ```bash
+   cd Database_API
+   python insert_test_users.py
+   cd ..
+   ```
+
+**MongoDB Setup:**
+- MongoDB will start automatically with `start-ethervox.bat`
+- Or manually: `mongod --dbpath=Database_API/mongodb_data`
+
+#### Step 3: Install Python Dependencies 🐍
 ```bash
 cd Database_API
 pip install -r requirements.txt
 cd ..
 ```
 
-### Step 4: Blockchain Setup ⛓️
+#### Step 4: Blockchain Setup ⛓️
 ```bash
 # Start Ganache first, then:
 truffle compile
 truffle migrate --reset
 ```
 
-### Step 5: Launch the Platform 🚀
-**Start both servers in separate terminals:**
+#### Step 5: Launch Services Manually 🚀
+**Start services in separate terminals:**
 
-**Terminal 1 - Database API:**
+**Terminal 1 - MongoDB:**
+```bash
+mongod --dbpath=Database_API/mongodb_data
+```
+
+**Terminal 2 - Database API:**
 ```bash
 cd Database_API
 python main.py
 ```
 
-**Terminal 2 - Web Server:**
+**Terminal 3 - Web Server:**
 ```bash
 node index.js
 ```
 
-### Step 6: Access Your Modern Platform! 🎉
+---
+
+## 🌐 Access Your Platform
+
+After running `start-ethervox.bat` or starting services manually:
+
 - **🌐 Login Portal**: http://localhost:8081
-- **📊 API Documentation**: http://127.0.0.1:8000/docs
-- **🔗 Health Check**: http://127.0.0.1:8000
+- **📊 API Documentation**: http://127.0.0.1:8001/docs
+- **🔗 Backend Health**: http://127.0.0.1:8001
+- **⛓️ Ganache**: http://127.0.0.1:7545
 
 ---
 
-## 🔐 **New Authentication System**
+## 🔐 **Authentication System**
 
-### 👥 Default Login Credentials:
+### 👥 Test Login Credentials:
 **🔑 Admin Access:**
 - Voter ID: `A001`
 - Password: `adminPass001`
 
 **🔑 User Access:**
-- Voter ID: `U001` 
-- Password: `userPass001`
+- Voter ID: `U001` to `U005`
+- Password: `userPass001` to `userPass005`
+  - Example: U001/userPass001, U002/userPass002, etc.
 
 ### 🎯 Login Process:
 1. **Beautiful Interface**: Modern tabbed login with animations
 2. **Role Selection**: Choose Admin or User tab
 3. **Secure Authentication**: JWT token generation
 4. **Auto-Redirect**: Seamless navigation to appropriate dashboard
+
+> **Note**: Test users are automatically created when running `start-ethervox.bat` or manually via `Database_API/insert_test_users.py`
 
 ---
 
@@ -275,16 +329,18 @@ voters (
 - ⚡ **Optimized Loading**: Faster page load times
 - 🔄 **Efficient Caching**: Reduced server requests
 - 📦 **Bundled Assets**: Minimized file sizes
-- 🌐 **CDN Integration**: External resource optimization
-
-### 🛠️ **Development Features:**
-- 🔄 **Hot Reload**: Automatic development server restart
+- � **One-Command Launch**: All services start with `start-ethervox.bat`
+- 🔄 **Auto Setup**: Database and blockchain configured automatically
 - 📝 **Enhanced Logging**: Detailed error tracking
-- 🧪 **Testing Support**: Unit and integration test framework
-- 📊 **API Documentation**: Auto-generated FastAPI docs
+- 🧪 **Test Data**: Pre-configured test users (A001, U001-U005)
+- 📊 **API Documentation**: Auto-generated FastAPI docs at `/docs`
 
 ### 🏗️ **Architecture Improvements:**
 - 🎯 **Separation of Concerns**: Clear layer separation
+- 🔗 **RESTful APIs**: Standard HTTP methods and status codes
+- 🔄 **Error Handling**: Comprehensive error management
+- 🧹 **Clean Code**: Organized, maintainable codebase
+- 📦 **Automated Launcher**: Integrated startup script for all serviceson
 - 🔗 **RESTful APIs**: Standard HTTP methods and status codes
 - 🔄 **Error Handling**: Comprehensive error management
 - 🧹 **Clean Code**: Organized, maintainable codebase
@@ -298,15 +354,24 @@ voters (
 **❌ "Database Connection Failed"**
 ```bash
 ✅ Solution:
-1. Ensure MySQL server is running
-2. Check credentials in .env file
-3. Verify database exists: Run setup_database.sql
+1. Run: python Database_API/insert_test_users.py
 ```
 
 **❌ "Login Authentication Error"**
 ```bash
 ✅ Solution:
-1. Check if Database API is running on port 8000
+1. Check if Database API is running on port 8001
+2. Verify test users exist: Run insert_test_users.py
+3. Try default credentials: A001/adminPass001 or U001/userPass001
+```
+
+**❌ "start-ethervox.bat Errors"**
+```bash
+✅ Solution:
+1. Ensure all prerequisites are installed (Node.js, Python, MySQL, MongoDB, Ganache)
+2. Check that .env files are configured in root and Database_API folders
+3. Verify ports 8001, 8081, 7545, 27017, 3306 are available
+4. Run services manually to identify specific errors000
 2. Verify test users exist in database
 3. Try default credentials: A001/adminPass001
 ```
@@ -423,7 +488,19 @@ Special thanks to:
 
 ## 🏆 **Final Notes**
 
-🎯 **This updated EtherVox represents a complete modern voting platform** combining:
+## 🎬 Quick Start Summary
+
+1. **Install Prerequisites**: Node.js, Python, MySQL, MongoDB, Ganache
+2. **Clone & Setup**: `git clone` → `npm install` → `pip install -r requirements.txt`
+3. **Configure**: Create `.env` files with database credentials
+4. **Launch**: Run `start-ethervox.bat` (Windows) 
+5. **Login**: Open http://localhost:8081 → Use A001/adminPass001
+
+That's it! The entire blockchain voting platform is now running locally! 🎉
+
+---
+
+*Last Updated: December 21, 2024 - All-in-One Launcher & Simplified Setup** combining:
 - ✨ Beautiful, professional user interface
 - 🔒 Enterprise-grade security
 - 💾 Robust database integration
