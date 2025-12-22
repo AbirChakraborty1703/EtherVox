@@ -141,12 +141,42 @@ window.App = {
       // Load voting dates
       try {
         const dates = await instance.methods.getDates().call();
-        const startDate = new Date(parseInt(dates[0]) * 1000);
-        const endDate = new Date(parseInt(dates[1]) * 1000);
-        $("#dates").text(startDate.toDateString() + " - " + endDate.toDateString());
+        const startTimestamp = parseInt(dates[0]);
+        const endTimestamp = parseInt(dates[1]);
+        
+        console.log('Blockchain dates:', {
+          startTimestamp,
+          endTimestamp,
+          startDate: new Date(startTimestamp * 1000),
+          endDate: new Date(endTimestamp * 1000)
+        });
+        
+        // Check if dates are actually set (not 0)
+        if (startTimestamp > 0 && endTimestamp > 0) {
+          const startDate = new Date(startTimestamp * 1000);
+          const endDate = new Date(endTimestamp * 1000);
+          
+          // Format dates nicely
+          const dateOptions = { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          };
+          
+          const formattedStart = startDate.toLocaleDateString('en-US', dateOptions);
+          const formattedEnd = endDate.toLocaleDateString('en-US', dateOptions);
+          
+          $("#dates").text(formattedStart + " - " + formattedEnd);
+        } else {
+          console.warn('Voting dates not initialized (timestamps are 0)');
+          $("#dates").text("Voting dates not set yet");
+        }
       } catch (error) {
-        console.warn('No voting dates set yet:', error.message);
-        $("#dates").text("No voting dates set yet");
+        console.warn('Error loading voting dates:', error.message);
+        $("#dates").text("Voting dates not set yet");
       }
 
       // Check if user has already voted
@@ -330,6 +360,41 @@ window.App = {
         const candidateCount = await instance.methods.getCountCandidates().call();
         formData.blockchainAddress = tx.transactionHash;
 
+        // Check if voting dates need to be set on blockchain
+        const votingStatus = await instance.methods.getVotingStatus().call();
+        console.log('Current voting status:', votingStatus);
+        
+        if (votingStatus === "Not Initialized") {
+          App.showStatus('Setting voting dates on blockchain...', 'info');
+          
+          try {
+            // Convert dates to Unix timestamps (seconds)
+            const startTimestamp = Math.floor(startDate.getTime() / 1000);
+            const endTimestamp = Math.floor(endDate.getTime() / 1000);
+            
+            console.log('Setting blockchain dates:', {
+              start: startTimestamp,
+              end: endTimestamp,
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString()
+            });
+            
+            // Set voting dates on blockchain
+            const datesTx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
+              from: App.account,
+              gas: 200000
+            });
+            
+            console.log('Voting dates set on blockchain:', datesTx.transactionHash);
+            App.showStatus('Voting dates synchronized with blockchain!', 'success');
+          } catch (datesError) {
+            console.error('Error setting blockchain dates:', datesError);
+            App.showStatus('Warning: Candidate added but failed to set voting dates on blockchain', 'warning');
+          }
+        } else {
+          console.log('Voting dates already initialized on blockchain');
+        }
+
         App.showStatus('Candidate added to blockchain! Now saving to database...', 'info');
 
       } catch (blockchainError) {
@@ -381,12 +446,90 @@ window.App = {
 
     try {
       const instance = App.contracts.Voting;
-      await instance.methods.vote(parseInt(candidateID)).send({ from: App.account });
-      $("#msg").html("<p>Your vote has been recorded successfully!</p>");
+      
+      // Check voting status first
+      const votingStatus = await instance.methods.getVotingStatus().call();
+      console.log('Voting status:', votingStatus);
+      
+      if (votingStatus === "Not Initialized") {
+        $("#msg").html("<p style='color: orange;'>⚠️ Voting has not been initialized yet. Admin needs to set voting dates.</p>");
+        return;
+      }
+      
+      if (votingStatus === "Not Started") {
+        const dates = await instance.methods.getDates().call();
+        const startDate = new Date(parseInt(dates[0]) * 1000);
+        $("#msg").html(`<p style='color: orange;'>⚠️ Voting hasn't started yet. It will begin on ${startDate.toLocaleString()}.</p>`);
+        return;
+      }
+      
+      if (votingStatus === "Ended") {
+        $("#msg").html("<p style='color: red;'>❌ Voting has ended. You can no longer cast votes.</p>");
+        return;
+      }
+      
+      // Check if already voted
+      const hasVoted = await instance.methods.checkVote().call({ from: App.account });
+      if (hasVoted) {
+        $("#msg").html("<p style='color: orange;'>⚠️ You have already voted!</p>");
+        $("#voteButton").attr("disabled", true);
+        return;
+      }
+      
+      // Validate candidate ID
+      const countCandidates = await instance.methods.getCountCandidates().call();
+      if (parseInt(candidateID) > parseInt(countCandidates) || parseInt(candidateID) < 1) {
+        $("#msg").html("<p style='color: red;'>❌ Invalid candidate selection.</p>");
+        return;
+      }
+      
+      // Show processing message
+      $("#msg").html("<p style='color: blue;'>⏳ Processing your vote... Please confirm in MetaMask.</p>");
       $("#voteButton").attr("disabled", true);
+      
+      // Estimate gas first to catch errors early
+      try {
+        await instance.methods.vote(parseInt(candidateID)).estimateGas({ from: App.account });
+      } catch (gasError) {
+        console.error('Gas estimation failed:', gasError);
+        $("#voteButton").attr("disabled", false);
+        $("#msg").html("<p style='color: red;'>❌ Transaction would fail. Please ensure you have enough ETH and haven't voted already.</p>");
+        return;
+      }
+      
+      // Send the vote transaction
+      await instance.methods.vote(parseInt(candidateID)).send({ 
+        from: App.account,
+        gas: 200000 // Set reasonable gas limit
+      });
+      
+      $("#msg").html("<p style='color: green;'>✅ Your vote has been recorded successfully!</p>");
+      $("#voteButton").attr("disabled", true);
+      
+      // Refresh candidate list to show updated vote counts
+      await App.loadCandidates();
+      
     } catch (error) {
       console.error('Error voting:', error);
-      $("#msg").html(`<p>Error voting: ${error.message}</p>`);
+      $("#voteButton").attr("disabled", false);
+      
+      // Parse specific error messages
+      let errorMsg = "Unknown error occurred";
+      if (error.message.includes("VotingNotActive")) {
+        errorMsg = "Voting is not currently active.";
+      } else if (error.message.includes("AlreadyVoted")) {
+        errorMsg = "You have already voted!";
+      } else if (error.message.includes("InvalidCandidate")) {
+        errorMsg = "Invalid candidate selection.";
+      } else if (error.message.includes("User denied")) {
+        errorMsg = "Transaction was rejected.";
+      } else if (error.message.includes("insufficient funds")) {
+        errorMsg = "Insufficient ETH for gas fees.";
+      } else {
+        errorMsg = error.message;
+      }
+      
+      $("#msg").html(`<p style='color: red;'>❌ Error: ${errorMsg}</p>`);
     }
   },
 
