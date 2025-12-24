@@ -36,7 +36,7 @@ timeout /t 5 /nobreak >nul
 
 REM Step 5: Compile and deploy smart contracts
 echo [5/7] Compiling and deploying smart contracts...
-call truffle migrate --reset --network development
+call npx truffle migrate --reset --network development
 if errorlevel 1 (
     echo [WARNING] Smart contract deployment had issues, continuing...
 )
