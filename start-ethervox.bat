@@ -32,13 +32,27 @@ cd ..
 REM Step 4: Start Ganache blockchain
 echo [4/7] Starting Ganache blockchain...
 start "Ganache Blockchain" cmd /c "ganache --port 7545 --networkId 5777 --accounts 10 --defaultBalanceEther 100"
-timeout /t 5 /nobreak >nul
+timeout /t 10 /nobreak >nul
 
 REM Step 5: Compile and deploy smart contracts
 echo [5/7] Compiling and deploying smart contracts...
-call truffle migrate --reset --network development
+call npx truffle migrate --reset --network development
 if errorlevel 1 (
     echo [WARNING] Smart contract deployment had issues, continuing...
+)
+
+REM Step 5.1: Transfer ownership to your MetaMask account
+echo [5.1/7] Transferring contract ownership...
+call npx truffle exec transfer-ownership.js --network development
+if errorlevel 1 (
+    echo [WARNING] Ownership transfer had issues, you may need to use accounts[0]...
+)
+
+REM Step 5.2: Rebuild frontend with new contract
+echo [5.2/7] Building frontend...
+call npm run build
+if errorlevel 1 (
+    echo [WARNING] Frontend build had issues, continuing...
 )
 
 REM Step 6: Start FastAPI Backend
