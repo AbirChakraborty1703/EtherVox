@@ -75,20 +75,6 @@ function setupFormValidation() {
       this.setCustomValidity('');
     }
   });
-  
-  // Date validation
-  const dateOfBirth = document.getElementById('dateOfBirth');
-  const electionStartDate = document.getElementById('electionStartDate');
-  const electionEndDate = document.getElementById('electionEndDate');
-  
-  electionEndDate.addEventListener('change', function() {
-    if (electionStartDate.value && this.value <= electionStartDate.value) {
-      this.setCustomValidity('Election end date must be after start date');
-      showStatusMessage('❌ Election end date must be after start date', 'error');
-    } else {
-      this.setCustomValidity('');
-    }
-  });
 }
 
 function validateField(field) {
@@ -123,9 +109,6 @@ function setupFormSubmission() {
       phoneNumber: document.getElementById('phoneNumber').value.trim(),
       candidateAddress: document.getElementById('candidateAddress').value.trim(),
       party: document.getElementById('party').value.trim(),
-      electionCenter: document.getElementById('electionCenter').value.trim(),
-      electionStartDate: new Date(document.getElementById('electionStartDate').value).toISOString(),
-      electionEndDate: new Date(document.getElementById('electionEndDate').value).toISOString(),
       candidateId: document.getElementById('candidateId').value.trim(),
       candidatePassword: document.getElementById('candidatePassword').value
     };
@@ -265,13 +248,6 @@ document.getElementById('name').addEventListener('blur', function(e) {
 const today = new Date();
 const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
 document.getElementById('dateOfBirth').max = maxDate.toISOString().split('T')[0];
-
-// Set min date for election dates (can't be in the past)
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
-const minDateTime = tomorrow.toISOString().slice(0, 16);
-document.getElementById('electionStartDate').min = minDateTime;
-document.getElementById('electionEndDate').min = minDateTime;
 
 // ===============================================
 // ERROR HANDLING
