@@ -15,152 +15,1016 @@
 
 /* Main body styling with Ethereum background */
 body {
-    font-family: 'Arial', sans-serif;    /* Clean, readable font */
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 60vh;                    /* Minimum viewport height */
-    background: url('../assets/eth5.jpg') no-repeat center center fixed;
-    background-size: cover;              /* Full background coverage */
+  font-family: 'Arial', sans-serif;
+  /* Clean, readable font */
+  margin: 0;
+  padding: 0;
+  padding-top: 80px;
+  /* Space for fixed navbar */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  /* Minimum viewport height */
+  background: url('../assets/eth5.jpg') no-repeat center center fixed;
+  background-size: cover;
+  /* Full background coverage */
+}
+
+/* Navigation Bar Styles */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  border-bottom: 2px solid #0f3460;
+}
+
+.navbar-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: default;
+}
+
+.navbar-brand i {
+  color: #198a7b;
+  font-size: 28px;
+}
+
+.navbar-menu {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.navbar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.navbar-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.navbar-item i {
+  font-size: 16px;
+}
+
+.logout-item {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.logout-item:hover {
+  background: linear-gradient(135deg, #ee5a24, #ff6b6b);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+/* Profile Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  margin: 10% auto;
+  padding: 40px;
+  border: 2px solid #0f3460;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
   }
-  
-  /* Main container for voting interface */
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h2 {
+  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 30px;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 2px solid #198a7b;
+  padding-bottom: 15px;
+}
+
+.close-modal {
+  color: #aaa;
+  float: right;
+  font-size: 35px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  line-height: 20px;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+  color: #ff6b6b;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.profile-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 4px solid #198a7b;
+}
+
+.profile-item label {
+  display: block;
+  color: #198a7b;
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profile-item label i {
+  margin-right: 8px;
+}
+
+.profile-item p {
+  color: #ffffff;
+  margin: 0;
+  font-size: 16px;
+  word-break: break-all;
+}
+
+.address-text {
+  font-family: 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* Profile Modal Extended Styles */
+.profile-modal {
+  max-width: 550px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+}
+
+.profile-tab {
+  flex: 1;
+  padding: 12px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.profile-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.profile-tab.active {
+  background: linear-gradient(135deg, #198a7b, #0f5f54);
+  color: #fff;
+  border-color: #198a7b;
+}
+
+.profile-tab-content {
+  display: none;
+}
+
+.profile-tab-content.active {
+  display: block;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Profile Form Styles */
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #198a7b;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group label i {
+  margin-right: 8px;
+}
+
+.form-group input {
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #198a7b;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 15px rgba(25, 138, 123, 0.2);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 50px;
+}
+
+.toggle-pass-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.3s ease;
+}
+
+.toggle-pass-btn:hover {
+  color: #198a7b;
+}
+
+.profile-save-btn {
+  padding: 15px 25px;
+  background: linear-gradient(135deg, #198a7b, #0f5f54);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profile-save-btn:hover {
+  background: linear-gradient(135deg, #0f5f54, #198a7b);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(25, 138, 123, 0.4);
+}
+
+.password-btn {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+}
+
+.password-btn:hover {
+  background: linear-gradient(135deg, #d35400, #e67e22);
+  box-shadow: 0 5px 20px rgba(230, 126, 34, 0.4);
+}
+
+.profile-message {
+  display: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.success-msg {
+  color: #4caf50;
+}
+
+.error-msg {
+  color: #ff6b6b;
+}
+
+.profile-message i {
+  margin-right: 8px;
+}
+
+/* Main container for voting interface */
+.container {
+  width: 90%;
+  max-width: 900px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 30px;
+}
+
+/* Welcome Banner */
+.welcome-banner {
+  text-align: center;
+  padding: 30px 20px;
+  margin-bottom: 20px;
+}
+
+.welcome-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #198a7b, #0f5f54);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 10px 30px rgba(25, 138, 123, 0.4);
+}
+
+.welcome-icon i {
+  font-size: 36px;
+  color: #fff;
+}
+
+.welcome-banner h1 {
+  font-size: 36px;
+  color: #ffffff;
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.welcome-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Voting Status Bar */
+.voting-status-bar {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  padding: 15px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  margin-bottom: 30px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.status-item i {
+  color: #198a7b;
+  font-size: 18px;
+}
+
+.status-item strong {
+  color: #fff;
+}
+
+.status-connected {
+  color: #4caf50 !important;
+}
+
+/* Instructions Card */
+.instructions-card {
+  background: rgba(25, 138, 123, 0.1);
+  border: 1px solid rgba(25, 138, 123, 0.3);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.instructions-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  color: #198a7b;
+}
+
+.instructions-header i {
+  font-size: 20px;
+}
+
+.instructions-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #198a7b;
+}
+
+.instructions-steps {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+
+.step-number {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #198a7b, #0f5f54);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+/* Section Title */
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 24px;
+  color: #fff;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-title i {
+  color: #198a7b;
+}
+
+/* Candidates Grid */
+.candidates-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 150px;
+}
+
+/* Loading, Empty, Error States */
+.loading-state,
+.empty-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-state i,
+.empty-state i,
+.error-state i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #198a7b;
+}
+
+.loading-state i {
+  color: #198a7b;
+}
+
+.empty-state i {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.error-state i {
+  color: #ff6b6b;
+}
+
+.loading-state p,
+.empty-state p,
+.error-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.candidate-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.candidate-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(25, 138, 123, 0.5);
+  transform: translateX(5px);
+}
+
+.candidate-card.selected {
+  background: rgba(25, 138, 123, 0.2);
+  border-color: #198a7b;
+  box-shadow: 0 0 20px rgba(25, 138, 123, 0.3);
+}
+
+.candidate-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.candidate-avatar {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.candidate-details h4 {
+  margin: 0 0 5px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.candidate-details .party-name {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.candidate-votes {
+  text-align: right;
+}
+
+.vote-count {
+  font-size: 24px;
+  font-weight: 700;
+  color: #198a7b;
+}
+
+.vote-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.candidate-select {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 15px;
+  transition: all 0.3s ease;
+}
+
+.candidate-card.selected .candidate-select {
+  background: #198a7b;
+  border-color: #198a7b;
+}
+
+.candidate-card.selected .candidate-select::after {
+  content: '✓';
+  color: #fff;
+  font-size: 14px;
+}
+
+/* Voting Action Section */
+.voting-action-section {
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.vote-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.vote-prompt i {
+  color: #198a7b;
+  font-size: 20px;
+}
+
+.vote-prompt p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.vote-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 50px;
+  background: linear-gradient(135deg, #198a7b, #0f5f54);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(25, 138, 123, 0.4);
+}
+
+.vote-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(25, 138, 123, 0.5);
+}
+
+.vote-btn:disabled {
+  background: linear-gradient(135deg, #555, #444);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.vote-btn i {
+  font-size: 20px;
+}
+
+.vote-message {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Account Footer */
+.account-footer {
+  padding: 20px;
+  margin-top: 10px;
+}
+
+.account-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 15px 25px;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.account-card i {
+  font-size: 24px;
+  color: #198a7b;
+}
+
+.account-info {
+  text-align: left;
+}
+
+.account-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  display: block;
+}
+
+.account-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
+
+/* Legacy table styles - keep for backward compatibility */
+.table {
+  width: 100%;
+  margin-bottom: 20px;
+  background-color: rgba(124, 123, 123, 0.65);
+  border-radius: 5px;
+  border-collapse: separate;
+  border-spacing: 25px;
+}
+
+th {
+  font-size: 18px;
+  color: #ffffff;
+}
+
+td {
+  font-size: 16px;
+  color: #ffffff;
+}
+
+h1 {
+  font-size: 32px;
+  color: #ffffff;
+  margin-bottom: 30px;
+}
+
+h2 {
+  font-size: 25px;
+  color: #ffffff;
+  margin-bottom: 25px;
+}
+
+h3 {
+  color: #ffffff;
+}
+
+p {
+  color: #ffffff;
+}
+
+#voteButton {
+  width: 40%;
+  padding: 12px;
+  background-color: #198a7b;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  font-size: 19px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#voteButton:hover {
+  background-color: #44afa1;
+}
+
+#voteButton:focus {
+  outline: none;
+}
+
+#voteButton:active {
+  transform: translateY(2px);
+}
+
+#accountAddress {
+  font-size: 18px;
+  color: #ffffff;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-top: 70px;
+  }
+
+  .navbar-container {
+    padding: 0 15px;
+    height: 60px;
+  }
+
+  .navbar-brand {
+    font-size: 20px;
+  }
+
+  .navbar-brand i {
+    font-size: 24px;
+  }
+
+  .navbar-menu {
+    gap: 10px;
+  }
+
+  .navbar-item {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .navbar-item span {
+    display: none;
+  }
+
+  .navbar-item i {
+    font-size: 18px;
+  }
+
+  .modal-content {
+    margin: 5% auto;
+    padding: 20px;
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .modal-content h2 {
+    font-size: 20px;
+  }
+
+  .profile-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .profile-tab {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .profile-tab span {
+    display: none;
+  }
+
+  .profile-item {
+    padding: 15px;
+  }
+
+  .form-group input {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .profile-save-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
   .container {
-    width: 750px;                        /* Fixed width for desktop */
-    max-width: 900px;
-    background-color: rgba(0, 0, 0, 0.650);
-    padding: 40px;
-    padding-bottom: 2%;
-    padding-top: 2%;
-    border-radius: 5px;
-    box-shadow: 0px 3px 10px rgba(255, 255, 255, 0.1);
+    width: 95%;
+    padding: 20px;
+  }
+
+  /* Responsive voting interface */
+  .welcome-banner h1 {
+    font-size: 24px;
+  }
+
+  .welcome-subtitle {
+    font-size: 14px;
+  }
+
+  .welcome-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .welcome-icon i {
+    font-size: 28px;
+  }
+
+  .voting-status-bar {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .instructions-steps {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .step {
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .candidate-card {
+    flex-wrap: wrap;
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .candidate-info {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .candidate-votes {
     text-align: center;
   }
-  
-  h1 {
-    font-size: 32px;
-    color: #ffffff;
-    margin-bottom: 30px;
+
+  .vote-count {
+    font-size: 20px;
   }
 
-  h2 {
-    font-size: 25px;
-    color: #ffffff;
-    margin-bottom: 25px;
-  }
-  
-  h3 {
-    color: #ffffff;
-  }
-
-  p {
-    color: #ffffff;
-  }
-  
-  .table {
-    width: 100%;
-    margin-bottom: 20px;
-    background-color: rgba(124, 123, 123, 0.65);
-    border-radius: 5px;
-    border-collapse: separate;
-    border-spacing: 25px;
-  }
-  
-  th {
-    font-size: 18px;
-    color: #ffffff;
-  }
-  
-  td {
+  .vote-btn {
+    padding: 15px 35px;
     font-size: 16px;
-    color: #ffffff;
-    row-gap: 100%;
+    width: 100%;
   }
-  
-  #voteButton {
-    width: 40%;
-    padding: 12px;
-    background-color: #198a7b;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    font-size: 19px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  #voteButton:hover {
-    background-color: #44afa1;
-  }
-  
-  #voteButton:focus {
-    outline: none;
-  }
-  
-  #voteButton:active {
-    transform: translateY(2px);
-  }
-  
-  #accountAddress {
-    font-size: 18px;
-    color: #ffffff;
-    margin-top: 20px;
-  }
-  
-  /* Logout button styling */
-  .logout-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-  }
-  
-  .logout-btn {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    color: white;
-    border: none;
+
+  .account-card {
     padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 100px;
-    justify-content: center;
   }
-  
-  .logout-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #ee5a24, #ff6b6b);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+
+  .account-info p {
+    font-size: 12px;
   }
-  
-  .logout-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    background: linear-gradient(135deg, #999, #666);
-  }
-  
-  @media (max-width: 768px) {
-    .container {
-      width: 90%;
-    }
-    
-    .logout-container {
-      top: 15px;
-      right: 15px;
-    }
-    
-    .logout-btn {
-      padding: 10px 16px;
-      font-size: 13px;
-    }
-  }
-  
+}

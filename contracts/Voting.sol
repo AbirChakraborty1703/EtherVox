@@ -226,6 +226,29 @@ contract Voting {
         emit VotingPeriodSet(_startDate, _endDate);
     }
 
+    // Update voting dates (only before voting starts)
+    function updateDates(uint256 _startDate, uint256 _endDate) public onlyOwner {
+        // Can only update if voting hasn't started yet
+        if (votingInitialized && block.timestamp >= votingStart) {
+            revert("Cannot update dates after voting has started");
+        }
+        if (_startDate <= block.timestamp) {
+            revert InvalidTimeRange();
+        }
+        if (_endDate <= _startDate) {
+            revert InvalidTimeRange();
+        }
+        if (_endDate < _startDate + 1800) { // Minimum 30 minutes
+            revert InvalidTimeRange();
+        }
+        
+        votingStart = _startDate;
+        votingEnd = _endDate;
+        votingInitialized = true;
+        
+        emit VotingPeriodSet(_startDate, _endDate);
+    }
+
     // Get voting period dates
     function getDates() public view returns (uint256, uint256) {
         return (votingStart, votingEnd);
