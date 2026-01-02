@@ -23,8 +23,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 60vh;                    /* Minimum viewport height */
-    background: url('../assets/eth5.jpg') no-repeat center center fixed;
-    background-size: cover;              /* Full background coverage */
+    /* Background is now handled by video-background.css */
   }
   
   /* Main container for voting interface */

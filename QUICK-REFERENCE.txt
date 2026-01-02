@@ -1,0 +1,143 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║                  🚀 ETHERVOX - QUICK REFERENCE CARD 🚀                ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🎯 ONE COMMAND TO START EVERYTHING                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Command:  start-ethervox.bat                                      │
+│                                                                     │
+│   What it starts:                                                   │
+│   ✅ MySQL (auto-detects installation)                             │
+│   ✅ MongoDB                                                        │
+│   ✅ Ganache Blockchain                                             │
+│   ✅ Smart Contract Deployment                                      │
+│   ✅ Webpack Build                                                  │
+│   ✅ FastAPI Backend                                                │
+│   ✅ Express Frontend                                               │
+│   ✅ Opens browser automatically                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🌐 SERVICE ENDPOINTS                                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Frontend:      http://localhost:8081/                            │
+│   API Docs:      http://127.0.0.1:8001/docs                        │
+│   MongoDB:       localhost:27017                                    │
+│   MySQL:         localhost:3306                                     │
+│   Ganache:       localhost:7545                                     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🔐 LOGIN CREDENTIALS                                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ADMIN:                                                            │
+│   ID:       A001                                                    │
+│   Password: admin123                                                │
+│                                                                     │
+│   VOTER:                                                            │
+│   ID:       V001  or  V002                                          │
+│   Password: voter123                                                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🛑 STOP ALL SERVICES                                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   In main window: Press ANY KEY                                     │
+│   This stops: MongoDB, MySQL, Python, Node.js, Ganache             │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 📊 VERIFY SERVICES ARE RUNNING                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   netstat -ano | findstr ":8081 :8001 :7545 :3306 :27017"          │
+│                                                                     │
+│   Should show:                                                      │
+│   ✅ 8081  - Express                                                │
+│   ✅ 8001  - FastAPI                                                │
+│   ✅ 7545  - Ganache                                                │
+│   ✅ 3306  - MySQL                                                  │
+│   ✅ 27017 - MongoDB                                                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🔧 TROUBLESHOOTING                                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Service failed?                                                   │
+│   → Check that service's terminal window for errors                │
+│                                                                     │
+│   Contracts didn't deploy?                                          │
+│   → Run: deploy-contracts-manual.bat                               │
+│   → Or: truffle migrate --reset --network development              │
+│                                                                     │
+│   Port already in use?                                              │
+│   → Run start-ethervox.bat again (it kills existing processes)     │
+│                                                                     │
+│   MySQL not starting?                                               │
+│   → Start manually from XAMPP/WAMP/MySQL Workbench                 │
+│   → Or install MySQL as Windows service                            │
+│                                                                     │
+│   Need detailed help?                                               │
+│   → Read: TROUBLESHOOTING.md                                       │
+│   → Read: ONE-COMMAND-STARTUP.md                                   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 📁 IMPORTANT FILES                                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   start-ethervox.bat            - Main startup script              │
+│   deploy-contracts-manual.bat   - Manual contract deployment       │
+│   test-ganache.bat              - Test Ganache connection          │
+│   ONE-COMMAND-STARTUP.md        - Complete startup guide           │
+│   TROUBLESHOOTING.md            - Detailed troubleshooting         │
+│   STARTUP-DIAGRAM.txt           - Visual startup process           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🎯 TYPICAL WORKFLOW                                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   1. Run: start-ethervox.bat                                        │
+│   2. Wait: 2-3 minutes for all services to start                   │
+│   3. Browser opens automatically to login page                     │
+│   4. Login as Admin (A001 / admin123)                              │
+│   5. Access Admin Dashboard                                        │
+│   6. Add candidates or set voting dates                            │
+│   7. When done: Press any key in main window to stop all           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 💡 PRO TIPS                                                         │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ✓ Minimize service windows instead of closing them               │
+│   ✓ Check verification output to confirm all services started      │
+│   ✓ If Ganache fails, re-run script (15-sec wait usually fixes it) │
+│   ✓ Keep main window visible to see status messages                │
+│   ✓ Each service has its own window with live logs                 │
+│   ✓ Browser auto-opens when frontend is ready                      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════╗
+║                                                                       ║
+║         EVERYTHING STARTS WITH ONE COMMAND: start-ethervox.bat        ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝

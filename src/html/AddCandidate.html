@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+  <title>Add Candidate - EtherVox Admin</title>
+
+  <link rel="stylesheet" type="text/css" href="/css/add-candidate.css">
+  <link rel="stylesheet" type="text/css" href="/css/video-background.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+  <!-- Ethereum Background Image with Ultra HD Crystal Clear Animated Effects -->
+  <div class="video-background">
+    <div class="video-overlay crystal"></div>
+    <div class="glow-effect"></div>
+    <div class="particle-layer"></div>
+    <div class="shimmer-effect"></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="page-header">
+    <div class="header-content">
+      <button class="back-btn" onclick="goBackToDashboard()">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+      </button>
+      <div class="page-title-section">
+        <i class="fas fa-user-plus"></i>
+        <h1>Add New Candidate</h1>
+      </div>
+      <button id="logoutButton" class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>📋 Candidate Registration Form</h2>
+        <p>Fill in all required information to register a new candidate</p>
+      </div>
+
+      <form id="candidateForm" class="candidate-form">
+        <div class="form-grid">
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h3><i class="fas fa-id-card"></i> Basic Information</h3>
+            <div class="form-group">
+              <label for="name">Full Name *</label>
+              <input id="name" type="text" name="name" placeholder="Candidate's full name" autocomplete="off" required>
+              <span class="field-hint">Enter candidate's legal full name</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="age">Age *</label>
+              <input id="age" type="number" name="age" placeholder="Age (18+)" min="18" max="120" required>
+              <span class="field-hint">Minimum age: 18 years</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="dateOfBirth">Date of Birth *</label>
+              <input id="dateOfBirth" type="date" name="dateOfBirth" required>
+              <span class="field-hint">Format: YYYY-MM-DD</span>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div class="form-section">
+            <h3><i class="fas fa-address-book"></i> Contact Information</h3>
+            <div class="form-group">
+              <label for="email">Email Address *</label>
+              <input id="email" type="email" name="email" placeholder="candidate@example.com" required>
+              <span class="field-hint">Valid email required</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="phoneNumber">Phone Number *</label>
+              <input id="phoneNumber" type="tel" name="phoneNumber" placeholder="+1234567890" required>
+              <span class="field-hint">Include country code</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="candidateAddress">Personal Address *</label>
+              <textarea id="candidateAddress" name="candidateAddress" placeholder="Full residential address" rows="3" required></textarea>
+              <span class="field-hint">Complete residential address</span>
+            </div>
+          </div>
+
+          <!-- Election Information -->
+          <div class="form-section">
+            <h3><i class="fas fa-vote-yea"></i> Election Information</h3>
+            <div class="form-group">
+              <label for="party">Political Party *</label>
+              <input id="party" type="text" name="party" placeholder="Party name" required>
+              <span class="field-hint">Political party affiliation</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="electionCenter">Election Center Address *</label>
+              <textarea id="electionCenter" name="electionCenter" placeholder="Election center full address" rows="3" required></textarea>
+              <span class="field-hint">Voting center location</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="electionStartDate">Election Start Date *</label>
+              <input id="electionStartDate" type="datetime-local" name="electionStartDate" required>
+              <span class="field-hint">When voting begins</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="electionEndDate">Election End Date *</label>
+              <input id="electionEndDate" type="datetime-local" name="electionEndDate" required>
+              <span class="field-hint">When voting ends</span>
+            </div>
+          </div>
+
+          <!-- Credentials -->
+          <div class="form-section">
+            <h3><i class="fas fa-key"></i> Candidate Credentials</h3>
+            <div class="form-group">
+              <label for="candidateId">Unique Candidate ID *</label>
+              <input id="candidateId" type="text" name="candidateId" placeholder="CID-XXXX-XXXX" pattern="[A-Za-z0-9\-]+" required>
+              <span class="field-hint">Alphanumeric ID for candidate</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="candidatePassword">Candidate Password *</label>
+              <input id="candidatePassword" type="password" name="candidatePassword" placeholder="Secure password" minlength="8" required>
+              <span class="field-hint">Minimum 8 characters</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="confirmPassword">Confirm Password *</label>
+              <input id="confirmPassword" type="password" name="confirmPassword" placeholder="Confirm password" minlength="8" required>
+              <span class="field-hint">Must match password</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button id="addCandidate" type="submit" class="btn-primary">
+            <i class="fas fa-user-plus"></i>
+            Add Candidate
+          </button>
+          <button type="reset" class="btn-secondary">
+            <i class="fas fa-redo"></i>
+            Clear Form
+          </button>
+          <button type="button" class="btn-tertiary" onclick="goBackToDashboard()">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+        </div>
+      </form>
+      
+      <div id="candidateStatus" class="status-message"></div>
+    </div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+  <script src="/js/video-background.js"></script>
+  <script src="/js/add-candidate.js"></script>
+</body>
+</html>

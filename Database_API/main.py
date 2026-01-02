@@ -535,6 +535,90 @@ async def delete_candidate(candidate_id: str):
         )
 
 # ===============================================
+# CANDIDATE SEARCH BY AREA ENDPOINT
+# ===============================================
+
+@app.get("/candidates/area/{election_area}")
+async def get_candidates_by_area(election_area: str):
+    """
+    Get all candidates for a specific election area/constituency
+    
+    Args:
+        election_area (str): The election area or constituency name
+    
+    Returns:
+        dict: List of candidates in the specified area
+    """
+    try:
+        # Search for candidates in the specified election area (case-insensitive)
+        candidates = []
+        query = {
+            "isActive": True,
+            "electionCenter": {"$regex": election_area, "$options": "i"}
+        }
+        
+        async for candidate in candidates_collection.find(query):
+            candidate["_id"] = str(candidate["_id"])
+            # Remove password from response
+            candidate.pop("candidatePassword", None)
+            candidates.append(candidate)
+        
+        return {
+            "message": f"Candidates retrieved for area: {election_area}",
+            "area": election_area,
+            "count": len(candidates),
+            "candidates": candidates
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidates by area: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidates: {str(e)}"
+        )
+
+@app.get("/candidates/info/{candidate_unique_id}")
+async def get_candidate_info_by_id(candidate_unique_id: str):
+    """
+    Get candidate basic info (ID, Name, Area) by their unique candidate ID
+    
+    Args:
+        candidate_unique_id (str): Unique candidate ID
+    
+    Returns:
+        dict: Candidate basic information (ID, Name, Election Area)
+    """
+    try:
+        candidate = await candidates_collection.find_one(
+            {"candidateId": candidate_unique_id, "isActive": True}
+        )
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        
+        # Return only the basic info needed for SetVote page
+        return {
+            "message": "Candidate info retrieved successfully",
+            "candidateInfo": {
+                "candidateId": candidate.get("candidateId"),
+                "name": candidate.get("name"),
+                "electionArea": candidate.get("electionCenter"),
+                "party": candidate.get("party"),
+                "isActive": candidate.get("isActive", True)
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidate info: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidate info: {str(e)}"
+        )
+
+# ===============================================
 # HEALTH CHECK ENDPOINT
 # ===============================================
 

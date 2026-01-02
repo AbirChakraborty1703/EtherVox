@@ -158,9 +158,9 @@ async function handleAdminLogin(event) {
       // Store admin token
       localStorage.setItem('jwtTokenAdmin', response.data.token);
       
-      // Redirect to admin panel
+      // Redirect to admin dashboard
       setTimeout(() => {
-        window.location.replace(`http://localhost:8081/admin.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`http://localhost:8081/AdminDashboard.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {

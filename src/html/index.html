@@ -20,16 +20,25 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
     <!-- Page title displayed in browser tab -->
     <title>Voting Page</title>
 
     <!-- Link to custom stylesheet for voting interface -->
     <link rel="stylesheet" type="text/css" href="/css/index.css">
+    <link rel="stylesheet" type="text/css" href="/css/video-background.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
   </head>
   <body>
+    <!-- Ethereum Background Image with Ultra HD Crystal Clear Animated Effects -->
+    <div class="video-background">
+      <div class="video-overlay crystal"></div>
+      <div class="glow-effect"></div>
+      <div class="particle-layer"></div>
+      <div class="shimmer-effect"></div>
+    </div>
+
     <!-- Logout button -->
     <div class="logout-container">
       <button id="logoutButton" class="logout-btn" onclick="logout()">
@@ -95,7 +104,6 @@
           }
         }
       }
-    </script>
-  <script src="/app.bundle.js" type="module"></script>
+    </script>  <script src=\"/js/video-background.js\"></script>  <script src="/app.bundle.js" type="module"></script>
   </body>
 </html>
