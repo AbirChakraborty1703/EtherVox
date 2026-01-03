@@ -365,34 +365,56 @@ body {
    =============================================== */
 .status-message {
   margin-top: 30px;
-  padding: 20px;
+  padding: 20px 25px;
   border-radius: 12px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
   display: none;
   animation: fadeIn 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  line-height: 1.6;
+  white-space: pre-line;
 }
 
 .status-message.success {
-  background: rgba(76, 175, 80, 0.2);
-  border: 2px solid #4CAF50;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  border: 3px solid #66bb6a;
   color: #ffffff;
   display: block;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .status-message.error {
-  background: rgba(255, 107, 107, 0.2);
-  border: 2px solid #ff6b6b;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  border: 3px solid #ff8a8a;
   color: #ffffff;
   display: block;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.status-message.warning {
+  background: transparent;
+  border: 3px solid #ff9800;
+  color: #ffeb3b;
+  display: block;
+  text-shadow: 0 0 10px rgba(255, 235, 59, 0.8), 
+               0 0 20px rgba(255, 235, 59, 0.5),
+               0 2px 4px rgba(0, 0, 0, 0.8);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 15px 20px;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
 }
 
 .status-message.info {
-  background: rgba(33, 150, 243, 0.2);
-  border: 2px solid #2196F3;
+  background: linear-gradient(135deg, #2196F3 0%, #1976d2 100%);
+  border: 3px solid #64b5f6;
   color: #ffffff;
   display: block;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes fadeIn {

@@ -19,6 +19,17 @@ document.addEventListener('DOMContentLoaded', function() {
 // AUTHENTICATION CHECK
 // ===============================================
 function checkAuthentication() {
+  // First, check if token is in URL (passed from login)
+  const urlParams = new URLSearchParams(window.location.search);
+  const authHeader = urlParams.get('Authorization');
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const tokenFromUrl = authHeader.replace('Bearer ', '');
+    // Store in localStorage for future use
+    localStorage.setItem('jwtTokenAdmin', tokenFromUrl);
+    console.log('[AUTH] Token stored from URL to localStorage');
+  }
+  
   const adminToken = localStorage.getItem('jwtTokenAdmin');
   
   if (!adminToken) {
@@ -34,11 +45,8 @@ function checkAuthentication() {
       throw new Error('Invalid token format');
     }
     
-    // Get admin info from URL or token
-    const urlParams = new URLSearchParams(window.location.search);
-    const authHeader = urlParams.get('Authorization');
-    
-    console.log('Admin authenticated successfully');
+    console.log('[AUTH] Admin authenticated successfully');
+    console.log('[AUTH] Token (first 30 chars):', adminToken.substring(0, 30) + '...');
     updateAdminInfo();
     
   } catch (error) {
@@ -47,7 +55,6 @@ function checkAuthentication() {
     window.location.replace('/');
   }
 }
-
 // ===============================================
 // UPDATE ADMIN INFO
 // ===============================================
@@ -65,6 +72,10 @@ function updateAdminInfo() {
 function navigateToAddCandidate() {
   const adminToken = localStorage.getItem('jwtTokenAdmin');
   
+  console.log('[NAV] Navigating to AddCandidate');
+  console.log('[NAV] Token exists:', !!adminToken);
+  console.log('[NAV] Token (first 50 chars):', adminToken ? adminToken.substring(0, 50) + '...' : 'null');
+  
   if (!adminToken) {
     alert('⚠️ Session expired. Please login again.');
     window.location.replace('/');
@@ -73,10 +84,15 @@ function navigateToAddCandidate() {
   
   // Add smooth transition animation
   const card = event.target.closest('.dashboard-card');
-  card.style.transform = 'scale(0.95)';
+  if (card) {
+    card.style.transform = 'scale(0.95)';
+  }
+  
+  const targetUrl = `/AddCandidate.html?Authorization=Bearer ${adminToken}`;
+  console.log('[NAV] Target URL:', targetUrl.substring(0, 100) + '...');
   
   setTimeout(() => {
-    window.location.href = `/AddCandidate.html?Authorization=Bearer ${adminToken}`;
+    window.location.href = targetUrl;
   }, 200);
 }
 

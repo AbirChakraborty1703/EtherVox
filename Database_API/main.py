@@ -42,7 +42,11 @@ if sys.platform.startswith('win'):
         pass
 
 # Loading the environment variables for database configuration
-dotenv.load_dotenv()
+# Load from parent directory's .env file
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+dotenv.load_dotenv(env_path)
+print(f"[INFO] Loading environment from: {env_path}")
+print(f"[INFO] SECRET_KEY loaded: {'Yes' if os.environ.get('SECRET_KEY') else 'No'}")
 
 # Initialize the FastAPI application instance
 app = FastAPI()
@@ -125,17 +129,18 @@ class CandidateModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     age: int = Field(..., ge=18, le=120)
     dateOfBirth: str = Field(..., description="Date in YYYY-MM-DD format")
-    electionCenter: str = Field(..., min_length=1, max_length=200)
+    electionCenter: Optional[str] = Field(default="Default Election Center", max_length=200)
     party: str = Field(..., min_length=1, max_length=100)
     candidateAddress: str = Field(..., min_length=1, max_length=300)
     email: str = Field(..., pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
     phoneNumber: str = Field(..., min_length=10, max_length=15)
     candidateId: str = Field(..., min_length=1, max_length=50)
     candidatePassword: str = Field(..., min_length=8)
-    electionStartDate: str = Field(..., description="Election start date in ISO format")
-    electionEndDate: str = Field(..., description="Election end date in ISO format")
+    electionStartDate: Optional[str] = Field(default=None, description="Election start date in ISO format")
+    electionEndDate: Optional[str] = Field(default=None, description="Election end date in ISO format")
     createdAt: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
-    blockchainAddress: Optional[str] = None
+    blockchainAddress: Optional[str] = Field(default=None, description="Blockchain transaction hash")
+    blockchainAccount: Optional[str] = Field(default=None, description="MetaMask account that added the candidate")
     isActive: bool = Field(default=True)
 
 class CandidateResponse(BaseModel):

@@ -85,7 +85,8 @@ contract Voting {
         emit OwnershipTransferred(address(0), msg.sender);
     }
 
-    // Admin function to add comprehensive candidate information (only owner)
+    // Admin function to add comprehensive candidate information
+    // Any authenticated admin can add candidates using their own wallet
     function addCandidate(
         string memory name,
         uint256 age,
@@ -97,7 +98,7 @@ contract Voting {
         string memory phoneNumber,
         string memory candidateId,
         string memory candidatePassword
-    ) public onlyOwner returns(uint256) {
+    ) public returns(uint256) {
         // Input validation
         if (bytes(name).length == 0) revert EmptyString("name");
         if (age == 0 || age < 18) revert InvalidAge(age);

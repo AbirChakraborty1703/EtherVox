@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
   <title>Add Candidate - EtherVox Admin</title>
 
   <link rel="stylesheet" type="text/css" href="/css/add-candidate.css">
@@ -95,6 +94,12 @@
               <input id="party" type="text" name="party" placeholder="Party name" required>
               <span class="field-hint">Political party affiliation</span>
             </div>
+            
+            <div class="form-group">
+              <label for="electionCenter">Election Center *</label>
+              <input id="electionCenter" type="text" name="electionCenter" placeholder="Election center/voting location" required>
+              <span class="field-hint">Voting center or constituency name</span>
+            </div>
           </div>
 
           <!-- Credentials -->
@@ -142,6 +147,17 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+  <!-- Web3.js loaded locally to avoid CSP issues -->
+  <script src="/js/web3.min.js"></script>
+  <script>
+    // Verify Web3 loaded
+    console.log('[WEB3-PRECHECK] Web3 loaded:', typeof Web3 !== 'undefined' ? '✅ SUCCESS' : '❌ FAILED');
+    if (typeof Web3 !== 'undefined') {
+      console.log('[WEB3-CHECK] ✅ Web3 version:', Web3.version);
+    } else {
+      console.error('[WEB3-CHECK] ❌ Web3 NOT loaded!');
+    }
+  </script>
   <script src="/js/video-background.js"></script>
   <script src="/js/add-candidate.js"></script>
 </body>

@@ -1,8 +1,9 @@
 @echo off
 REM ========================================
 REM EtherVox Complete System Launcher
-REM Starts: MySQL, MongoDB, FastAPI, Express, Ganache, Truffle, Webpack
-REM Updated: December 31, 2025 - New Admin Dashboard System
+REM Starts: MySQL, MongoDB, FastAPI, Express, Truffle, Webpack
+REM NOTE: Ganache must be started MANUALLY by user
+REM Updated: January 3, 2026 - User manages Ganache manually
 REM ========================================
 
 echo.
@@ -12,12 +13,12 @@ echo      New Admin Dashboard System v2.0
 echo ========================================
 echo.
 
-REM Step 1: Kill any existing processes
+REM Step 1: Clean up existing processes (EXCEPT Ganache - user manages manually)
 echo [1/10] Cleaning up existing processes...
 taskkill /F /IM mongod.exe >nul 2>&1
 taskkill /F /IM python.exe >nul 2>&1
 taskkill /F /IM node.exe >nul 2>&1
-taskkill /F /IM ganache.exe >nul 2>&1
+REM DO NOT kill Ganache - user runs it manually
 timeout /t 2 /nobreak >nul
 
 REM Step 2: Start MySQL Service
@@ -108,16 +109,18 @@ if exist insert_test_users.py (
 )
 cd ..
 
-REM Step 5: Start Ganache blockchain
-echo [5/9] Starting Ganache blockchain...
-start "Ganache Blockchain" cmd /k "ganache --port 7545 --networkId 5777 --accounts 10 --defaultBalanceEther 100 || (echo [ERROR] Ganache failed to start! && pause)"
-echo [INFO] Waiting for Ganache to initialize (15 seconds)...
-timeout /t 15 /nobreak >nul
-echo [OK] Ganache should be ready now
+REM Step 5: Ganache blockchain (MANUAL START REQUIRED)
+echo [5/9] Checking Ganache blockchain...
+echo [INFO] Please start Ganache GUI manually on port 7545
+echo [INFO] Network ID: 5777 (or 1337 depending on your setup)
+echo.
+echo Press any key once Ganache is running...
+pause >nul
+echo [OK] Proceeding with Ganache already running
 
 REM Step 6: Verify Ganache is running
 echo [6/9] Verifying Ganache connection...
-timeout /t 3 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 REM Step 7: Compile and deploy smart contracts
 echo [7/9] Compiling and deploying smart contracts...
