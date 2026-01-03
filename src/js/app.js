@@ -239,11 +239,11 @@ window.App = {
 
           $("#dates").text(formattedStart + " - " + formattedEnd);
         } else {
-          console.warn('Voting dates not initialized (timestamps are 0)');
+          console.log('Voting dates not initialized yet - please set dates in admin panel');
           $("#dates").text("Voting dates not set yet");
         }
       } catch (error) {
-        console.warn('Error loading voting dates:', error.message);
+        console.log('Error loading voting dates:', error.message);
         $("#dates").text("Voting dates not set yet");
       }
 
@@ -275,6 +275,8 @@ window.App = {
         } else if (hasVotingEnded) {
           $("#msg").html("<p style='color: red;'>❌ Voting has ended. You can no longer cast votes.</p>");
           $("#voteButton").attr("disabled", true);
+          // Hide candidates section when voting period is over
+          App.hideCandidatesAfterVotingEnds();
         } else {
           // Voting is active - check if user has already voted
           const hasVoted = await instance.methods.checkVote().call({ from: App.account });
@@ -306,6 +308,9 @@ window.App = {
 
       // Load candidates from both blockchain and database
       await App.loadCandidates();
+
+      // Start monitoring for voting period end (auto-hide candidates when voting ends)
+      App.startVotingPeriodMonitor();
 
     } catch (error) {
       console.error('Error loading voting data:', error);
@@ -448,7 +453,8 @@ window.App = {
       candidateContainer.append(card);
     });
 
-    console.log('Finished rendering candidates. Container HTML length:', candidateContainer.html().length);
+    const containerHtml = candidateContainer.html();
+    console.log('Finished rendering candidates. Container HTML length:', containerHtml ? containerHtml.length : 0);
   },
 
   // Select a candidate
@@ -580,15 +586,54 @@ window.App = {
         const votingStatus = await instance.methods.getVotingStatus().call();
         console.log('Current voting status:', votingStatus);
 
+        // Sync Ganache blockchain time before setting dates
+        await App.syncGanacheTime();
+
+        // Get current blockchain time for validation
+        const latestBlock = await App.web3.eth.getBlock('latest');
+        const blockchainTime = Number(latestBlock.timestamp);
+        console.log('Current blockchain timestamp:', blockchainTime, new Date(blockchainTime * 1000).toLocaleString());
+
         // Convert dates to Unix timestamps (seconds)
-        const startTimestamp = Math.floor(startDate.getTime() / 1000);
-        const endTimestamp = Math.floor(endDate.getTime() / 1000);
+        let startTimestamp = Math.floor(startDate.getTime() / 1000);
+        let endTimestamp = Math.floor(endDate.getTime() / 1000);
+
+        // Calculate duration
+        let duration = endTimestamp - startTimestamp;
+        const minimumDuration = 1800; // 30 minutes in seconds (contract requirement)
+
+        // Ensure minimum duration
+        if (duration < minimumDuration) {
+          console.log('Duration too short, adjusting to minimum 30 minutes');
+          duration = minimumDuration;
+          endTimestamp = startTimestamp + duration;
+        }
+
+        // Auto-adjust dates if they're in the past relative to blockchain time
+        if (startTimestamp <= blockchainTime) {
+          console.log('Auto-adjusting dates: Start date is in the past relative to blockchain time');
+          // Set start time to blockchain time + 2 minutes buffer
+          const bufferSeconds = 120; // 2 minutes
+          startTimestamp = blockchainTime + bufferSeconds;
+          endTimestamp = startTimestamp + Math.max(duration, minimumDuration);
+
+          console.log('Adjusted voting dates:', {
+            originalStart: new Date(Math.floor(startDate.getTime() / 1000) * 1000).toLocaleString(),
+            adjustedStart: new Date(startTimestamp * 1000).toLocaleString(),
+            adjustedEnd: new Date(endTimestamp * 1000).toLocaleString(),
+            duration: Math.round((endTimestamp - startTimestamp) / 60) + ' minutes'
+          });
+
+          App.showStatus('Dates auto-adjusted: Voting will start at ' + new Date(startTimestamp * 1000).toLocaleString(), 'info');
+        }
 
         console.log('Setting blockchain dates:', {
           start: startTimestamp,
           end: endTimestamp,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
+          startDate: new Date(startTimestamp * 1000).toISOString(),
+          endDate: new Date(endTimestamp * 1000).toISOString(),
+          blockchainTime: blockchainTime,
+          startIsInFuture: startTimestamp > blockchainTime
         });
 
         if (votingStatus === "Not Initialized") {
@@ -605,7 +650,12 @@ window.App = {
             App.showStatus('Voting dates synchronized with blockchain!', 'success');
           } catch (datesError) {
             console.error('Error setting blockchain dates:', datesError);
-            App.showStatus('Warning: Candidate added but failed to set voting dates on blockchain', 'warning');
+            // Provide more specific error message
+            if (datesError.message && datesError.message.includes('InvalidTimeRange')) {
+              App.showStatus('Error: Invalid date range. Start date must be in the future and end date must be at least 30 minutes after start.', 'error');
+            } else {
+              App.showStatus('Warning: Candidate added but failed to set voting dates. Please set dates manually.', 'warning');
+            }
           }
         } else if (votingStatus === "Not Started") {
           // Voting dates already set but voting hasn't started - allow update
@@ -899,6 +949,277 @@ window.App = {
         .show();
     } else {
       console.log(`Status (${type}): ${message}`);
+    }
+  },
+
+  // Hide candidates section when voting period is over
+  hideCandidatesAfterVotingEnds: function () {
+    console.log('Voting period has ended - hiding candidate names');
+
+    // Hide the candidates grid/section
+    const candidateContainer = $("#boxCandidate");
+    candidateContainer.html(`
+      <div class="voting-ended-state">
+        <i class="fas fa-clock" style="font-size: 48px; color: #e74c3c; margin-bottom: 15px;"></i>
+        <h3 style="color: #e74c3c; margin-bottom: 10px;">Voting Period Has Ended</h3>
+        <p style="color: #666;">Candidate information is no longer available.</p>
+        <p style="color: #888; font-size: 14px; margin-top: 10px;">Thank you for your participation in this election.</p>
+      </div>
+    `);
+
+    // Hide the instructions card
+    $(".instructions-card").fadeOut(500);
+
+    // Hide the vote button section
+    $(".vote-prompt").fadeOut(500);
+    $("#voteButton").hide();
+
+    // Update the section title
+    $(".section-title").html('<i class="fas fa-check-double"></i> Voting Completed');
+  },
+
+  // Check if voting period has ended (utility function for periodic checks)
+  checkVotingPeriodStatus: async function () {
+    try {
+      const instance = App.contracts.Voting;
+      if (!instance) return;
+
+      const dates = await instance.methods.getDates().call();
+      const endTimestamp = parseInt(dates[1]);
+      const endDate = new Date(endTimestamp * 1000);
+      const now = new Date();
+
+      if (endTimestamp > 0 && now > endDate) {
+        App.hideCandidatesAfterVotingEnds();
+        return true; // Voting has ended
+      }
+      return false; // Voting still active or not started
+    } catch (error) {
+      console.error('Error checking voting period:', error);
+      return false;
+    }
+  },
+
+  // Start periodic check for voting period end (checks every minute)
+  startVotingPeriodMonitor: function () {
+    // Check immediately
+    App.checkVotingPeriodStatus();
+
+    // Then check every 60 seconds
+    setInterval(async () => {
+      const hasEnded = await App.checkVotingPeriodStatus();
+      if (hasEnded) {
+        console.log('Voting period ended - candidates hidden automatically');
+      }
+    }, 60000); // Check every minute
+  },
+
+  // Reset all votes (admin only)
+  resetVotes: async function () {
+    if (!confirm('⚠️ WARNING: This will reset all vote counts to zero!\n\nThis action cannot be undone. Are you sure you want to continue?')) {
+      return;
+    }
+
+    try {
+      const instance = App.contracts.Voting;
+      if (!instance) {
+        alert('Contract not initialized. Please refresh the page.');
+        return;
+      }
+
+      App.showStatus('Resetting votes on blockchain...', 'info');
+
+      // Call the resetVotes function on the smart contract
+      const tx = await instance.methods.resetVotes().send({
+        from: App.account,
+        gas: 500000
+      });
+
+      console.log('Reset votes transaction:', tx.transactionHash);
+      App.showStatus('✅ All votes have been reset successfully!', 'success');
+      alert('✅ All votes have been reset successfully!\n\nVote counts are now zero and voting period has been cleared.');
+
+      // Reload candidates to show updated vote counts
+      if (typeof App.loadCandidates === 'function') {
+        await App.loadCandidates();
+      }
+
+    } catch (error) {
+      console.error('Error resetting votes:', error);
+
+      if (error.message && error.message.includes('NotOwner')) {
+        App.showStatus('Error: Only the contract owner can reset votes.', 'error');
+        alert('❌ Error: Only the contract owner can reset votes.');
+      } else if (error.code === 4001) {
+        App.showStatus('Transaction rejected by user.', 'error');
+      } else {
+        App.showStatus('Error resetting votes: ' + error.message, 'error');
+        alert('❌ Error resetting votes: ' + error.message);
+      }
+    }
+  },
+
+  // Reset entire election (admin only) - deletes all candidates too
+  resetElection: async function () {
+    if (!confirm('⚠️ CRITICAL WARNING: This will DELETE ALL CANDIDATES and reset the entire election!\n\nThis action cannot be undone. Are you absolutely sure?')) {
+      return;
+    }
+
+    // Second confirmation for safety
+    if (!confirm('🔴 FINAL CONFIRMATION\n\nType "RESET" mentally and click OK to proceed.\n\nAll candidates and votes will be permanently deleted.')) {
+      return;
+    }
+
+    try {
+      const instance = App.contracts.Voting;
+      if (!instance) {
+        alert('Contract not initialized. Please refresh the page.');
+        return;
+      }
+
+      App.showStatus('Resetting entire election on blockchain...', 'info');
+
+      // Call the resetElection function on the smart contract
+      const tx = await instance.methods.resetElection().send({
+        from: App.account,
+        gas: 1000000
+      });
+
+      console.log('Reset election transaction:', tx.transactionHash);
+      App.showStatus('✅ Election has been completely reset!', 'success');
+      alert('✅ Election has been completely reset!\n\nAll candidates and votes have been deleted.');
+
+      // Reload candidates to show empty state
+      if (typeof App.loadCandidates === 'function') {
+        await App.loadCandidates();
+      }
+
+    } catch (error) {
+      console.error('Error resetting election:', error);
+
+      if (error.message && error.message.includes('NotOwner')) {
+        App.showStatus('Error: Only the contract owner can reset the election.', 'error');
+        alert('❌ Error: Only the contract owner can reset the election.');
+      } else if (error.code === 4001) {
+        App.showStatus('Transaction rejected by user.', 'error');
+      } else {
+        App.showStatus('Error resetting election: ' + error.message, 'error');
+        alert('❌ Error resetting election: ' + error.message);
+      }
+    }
+  },
+
+  // Set voting dates manually (admin only)
+  setVotingDates: async function () {
+    try {
+      const startDateInput = document.getElementById('manualStartDate');
+      const endDateInput = document.getElementById('manualEndDate');
+      const statusDiv = document.getElementById('votingDatesStatus');
+
+      if (!startDateInput || !endDateInput) {
+        alert('Date input fields not found.');
+        return;
+      }
+
+      if (!startDateInput.value || !endDateInput.value) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">⚠️ Please select both start and end dates.</span>';
+        return;
+      }
+
+      const startDate = new Date(startDateInput.value);
+      const endDate = new Date(endDateInput.value);
+      const now = new Date();
+
+      // Client-side validation
+      if (startDate <= now) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">⚠️ Start date must be in the future.</span>';
+        return;
+      }
+
+      if (endDate <= startDate) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">⚠️ End date must be after start date.</span>';
+        return;
+      }
+
+      // Check minimum 30 minutes duration
+      const durationMinutes = (endDate - startDate) / (1000 * 60);
+      if (durationMinutes < 30) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">⚠️ Voting period must be at least 30 minutes.</span>';
+        return;
+      }
+
+      const instance = App.contracts.Voting;
+      if (!instance) {
+        alert('Contract not initialized. Please refresh the page.');
+        return;
+      }
+
+      if (statusDiv) statusDiv.innerHTML = '<span style="color: blue;">⏳ Syncing blockchain time...</span>';
+
+      // Sync Ganache time first
+      await App.syncGanacheTime();
+
+      // Get blockchain time
+      const latestBlock = await App.web3.eth.getBlock('latest');
+      const blockchainTime = Number(latestBlock.timestamp);
+
+      // Convert to timestamps
+      const startTimestamp = Math.floor(startDate.getTime() / 1000);
+      const endTimestamp = Math.floor(endDate.getTime() / 1000);
+
+      console.log('Setting voting dates:', {
+        startTimestamp,
+        endTimestamp,
+        blockchainTime,
+        startIsInFuture: startTimestamp > blockchainTime
+      });
+
+      // Validate against blockchain time
+      if (startTimestamp <= blockchainTime) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">⚠️ Start date must be after blockchain time (' + new Date(blockchainTime * 1000).toLocaleString() + ')</span>';
+        return;
+      }
+
+      if (statusDiv) statusDiv.innerHTML = '<span style="color: blue;">⏳ Setting voting dates on blockchain...</span>';
+
+      // Check current voting status
+      const votingStatus = await instance.methods.getVotingStatus().call();
+
+      let tx;
+      if (votingStatus === "Not Initialized") {
+        tx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
+          from: App.account,
+          gas: 200000
+        });
+      } else if (votingStatus === "Not Started") {
+        tx = await instance.methods.updateDates(startTimestamp, endTimestamp).send({
+          from: App.account,
+          gas: 200000
+        });
+      } else {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">⚠️ Cannot update dates - voting is ' + votingStatus.toLowerCase() + '.</span>';
+        return;
+      }
+
+      console.log('Voting dates set:', tx.transactionHash);
+      if (statusDiv) statusDiv.innerHTML = '<span style="color: green;">✅ Voting dates set successfully! Voting period: ' + startDate.toLocaleString() + ' - ' + endDate.toLocaleString() + '</span>';
+
+      // Reload voting data to update UI
+      if (typeof App.loadVotingData === 'function') {
+        await App.loadVotingData();
+      }
+
+    } catch (error) {
+      console.error('Error setting voting dates:', error);
+      const statusDiv = document.getElementById('votingDatesStatus');
+
+      if (error.message && error.message.includes('NotOwner')) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">❌ Only the contract owner can set voting dates.</span>';
+      } else if (error.code === 4001) {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: orange;">Transaction cancelled by user.</span>';
+      } else {
+        if (statusDiv) statusDiv.innerHTML = '<span style="color: red;">❌ Error: ' + error.message + '</span>';
+      }
     }
   }
 };

@@ -286,4 +286,35 @@ contract Voting {
     function emergencyStop() public onlyOwner {
         votingEnd = block.timestamp;
     }
+
+    // Reset all votes and voting period (only owner, for new elections)
+    function resetVotes() public onlyOwner {
+        // Reset all candidate vote counts
+        for (uint256 i = 1; i <= countCandidates; i++) {
+            candidates[i].voteCount = 0;
+        }
+        
+        // Reset voting period
+        votingStart = 0;
+        votingEnd = 0;
+        votingInitialized = false;
+        
+        // Note: Individual voter records (voters mapping) cannot be efficiently reset
+        // in Solidity without tracking all voter addresses. For a complete reset,
+        // consider redeploying the contract.
+    }
+
+    // Delete all candidates and reset election (only owner)
+    function resetElection() public onlyOwner {
+        // Reset all candidate vote counts and delete candidates
+        for (uint256 i = 1; i <= countCandidates; i++) {
+            delete candidates[i];
+        }
+        countCandidates = 0;
+        
+        // Reset voting period
+        votingStart = 0;
+        votingEnd = 0;
+        votingInitialized = false;
+    }
 }

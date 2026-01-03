@@ -1028,3 +1028,74 @@ p {
     font-size: 12px;
   }
 }
+
+/* Voting Ended State Styles */
+.voting-ended-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 30px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.05));
+  border-radius: 16px;
+  border: 2px dashed rgba(231, 76, 60, 0.3);
+  margin: 20px 0;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.voting-ended-state h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.voting-ended-state p {
+  margin: 5px 0;
+  line-height: 1.5;
+}
+
+.voting-ended-state i {
+  animation: pulse 2s infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Responsive adjustments for voting ended state */
+@media (max-width: 600px) {
+  .voting-ended-state {
+    padding: 40px 20px;
+  }
+
+  .voting-ended-state h3 {
+    font-size: 20px;
+  }
+
+  .voting-ended-state i {
+    font-size: 36px !important;
+  }
+}
