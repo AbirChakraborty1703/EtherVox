@@ -17,14 +17,14 @@ const PERMANENT_METAMASK_CONFIG = {
       decimals: 18,
     },
   },
-  
+
   // Demo Account (Permanent - never changes)
   demoAccount: {
     privateKey: '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d',
     address: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
     balance: '100 ETH'
   },
-  
+
   // Auto-reconnection settings
   reconnection: {
     enabled: true,
@@ -40,65 +40,65 @@ class PermanentMetaMaskConnection {
     this.account = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = PERMANENT_METAMASK_CONFIG.reconnection.maxRetries;
-    
+
     // Auto-start connection
     this.init();
   }
-  
+
   async init() {
     console.log('🦊 Initializing Permanent MetaMask Connection...');
-    
+
     // Check if MetaMask is installed
     if (!window.ethereum) {
       this.showInstallPrompt();
       return;
     }
-    
+
     // Set up event listeners for permanent connection
     this.setupEventListeners();
-    
+
     // Attempt initial connection
     await this.connect();
-    
+
     // Set up auto-reconnection
     this.setupAutoReconnect();
   }
-  
+
   async connect() {
     try {
       console.log('🔗 Attempting MetaMask connection...');
-      
+
       // Update UI to show connecting state
       this.updateUIConnecting();
-      
+
       // Add/switch to Ganache network automatically
       await this.ensureCorrectNetwork();
-      
+
       // Request account access
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts'
       });
-      
+
       if (accounts.length > 0) {
         this.account = accounts[0];
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        
+
         console.log('✅ MetaMask connected permanently!');
         console.log('🏦 Account:', this.account);
-        
+
         // Update UI to show connected state
         this.updateUI();
         return true;
       }
-      
+
     } catch (error) {
       console.error('❌ MetaMask connection failed:', error);
       this.handleConnectionError(error);
       return false;
     }
   }
-  
+
   async ensureCorrectNetwork() {
     try {
       // Try to switch to the correct network
@@ -120,7 +120,7 @@ class PermanentMetaMaskConnection {
       }
     }
   }
-  
+
   setupEventListeners() {
     // Account change listener
     window.ethereum.on('accountsChanged', (accounts) => {
@@ -137,7 +137,7 @@ class PermanentMetaMaskConnection {
         this.updateUI(); // Update UI to show new account
       }
     });
-    
+
     // Network change listener
     window.ethereum.on('chainChanged', (chainId) => {
       console.log('🌐 Network changed to:', chainId);
@@ -147,14 +147,14 @@ class PermanentMetaMaskConnection {
         setTimeout(() => this.ensureCorrectNetwork(), 2000);
       }
     });
-    
+
     // Connection listener
     window.ethereum.on('connect', (connectInfo) => {
       console.log('🔗 MetaMask connected:', connectInfo);
       this.isConnected = true;
       this.updateUI(); // Update UI when connected
     });
-    
+
     // Disconnect listener
     window.ethereum.on('disconnect', (error) => {
       console.log('🔌 MetaMask disconnected:', error);
@@ -164,7 +164,7 @@ class PermanentMetaMaskConnection {
       setTimeout(() => this.connect(), 3000);
     });
   }
-  
+
   setupAutoReconnect() {
     // Check connection status every 10 seconds
     setInterval(async () => {
@@ -174,7 +174,7 @@ class PermanentMetaMaskConnection {
         await this.connect();
       }
     }, 10000);
-    
+
     // Reset reconnect attempts when successfully connected
     setInterval(() => {
       if (this.isConnected) {
@@ -182,7 +182,7 @@ class PermanentMetaMaskConnection {
       }
     }, 30000);
   }
-  
+
   updateUIConnecting() {
     // Update connection status to show connecting
     const statusElement = document.getElementById('connectionStatus');
@@ -207,22 +207,34 @@ class PermanentMetaMaskConnection {
             <small>Account: ${this.account?.slice(0, 6)}...${this.account?.slice(-4)}</small>
           </div>
         `;
+
+        // Auto-hide notification after 2 seconds
+        setTimeout(() => {
+          statusElement.style.opacity = '0';
+          statusElement.style.transform = 'translateX(120%)';
+          setTimeout(() => {
+            statusElement.style.display = 'none';
+          }, 300);
+        }, 2000);
       } else {
         statusElement.innerHTML = `
           <div class="connection-status disconnected">
             🔴 MetaMask Disconnected
           </div>
         `;
+        statusElement.style.display = 'block';
+        statusElement.style.opacity = '1';
+        statusElement.style.transform = 'translateX(0)';
       }
     }
-    
+
     // Update account display
     const accountElement = document.getElementById('accountAddress');
     if (accountElement) {
       accountElement.innerHTML = `Your Account: ${this.account}`;
     }
   }
-  
+
   handleConnectionError(error) {
     if (error.code === 4001) {
       console.log('🚫 User rejected connection');
@@ -235,7 +247,7 @@ class PermanentMetaMaskConnection {
       console.error('❌ Connection error:', error);
     }
   }
-  
+
   showInstallPrompt() {
     const installHTML = `
       <div class="metamask-install-prompt">
@@ -246,10 +258,10 @@ class PermanentMetaMaskConnection {
         </a>
       </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', installHTML);
   }
-  
+
   // Force reconnection method
   async forceReconnect() {
     console.log('🔄 Forcing MetaMask reconnection...');
@@ -257,7 +269,7 @@ class PermanentMetaMaskConnection {
     this.reconnectAttempts = 0;
     await this.connect();
   }
-  
+
   // Get connection status
   getStatus() {
     return {
@@ -279,7 +291,7 @@ window.getMetaMaskStatus = () => window.permanentMetaMask.getStatus();
 // Auto-start on page load
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 EtherVox Permanent MetaMask Connection Ready!');
-  
+
   // Add connection status indicator to page
   const statusHTML = `
     <div id="connectionStatus" class="permanent-connection-status">
@@ -288,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('afterbegin', statusHTML);
 });
 
@@ -301,6 +313,7 @@ const permanentConnectionCSS = `
   right: 20px;
   z-index: 10000;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .connection-status {

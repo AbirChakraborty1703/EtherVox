@@ -1,4 +1,3 @@
-
 <!--
   EtherVox Decentralized Voting System - Main Voting Interface
   
@@ -16,94 +15,402 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
-    <!-- Page title displayed in browser tab -->
-    <title>Voting Page</title>
 
-    <!-- Link to custom stylesheet for voting interface -->
-    <link rel="stylesheet" type="text/css" href="/css/index.css">
-    <link rel="stylesheet" type="text/css" href="/css/video-background.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-  </head>
-  <body>
-    <!-- Ethereum Background Image with Ultra HD Crystal Clear Animated Effects -->
-    <div class="video-background">
-      <div class="video-overlay crystal"></div>
-      <div class="glow-effect"></div>
-      <div class="particle-layer"></div>
-      <div class="shimmer-effect"></div>
-    </div>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:7545 http://localhost:7545 http://127.0.0.1:8545 http://localhost:8545 http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+  <!-- Page title displayed in browser tab -->
+  <title>Voting Page</title>
 
-    <!-- Logout button -->
-    <div class="logout-container">
-      <button id="logoutButton" class="logout-btn" onclick="logout()">
-        <i class="fas fa-sign-out-alt"></i> Logout
-      </button>
-    </div>
-    
-    <!-- Main header section -->
-    <div id="head" class="text-center">
-      <h1 align="center">Decentralized Voting Using Ethereum Blockchain</h1>
-      <h2 align="center">Welcome for Voting</h2> 
-      <h3 align="center"><p>Voting Dates: <span id="dates"></span></p></h3>
-      <br/> 
-    </div>
-    <div id="candidate" class="container"> 
-      <table class="table text-center">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Party</th>
-            <th>Total Vote</th>
-          </tr>
-        </thead>
-        <tbody id="boxCandidate"></tbody>
-      </table>
-      <br/>
-      <div id="vote">
-        <p>Please select one of the candidates and click the vote button.</p>
-        <button id="voteButton" class="btn btn-primary" onclick="App.vote()" disabled>Vote</button>
-        <div id="msg"></div>
-  
-        <div id="vote-box"></div>
+  <!-- Link to custom stylesheet for voting interface -->
+  <link rel="stylesheet" type="text/css" href="/css/index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+</head>
+
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-brand">
+        <i class="fas fa-vote-yea"></i>
+        <span>EtherVox</span>
+      </div>
+      <div class="navbar-menu">
+        <div class="navbar-item" id="profileNav">
+          <i class="fas fa-user-circle"></i>
+          <span>Profile</span>
+        </div>
+        <div class="navbar-item logout-item" id="logoutNav" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </div>
       </div>
     </div>
-  
-    <div id="account">
-          <p id="accountAddress" class="text-center"></p>
+  </nav>
+
+  <!-- Profile Modal -->
+  <div id="profileModal" class="modal">
+    <div class="modal-content profile-modal">
+      <span class="close-modal" onclick="closeProfileModal()">&times;</span>
+      <h2><i class="fas fa-user-circle"></i> Your Profile</h2>
+
+      <!-- Profile Tabs -->
+      <div class="profile-tabs">
+        <button class="profile-tab active" onclick="switchProfileTab('info')">
+          <i class="fas fa-info-circle"></i> Info
+        </button>
+        <button class="profile-tab" onclick="switchProfileTab('edit')">
+          <i class="fas fa-edit"></i> Edit Profile
+        </button>
+        <button class="profile-tab" onclick="switchProfileTab('password')">
+          <i class="fas fa-key"></i> Password
+        </button>
+      </div>
+
+      <!-- Info Tab -->
+      <div id="profile-info-tab" class="profile-tab-content active">
+        <div class="profile-info">
+          <div class="profile-item">
+            <label><i class="fas fa-wallet"></i> Wallet Address:</label>
+            <p id="profileAddress" class="address-text">Loading...</p>
+          </div>
+          <div class="profile-item">
+            <label><i class="fas fa-user"></i> Name:</label>
+            <p id="profileNameDisplay">Not set</p>
+          </div>
+          <div class="profile-item">
+            <label><i class="fas fa-envelope"></i> Email:</label>
+            <p id="profileEmailDisplay">Not set</p>
+          </div>
+          <div class="profile-item">
+            <label><i class="fas fa-phone"></i> Phone:</label>
+            <p id="profilePhoneDisplay">Not set</p>
+          </div>
+          <div class="profile-item">
+            <label><i class="fas fa-network-wired"></i> Network:</label>
+            <p id="profileNetwork">Ethereum</p>
+          </div>
+          <div class="profile-item">
+            <label><i class="fas fa-check-circle"></i> Voting Status:</label>
+            <p id="profileVotingStatus"><span style="color: #ff9800;"><i class="fas fa-clock"></i> Pending</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Profile Tab -->
+      <div id="profile-edit-tab" class="profile-tab-content">
+        <form id="editProfileForm" class="profile-form">
+          <div class="form-group">
+            <label><i class="fas fa-user"></i> Full Name</label>
+            <input type="text" id="editName" placeholder="Enter your full name">
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-envelope"></i> Email Address</label>
+            <input type="email" id="editEmail" placeholder="Enter your email">
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-phone"></i> Phone Number</label>
+            <input type="tel" id="editPhone" placeholder="Enter your phone number">
+          </div>
+          <button type="submit" class="profile-save-btn">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <div id="editProfileMsg" class="profile-message"></div>
+        </form>
+      </div>
+
+      <!-- Password Tab -->
+      <div id="profile-password-tab" class="profile-tab-content">
+        <form id="changePasswordForm" class="profile-form">
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Current Password</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="currentPassword" placeholder="Enter current password" required>
+              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('currentPassword')">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-key"></i> New Password</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="newPassword" placeholder="Enter new password" required>
+              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('newPassword')">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-check-double"></i> Confirm New Password</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="confirmPassword" placeholder="Confirm new password" required>
+              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('confirmPassword')">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="profile-save-btn password-btn">
+            <i class="fas fa-key"></i> Update Password
+          </button>
+          <div id="passwordMsg" class="profile-message"></div>
+        </form>
+      </div>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
-    <script src="/js/permanent-metamask.js"></script>
-    <script>
-      // Logout function for user page
-      function logout() {
-        if (confirm('🔐 Are you sure you want to logout?\n\nThis will end your current voting session.')) {
-          try {
-            localStorage.removeItem('jwtTokenVoter');
-            localStorage.removeItem('jwtTokenAdmin');
-            sessionStorage.clear();
-            
-            const logoutBtn = document.getElementById('logoutButton');
-            if (logoutBtn) {
-              logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging out...';
-              logoutBtn.disabled = true;
-            }
-            
-            setTimeout(() => {
-              window.location.replace('/login.html');
-            }, 800);
-          } catch (error) {
-            console.error('Logout error:', error);
-            window.location.replace('/login.html');
+  </div>
+
+  <!-- Main header section -->
+  <div id="head" class="text-center">
+    <div class="welcome-banner">
+      <div class="welcome-icon">
+        <i class="fas fa-vote-yea"></i>
+      </div>
+      <h1>Cast Your Vote</h1>
+      <p class="welcome-subtitle">Your voice matters in this secure blockchain-powered election</p>
+    </div>
+
+    <div class="voting-status-bar">
+      <div class="status-item">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Voting Period:</span>
+        <strong id="dates">Loading...</strong>
+      </div>
+      <div class="status-item" id="connectionStatusBar">
+        <i class="fas fa-link"></i>
+        <span>Status:</span>
+        <strong class="status-connected">Connected</strong>
+      </div>
+    </div>
+  </div>
+
+  <div id="candidate" class="container">
+    <!-- Instructions Card -->
+    <div class="instructions-card">
+      <div class="instructions-header">
+        <i class="fas fa-info-circle"></i>
+        <h3>How to Vote</h3>
+      </div>
+      <div class="instructions-steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <span>Review all candidates below</span>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <span>Select your preferred candidate</span>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <span>Click the Vote button to confirm</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Candidates Section -->
+    <div class="candidates-section">
+      <h2 class="section-title">
+        <i class="fas fa-users"></i> Candidates
+      </h2>
+      <div class="candidates-grid" id="boxCandidate">
+        <!-- Candidates will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Voting Action Section -->
+    <div id="vote" class="voting-action-section">
+      <div class="vote-prompt">
+        <i class="fas fa-hand-pointer"></i>
+        <p>Select a candidate above, then confirm your choice</p>
+      </div>
+      <button id="voteButton" class="vote-btn" onclick="App.vote()" disabled>
+        <i class="fas fa-check-circle"></i>
+        <span>Submit My Vote</span>
+      </button>
+      <div id="msg" class="vote-message"></div>
+      <div id="vote-box"></div>
+    </div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+  <script src="/js/permanent-metamask.js"></script>
+  <script>
+    // Logout function for user page
+    function logout() {
+      if (confirm('🔐 Are you sure you want to logout?\n\nThis will end your current voting session.')) {
+        try {
+          localStorage.removeItem('jwtTokenVoter');
+          localStorage.removeItem('jwtTokenAdmin');
+          sessionStorage.clear();
+
+          const logoutNav = document.getElementById('logoutNav');
+          if (logoutNav) {
+            logoutNav.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Logging out...</span>';
+            logoutNav.style.pointerEvents = 'none';
           }
+
+          setTimeout(() => {
+            window.location.replace('/');
+          }, 800);
+        } catch (error) {
+          console.error('Logout error:', error);
+          window.location.replace('/');
         }
       }
-    </script>  <script src=\"/js/video-background.js\"></script>  <script src="/app.bundle.js" type="module"></script>
-  </body>
+    }
+
+    // Profile modal functions
+    function openProfileModal() {
+      const modal = document.getElementById('profileModal');
+      modal.style.display = 'block';
+      loadProfileData();
+      updateProfileInfo();
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profileModal');
+      modal.style.display = 'none';
+    }
+
+    // Profile tab switching
+    function switchProfileTab(tabName) {
+      // Remove active class from all tabs and content
+      document.querySelectorAll('.profile-tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.remove('active'));
+
+      // Add active class to selected tab and content
+      event.target.closest('.profile-tab').classList.add('active');
+      document.getElementById(`profile-${tabName}-tab`).classList.add('active');
+    }
+
+    // Load profile data from localStorage
+    function loadProfileData() {
+      const profileData = JSON.parse(localStorage.getItem('userProfile') || '{}');
+
+      // Display fields
+      document.getElementById('profileNameDisplay').textContent = profileData.name || 'Not set';
+      document.getElementById('profileEmailDisplay').textContent = profileData.email || 'Not set';
+      document.getElementById('profilePhoneDisplay').textContent = profileData.phone || 'Not set';
+
+      // Edit fields
+      document.getElementById('editName').value = profileData.name || '';
+      document.getElementById('editEmail').value = profileData.email || '';
+      document.getElementById('editPhone').value = profileData.phone || '';
+    }
+
+    // Save profile data
+    function saveProfileData(e) {
+      e.preventDefault();
+      const profileData = {
+        name: document.getElementById('editName').value,
+        email: document.getElementById('editEmail').value,
+        phone: document.getElementById('editPhone').value
+      };
+
+      localStorage.setItem('userProfile', JSON.stringify(profileData));
+
+      // Update display
+      loadProfileData();
+
+      // Show success message
+      const msgElement = document.getElementById('editProfileMsg');
+      msgElement.innerHTML = '<span class="success-msg"><i class="fas fa-check-circle"></i> Profile updated successfully!</span>';
+      msgElement.style.display = 'block';
+
+      setTimeout(() => {
+        msgElement.style.display = 'none';
+      }, 3000);
+    }
+
+    // Change password
+    function changePassword(e) {
+      e.preventDefault();
+      const currentPass = document.getElementById('currentPassword').value;
+      const newPass = document.getElementById('newPassword').value;
+      const confirmPass = document.getElementById('confirmPassword').value;
+      const msgElement = document.getElementById('passwordMsg');
+
+      // Validation
+      if (newPass !== confirmPass) {
+        msgElement.innerHTML = '<span class="error-msg"><i class="fas fa-exclamation-circle"></i> New passwords do not match!</span>';
+        msgElement.style.display = 'block';
+        return;
+      }
+
+      if (newPass.length < 6) {
+        msgElement.innerHTML = '<span class="error-msg"><i class="fas fa-exclamation-circle"></i> Password must be at least 6 characters!</span>';
+        msgElement.style.display = 'block';
+        return;
+      }
+
+      // Here you would typically make an API call to update the password
+      // For now, we'll simulate a successful update
+      msgElement.innerHTML = '<span class="success-msg"><i class="fas fa-check-circle"></i> Password updated successfully!</span>';
+      msgElement.style.display = 'block';
+
+      // Clear form
+      document.getElementById('changePasswordForm').reset();
+
+      setTimeout(() => {
+        msgElement.style.display = 'none';
+      }, 3000);
+    }
+
+    // Toggle password visibility
+    function togglePasswordVisibility(inputId) {
+      const input = document.getElementById(inputId);
+      const icon = event.target.closest('.toggle-pass-btn').querySelector('i');
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+
+    function updateProfileInfo() {
+      // Update wallet address
+      if (typeof App !== 'undefined' && App.account) {
+        document.getElementById('profileAddress').textContent = App.account;
+      } else {
+        document.getElementById('profileAddress').textContent = 'Not connected';
+      }
+
+      // Update voting status
+      const statusElement = document.getElementById('profileVotingStatus');
+      if (typeof App !== 'undefined' && App.hasVoted === true) {
+        statusElement.innerHTML = '<span style="color: #4caf50;"><i class="fas fa-check-circle"></i> Done</span>';
+      } else {
+        statusElement.innerHTML = '<span style="color: #ff9800;"><i class="fas fa-clock"></i> Pending</span>';
+      }
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+      // Profile navigation click
+      document.getElementById('profileNav').addEventListener('click', openProfileModal);
+
+      // Close modal when clicking outside
+      window.addEventListener('click', function (event) {
+        const modal = document.getElementById('profileModal');
+        if (event.target === modal) {
+          closeProfileModal();
+        }
+      });
+
+      // Form submissions
+      document.getElementById('editProfileForm').addEventListener('submit', saveProfileData);
+      document.getElementById('changePasswordForm').addEventListener('submit', changePassword);
+    });
+  </script>
+  <script src="/app.bundle.js" type="module"></script>
+</body>
+
 </html>

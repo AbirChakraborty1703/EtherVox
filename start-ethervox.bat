@@ -110,7 +110,7 @@ if exist insert_test_users.py (
 cd ..
 
 REM Step 5: Ganache blockchain (MANUAL START REQUIRED)
-echo [5/9] Checking Ganache blockchain...
+echo [5/10] Checking Ganache blockchain...
 echo [INFO] Please start Ganache GUI manually on port 7545
 echo [INFO] Network ID: 5777 (or 1337 depending on your setup)
 echo.
@@ -119,19 +119,11 @@ pause >nul
 echo [OK] Proceeding with Ganache already running
 
 REM Step 6: Verify Ganache is running
-echo [6/9] Verifying Ganache connection...
+echo [6/10] Verifying Ganache connection...
 timeout /t 2 /nobreak >nul
 
 REM Step 7: Compile and deploy smart contracts
-echo [7/9] Compiling and deploying smart contracts...
-call truffle migrate --reset --network development
-if errorlevel 1 (
-    echo [WARNING] Smart contract deployment had issues, continuing...
-    echo [INFO] You can manually deploy later with: truffle migrate --reset
-)
-
-REM Step 7: Compile and deploy smart contracts
-echo [7/9] Compiling and deploying smart contracts...
+echo [7/10] Compiling and deploying smart contracts...
 call truffle migrate --reset --network development
 if errorlevel 1 (
     echo [WARNING] Smart contract deployment had issues, continuing...
@@ -139,14 +131,14 @@ if errorlevel 1 (
 )
 
 REM Step 8: Build Webpack Bundle
-echo [8/9] Building frontend bundle (Webpack)...
+echo [8/10] Building frontend bundle (Webpack)...
 call npm run build
 if errorlevel 1 (
     echo [WARNING] Webpack build had issues, trying to continue...
 )
 
 REM Step 9: Start FastAPI Backend
-echo [9/9] Starting FastAPI backend...
+echo [9/10] Starting FastAPI backend...
 start "FastAPI Backend" cmd /k "cd Database_API && python main.py || (echo [ERROR] FastAPI failed to start! Check Python installation. && pause)"
 timeout /t 5 /nobreak >nul
 echo [OK] FastAPI starting in background

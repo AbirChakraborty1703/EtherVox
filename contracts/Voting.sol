@@ -228,6 +228,29 @@ contract Voting {
         emit VotingPeriodSet(_startDate, _endDate);
     }
 
+    // Update voting dates (only before voting starts)
+    function updateDates(uint256 _startDate, uint256 _endDate) public onlyOwner {
+        // Can only update if voting hasn't started yet
+        if (votingInitialized && block.timestamp >= votingStart) {
+            revert("Cannot update dates after voting has started");
+        }
+        if (_startDate <= block.timestamp) {
+            revert InvalidTimeRange();
+        }
+        if (_endDate <= _startDate) {
+            revert InvalidTimeRange();
+        }
+        if (_endDate < _startDate + 1800) { // Minimum 30 minutes
+            revert InvalidTimeRange();
+        }
+        
+        votingStart = _startDate;
+        votingEnd = _endDate;
+        votingInitialized = true;
+        
+        emit VotingPeriodSet(_startDate, _endDate);
+    }
+
     // Get voting period dates
     function getDates() public view returns (uint256, uint256) {
         return (votingStart, votingEnd);
@@ -264,5 +287,36 @@ contract Voting {
     // Emergency stop function (only owner)
     function emergencyStop() public onlyOwner {
         votingEnd = block.timestamp;
+    }
+
+    // Reset all votes and voting period (only owner, for new elections)
+    function resetVotes() public onlyOwner {
+        // Reset all candidate vote counts
+        for (uint256 i = 1; i <= countCandidates; i++) {
+            candidates[i].voteCount = 0;
+        }
+        
+        // Reset voting period
+        votingStart = 0;
+        votingEnd = 0;
+        votingInitialized = false;
+        
+        // Note: Individual voter records (voters mapping) cannot be efficiently reset
+        // in Solidity without tracking all voter addresses. For a complete reset,
+        // consider redeploying the contract.
+    }
+
+    // Delete all candidates and reset election (only owner)
+    function resetElection() public onlyOwner {
+        // Reset all candidate vote counts and delete candidates
+        for (uint256 i = 1; i <= countCandidates; i++) {
+            delete candidates[i];
+        }
+        countCandidates = 0;
+        
+        // Reset voting period
+        votingStart = 0;
+        votingEnd = 0;
+        votingInitialized = false;
     }
 }
