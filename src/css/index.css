@@ -13,9 +13,9 @@
   - Mobile-friendly responsive breakpoints
 */
 
-/* Main body styling with Ethereum background */
+/* Main body styling with Ethereum background - Crystal Clear */
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: 'Poppins', 'Arial', sans-serif;
   /* Clean, readable font */
   margin: 0;
   padding: 0;
@@ -25,23 +25,39 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 60vh;
-  /* Minimum viewport height */
+  min-height: 100vh;
+  /* Full viewport height */
   background: url('../assets/eth5.jpg') no-repeat center center fixed;
   background-size: cover;
   /* Full background coverage */
+  position: relative;
+  overflow-x: hidden;
 }
 
-/* Navigation Bar Styles */
+/* Navigation Bar Styles - Crystal Clear with Glow */
 .navbar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background: rgba(10, 10, 30, 0.4);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
   z-index: 1000;
-  border-bottom: 2px solid #0f3460;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+  animation: navbarGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes navbarGlow {
+  0% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+    border-bottom-color: rgba(102, 126, 234, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 30px rgba(118, 75, 162, 0.3);
+    border-bottom-color: rgba(118, 75, 162, 0.4);
+  }
 }
 
 .navbar-container {
@@ -405,16 +421,85 @@ body {
   margin-right: 8px;
 }
 
-/* Main container for voting interface */
+/* Main container for voting interface - Crystal Clear with Glow */
 .container {
   width: 90%;
   max-width: 900px;
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
-  padding: 30px;
+  background: rgba(10, 10, 30, 0.25);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(102, 126, 234, 0.4);
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 
+    0 0 20px rgba(102, 126, 234, 0.2),
+    0 0 40px rgba(118, 75, 162, 0.1),
+    inset 0 0 20px rgba(102, 126, 234, 0.05);
+  position: relative;
+  overflow: hidden;
+  animation: containerGlow 4s ease-in-out infinite alternate;
   margin-bottom: 30px;
+}
+
+@keyframes containerGlow {
+  0% {
+    box-shadow: 
+      0 0 20px rgba(102, 126, 234, 0.2),
+      0 0 40px rgba(118, 75, 162, 0.1),
+      inset 0 0 20px rgba(102, 126, 234, 0.05);
+    border-color: rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(102, 126, 234, 0.35),
+      0 0 60px rgba(118, 75, 162, 0.2),
+      inset 0 0 30px rgba(102, 126, 234, 0.1);
+    border-color: rgba(136, 176, 255, 0.6);
+  }
+  100% {
+    box-shadow: 
+      0 0 25px rgba(118, 75, 162, 0.3),
+      0 0 50px rgba(102, 126, 234, 0.15),
+      inset 0 0 25px rgba(118, 75, 162, 0.08);
+    border-color: rgba(118, 75, 162, 0.5);
+  }
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(102, 126, 234, 0.03) 50%,
+    transparent 60%
+  );
+  animation: containerShine 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes containerShine {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+.container:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 
+    0 0 40px rgba(102, 126, 234, 0.4),
+    0 0 80px rgba(118, 75, 162, 0.25),
+    inset 0 0 30px rgba(102, 126, 234, 0.1);
+  border-color: rgba(136, 176, 255, 0.7);
+  background: rgba(10, 10, 30, 0.35);
 }
 
 /* Welcome Banner */
