@@ -247,19 +247,47 @@ async function submitVotingDates() {
     const instance = window.App.contracts.Voting;
     const account = window.App.account;
     
-    // Check if user is contract owner
-    const owner = await instance.methods.owner().call();
-    if (account.toLowerCase() !== owner.toLowerCase()) {
-      throw new Error('Only contract owner can set voting dates');
-    }
-    
-    // Call setDates on smart contract
-    await instance.methods.setDates(startTimestamp, endTimestamp).send({
+    // STEP 1: Call setDates on smart contract
+    const tx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
       from: account,
       gas: 3000000
     });
     
-    showStatusMessage('✅ Voting dates saved successfully to blockchain!', 'success');
+    const blockchainTxHash = tx.transactionHash || tx.hash || 'N/A';
+    console.log('Blockchain transaction hash:', blockchainTxHash);
+    
+    showStatusMessage('⏳ Blockchain OK! Saving to database...', 'info');
+    
+    // STEP 2: Save to MongoDB
+    const adminToken = localStorage.getItem('jwtTokenAdmin');
+    const mongoData = {
+      votingStartDate: startDateTime.toISOString(),
+      votingEndDate: endDateTime.toISOString(),
+      votingStartTimestamp: startTimestamp,
+      votingEndTimestamp: endTimestamp,
+      blockchainTxHash: blockchainTxHash,
+      blockchainAccount: account
+    };
+    
+    console.log('Saving voting dates to MongoDB:', mongoData);
+    
+    const response = await fetch('http://127.0.0.1:8001/voting-dates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      body: JSON.stringify(mongoData)
+    });
+    
+    const data = await response.json();
+    console.log('MongoDB response:', response.status, data);
+    
+    if (response.ok) {
+      showStatusMessage('✅ Voting dates saved successfully to blockchain and database!', 'success');
+    } else {
+      showStatusMessage(`⚠️ Blockchain OK but database save failed: ${data.detail || 'Unknown error'}`, 'warning');
+    }
     
     // Reload current dates
     setTimeout(() => {
@@ -269,10 +297,12 @@ async function submitVotingDates() {
   } catch (error) {
     console.error('Error setting voting dates:', error);
     
-    if (error.message.includes('owner')) {
-      showStatusMessage('❌ Only the contract owner can set voting dates', 'error');
-    } else if (error.message.includes('User denied')) {
+    if (error.message.includes('User denied') || error.message.includes('rejected')) {
       showStatusMessage('❌ Transaction rejected by user', 'error');
+    } else if (error.message.includes('VotingAlreadyInitialized')) {
+      showStatusMessage('❌ Voting dates have already been set and cannot be changed', 'error');
+    } else if (error.message.includes('InvalidTimeRange')) {
+      showStatusMessage('❌ Invalid date range. Please ensure dates are valid', 'error');
     } else {
       showStatusMessage(`❌ Error: ${error.message}`, 'error');
     }

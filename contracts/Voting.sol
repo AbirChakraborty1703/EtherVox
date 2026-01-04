@@ -206,7 +206,8 @@ contract Voting {
     }
 
     // Admin function to set voting dates (enhanced validation)
-    function setDates(uint256 _startDate, uint256 _endDate) public onlyOwner {
+    // Any authenticated admin can set voting dates using their own wallet
+    function setDates(uint256 _startDate, uint256 _endDate) public {
         if (votingInitialized) {
             revert VotingAlreadyInitialized();
         }

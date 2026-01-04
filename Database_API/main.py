@@ -624,6 +624,101 @@ async def get_candidate_info_by_id(candidate_unique_id: str):
         )
 
 # ===============================================
+# VOTING DATES MANAGEMENT (MongoDB)
+# ===============================================
+
+class VotingDatesModel(BaseModel):
+    votingStartDate: str = Field(..., description="Voting start date in ISO format")
+    votingEndDate: str = Field(..., description="Voting end date in ISO format")
+    votingStartTimestamp: int = Field(..., description="Unix timestamp for start")
+    votingEndTimestamp: int = Field(..., description="Unix timestamp for end")
+    blockchainTxHash: Optional[str] = Field(default=None, description="Blockchain transaction hash")
+    blockchainAccount: Optional[str] = Field(default=None, description="Admin account that set the dates")
+    createdAt: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
+    isActive: bool = Field(default=True)
+
+@app.post("/voting-dates")
+async def set_voting_dates(voting_dates: VotingDatesModel):
+    """
+    Save voting dates to MongoDB
+    
+    Args:
+        voting_dates (VotingDatesModel): Voting dates data
+    
+    Returns:
+        dict: Created voting dates record
+    """
+    try:
+        # Convert pydantic model to dict
+        dates_dict = voting_dates.dict()
+        
+        # Deactivate any previous voting dates
+        await mongo_db.voting_dates.update_many(
+            {"isActive": True},
+            {"$set": {"isActive": False}}
+        )
+        
+        # Insert new voting dates
+        result = await mongo_db.voting_dates.insert_one(dates_dict)
+        
+        # Get the created record
+        created_dates = await mongo_db.voting_dates.find_one(
+            {"_id": result.inserted_id}
+        )
+        
+        # Convert ObjectId to string
+        created_dates["_id"] = str(created_dates["_id"])
+        
+        return {
+            "message": "Voting dates saved successfully",
+            "voting_dates": created_dates,
+            "mongodb_id": str(result.inserted_id)
+        }
+        
+    except Exception as e:
+        print(f"Error saving voting dates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save voting dates: {str(e)}"
+        )
+
+@app.get("/voting-dates")
+async def get_voting_dates():
+    """
+    Get current active voting dates from MongoDB
+    
+    Returns:
+        dict: Current voting dates information
+    """
+    try:
+        # Find the most recent active voting dates
+        voting_dates = await mongo_db.voting_dates.find_one(
+            {"isActive": True},
+            sort=[("createdAt", -1)]
+        )
+        
+        if not voting_dates:
+            return {
+                "message": "No voting dates configured",
+                "voting_dates": None
+            }
+        
+        # Convert ObjectId to string
+        voting_dates["_id"] = str(voting_dates["_id"])
+        
+        return {
+            "message": "Voting dates retrieved successfully",
+            "voting_dates": voting_dates
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving voting dates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve voting dates: {str(e)}"
+        )
+
+# ===============================================
 # HEALTH CHECK ENDPOINT
 # ===============================================
 
