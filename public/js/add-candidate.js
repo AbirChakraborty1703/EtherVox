@@ -77,7 +77,7 @@ async function loadContractInfo() {
     votingContractABI = contractData.abi;
     
     // Use the newly deployed contract address
-    votingContractAddress = '0x210A2DC3fcC09d6F1336fFA8005fCEFeB835017E';
+    votingContractAddress = '0x3B271f11e82524De38C1C76e4771ec891dd61FDf';
     console.log('[CONTRACT] Loaded contract address:', votingContractAddress);
   } catch (error) {
     console.error('[CONTRACT] Error loading contract info:', error);
