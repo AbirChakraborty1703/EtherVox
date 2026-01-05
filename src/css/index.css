@@ -60,11 +60,43 @@ body {
   align-items: center;
   min-height: 60vh;
   /* Minimum viewport height */
-  background: url('../assets/eth5.jpg') no-repeat center center fixed;
+  background: linear-gradient(135deg, #0a0a1e 0%, #16213e 50%, #1a1a2e 100%);
   background-size: cover;
   /* Full background coverage */
   scroll-behavior: smooth;
   transition: background-color 0.3s ease;
+  position: relative;
+}
+
+/* Animated Ethereum background pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(25, 138, 123, 0.08) 0%, transparent 50%);
+  animation: ethereumGlow 10s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes ethereumGlow {
+  0% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 0.3;
+  }
 }
 
 /* Global animations */
@@ -120,11 +152,12 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.4) 0%, rgba(22, 33, 62, 0.4) 100%);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-  border-bottom: 2px solid #0f3460;
-  backdrop-filter: blur(10px);
+  border-bottom: 2px solid rgba(15, 52, 96, 0.3);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
   animation: slideInDown 0.5s ease;
 }
 
@@ -272,17 +305,17 @@ body {
 }
 
 .modal-content {
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.5) 0%, rgba(22, 33, 62, 0.5) 100%);
   margin: 10% auto;
   padding: 40px;
   border: 2px solid rgba(25, 138, 123, 0.3);
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  backdrop-filter: blur(20px);
+  backdrop-filter: none;
 }
 
 @keyframes modalSlideIn {
@@ -331,12 +364,12 @@ body {
 }
 
 .profile-item {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
   padding: 20px;
   border-radius: 12px;
   border-left: 4px solid #198a7b;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .profile-item:hover {
@@ -600,14 +633,14 @@ body {
 .container {
   width: 90%;
   max-width: 900px;
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.92) 0%, rgba(22, 33, 62, 0.92) 100%);
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.35) 0%, rgba(22, 33, 62, 0.35) 100%);
   padding: 30px;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   margin-bottom: 30px;
-  backdrop-filter: blur(20px);
+  backdrop-filter: none;
   animation: fadeInUp 0.6s ease;
 }
 
@@ -706,11 +739,11 @@ body {
   gap: 30px;
   flex-wrap: wrap;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.1));
   border-radius: 15px;
   margin-bottom: 30px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   animation: fadeInUp 0.7s ease 0.2s both;
 }
 
@@ -745,12 +778,12 @@ body {
 
 /* Instructions Card */
 .instructions-card {
-  background: linear-gradient(135deg, rgba(25, 138, 123, 0.12), rgba(15, 95, 84, 0.08));
-  border: 1px solid rgba(25, 138, 123, 0.4);
+  background: linear-gradient(135deg, rgba(25, 138, 123, 0.08), rgba(15, 95, 84, 0.05));
+  border: 1px solid rgba(25, 138, 123, 0.3);
   border-radius: 15px;
   padding: 25px;
   margin-bottom: 30px;
-  box-shadow: 0 8px 24px rgba(25, 138, 123, 0.1);
+  box-shadow: 0 8px 24px rgba(25, 138, 123, 0.08);
   animation: slideInLeft 0.6s ease;
   position: relative;
   overflow: hidden;
@@ -935,8 +968,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 20px;
   cursor: pointer;
@@ -962,10 +995,10 @@ body {
 }
 
 .candidate-card:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
   border-color: rgba(25, 138, 123, 0.6);
   transform: translateX(8px) scale(1.02);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3),
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(25, 138, 123, 0.2) inset;
 }
 

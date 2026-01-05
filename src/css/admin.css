@@ -7,8 +7,35 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 70vh;
-  background: url('../assets/eth5.jpg') no-repeat center center fixed;
+  background: linear-gradient(135deg, #0a0a1e 0%, #16213e 50%, #1a1a2e 100%);
   background-size: cover;
+  position: relative;
+}
+
+/* Animated background effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.1) 0%, transparent 50%);
+  animation: ethereumGlow 10s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes ethereumGlow {
+  0% {
+    opacity: 0.3;
+  }
+
+  100% {
+    opacity: 0.5;
+  }
 }
 
 .container {
@@ -163,16 +190,16 @@ body {
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .container {
     width: 95%;
     padding: 20px;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .btn-primary,
   .btn-secondary {
     width: 100%;
@@ -258,6 +285,7 @@ input[type="submit"]:active {
     width: 90%;
   }
 }
+
 .container {
   /* ... */
   display: flex;
@@ -267,7 +295,8 @@ input[type="submit"]:active {
 
 .table {
   width: 80%;
-  margin: 0 auto; /* Add this line to center the table horizontally */
+  margin: 0 auto;
+  /* Add this line to center the table horizontally */
   margin-bottom: 20px;
   background-color: rgba(255, 255, 255, 0.650);
   border-radius: 5px;
@@ -316,7 +345,7 @@ input[type="submit"]:active {
     top: 15px;
     right: 15px;
   }
-  
+
   .logout-btn {
     padding: 10px 16px;
     font-size: 13px;

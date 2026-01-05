@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -54,13 +55,13 @@
               <input id="name" type="text" name="name" placeholder="Candidate's full name" autocomplete="off" required>
               <span class="field-hint">Enter candidate's legal full name</span>
             </div>
-            
+
             <div class="form-group">
               <label for="age">Age *</label>
               <input id="age" type="number" name="age" placeholder="Age (18+)" min="18" max="120" required>
               <span class="field-hint">Minimum age: 18 years</span>
             </div>
-            
+
             <div class="form-group">
               <label for="dateOfBirth">Date of Birth *</label>
               <input id="dateOfBirth" type="date" name="dateOfBirth" required>
@@ -76,28 +77,30 @@
               <input id="email" type="email" name="email" placeholder="candidate@example.com" required>
               <span class="field-hint">Valid email required</span>
             </div>
-            
+
             <div class="form-group">
               <label for="phoneNumber">Phone Number *</label>
               <input id="phoneNumber" type="tel" name="phoneNumber" placeholder="+1234567890" required>
               <span class="field-hint">Include country code</span>
             </div>
-            
+
             <div class="form-group">
               <label for="candidateAddress">Personal Address *</label>
-              <textarea id="candidateAddress" name="candidateAddress" placeholder="Full residential address" rows="3" required></textarea>
+              <textarea id="candidateAddress" name="candidateAddress" placeholder="Full residential address" rows="3"
+                required></textarea>
               <span class="field-hint">Complete residential address</span>
             </div>
-            
+
             <div class="form-group">
               <label for="party">Political Party *</label>
               <input id="party" type="text" name="party" placeholder="Party name" required>
               <span class="field-hint">Political party affiliation</span>
             </div>
-            
+
             <div class="form-group">
               <label for="electionCenter">Election Center *</label>
-              <input id="electionCenter" type="text" name="electionCenter" placeholder="Election center/voting location" required>
+              <input id="electionCenter" type="text" name="electionCenter" placeholder="Election center/voting location"
+                required>
               <span class="field-hint">Voting center or constituency name</span>
             </div>
           </div>
@@ -107,28 +110,35 @@
             <h3><i class="fas fa-key"></i> Candidate Credentials</h3>
             <div class="form-group">
               <label for="candidateId">Unique Candidate ID *</label>
-              <input id="candidateId" type="text" name="candidateId" placeholder="CID-XXXX-XXXX" pattern="[A-Za-z0-9\-]+" required>
+              <input id="candidateId" type="text" name="candidateId" placeholder="CID-XXXX-XXXX"
+                pattern="[A-Za-z0-9\-]+" required>
               <span class="field-hint">Alphanumeric ID for candidate</span>
             </div>
-            
+
             <div class="form-group">
               <label for="candidatePassword">Candidate Password *</label>
-              <input id="candidatePassword" type="password" name="candidatePassword" placeholder="Secure password" minlength="8" required>
+              <input id="candidatePassword" type="password" name="candidatePassword" placeholder="Secure password"
+                minlength="8" required>
               <span class="field-hint">Minimum 8 characters</span>
             </div>
-            
+
             <div class="form-group">
               <label for="confirmPassword">Confirm Password *</label>
-              <input id="confirmPassword" type="password" name="confirmPassword" placeholder="Confirm password" minlength="8" required>
+              <input id="confirmPassword" type="password" name="confirmPassword" placeholder="Confirm password"
+                minlength="8" required>
               <span class="field-hint">Must match password</span>
             </div>
           </div>
         </div>
-        
+
         <div class="form-actions">
           <button id="addCandidate" type="submit" class="btn-primary">
             <i class="fas fa-user-plus"></i>
             Add Candidate
+          </button>
+          <button type="button" id="syncCandidates" class="btn-success" onclick="syncCandidatesToBlockchain()">
+            <i class="fas fa-sync-alt"></i>
+            Sync All to Blockchain
           </button>
           <button type="reset" class="btn-secondary">
             <i class="fas fa-redo"></i>
@@ -140,7 +150,7 @@
           </button>
         </div>
       </form>
-      
+
       <div id="candidateStatus" class="status-message"></div>
     </div>
   </div>
@@ -161,4 +171,5 @@
   <script src="/js/video-background.js"></script>
   <script src="/js/add-candidate.js"></script>
 </body>
+
 </html>
