@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+  <title>Set Voting Information - EtherVox Admin</title>
+
+  <link rel="stylesheet" type="text/css" href="/css/set-vote.css">
+  <link rel="stylesheet" type="text/css" href="/css/video-background.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+  <!-- Ethereum Background Image with Ultra HD Crystal Clear Animated Effects -->
+  <div class="video-background">
+    <div class="video-overlay crystal"></div>
+    <div class="glow-effect"></div>
+    <div class="particle-layer"></div>
+    <div class="shimmer-effect"></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="page-header">
+    <div class="header-content">
+      <button class="back-btn" onclick="goBackToDashboard()">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+      </button>
+      <div class="page-title-section">
+        <i class="fas fa-calendar-alt"></i>
+        <h1>Set Voting Information</h1>
+      </div>
+      <button id="logoutButton" class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Candidate Information Section -->
+    <div class="info-card candidate-info-section">
+      <h3><i class="fas fa-user-tie"></i> Candidate Information</h3>
+      <div class="candidate-form-grid">
+        <div class="form-group">
+          <label for="candidateId">Candidate ID *</label>
+          <input id="candidateId" type="text" name="candidateId" placeholder="Enter Candidate ID" required>
+          <span class="field-hint">Unique identifier for the candidate</span>
+        </div>
+        <div class="form-group">
+          <label for="candidateName">Candidate Name *</label>
+          <input id="candidateName" type="text" name="candidateName" placeholder="Enter Candidate Name" required>
+          <span class="field-hint">Full name of the candidate</span>
+        </div>
+        <div class="form-group">
+          <label for="electionArea">Election Area *</label>
+          <input id="electionArea" type="text" name="electionArea" placeholder="Enter Election Area/Constituency" required>
+          <span class="field-hint">Area or constituency for the election</span>
+        </div>
+      </div>
+      <div class="candidate-actions">
+        <button type="button" class="btn-search" onclick="searchCandidate()">
+          <i class="fas fa-search"></i> Search Candidate
+        </button>
+        <button type="button" class="btn-clear" onclick="clearCandidateInfo()">
+          <i class="fas fa-eraser"></i> Clear
+        </button>
+      </div>
+      <div id="candidateStatusMessage" class="status-message"></div>
+      
+      <!-- Candidate Details Display -->
+      <div id="candidateDetails" class="candidate-details hidden">
+        <h4><i class="fas fa-id-card"></i> Candidate Details</h4>
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">ID:</span>
+            <span class="detail-value" id="displayCandidateId">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Name:</span>
+            <span class="detail-value" id="displayCandidateName">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Area:</span>
+            <span class="detail-value" id="displayElectionArea">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Party:</span>
+            <span class="detail-value" id="displayParty">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status:</span>
+            <span class="detail-value status-badge" id="displayStatus">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Voting Information -->
+    <div class="info-card current-info">
+      <h3><i class="fas fa-info-circle"></i> Current Voting Schedule</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Start Date:</span>
+          <span class="info-value" id="currentStartDate">Not Set</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">End Date:</span>
+          <span class="info-value" id="currentEndDate">Not Set</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Status:</span>
+          <span class="info-value status-badge" id="currentStatus">Unknown</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Duration:</span>
+          <span class="info-value" id="votingDuration">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Set Voting Dates Form -->
+    <div class="form-container">
+      <div class="form-header">
+        <h2>📅 Configure Election Schedule</h2>
+        <p>Set the start and end dates for the voting period</p>
+      </div>
+
+      <form id="votingDatesForm" class="voting-form">
+        <div class="form-grid">
+          <!-- Election Start Date & Time -->
+          <div class="form-section">
+            <h3><i class="fas fa-play-circle"></i> Election Start</h3>
+            
+            <div class="form-group">
+              <label for="startDate">Start Date *</label>
+              <input id="startDate" type="date" name="startDate" required>
+              <span class="field-hint">When voting begins</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="startTime">Start Time *</label>
+              <input id="startTime" type="time" name="startTime" required>
+              <span class="field-hint">Time in 24-hour format</span>
+            </div>
+            
+            <div class="datetime-preview">
+              <i class="fas fa-clock"></i>
+              <span id="startPreview">Select date and time</span>
+            </div>
+          </div>
+
+          <!-- Election End Date & Time -->
+          <div class="form-section">
+            <h3><i class="fas fa-stop-circle"></i> Election End</h3>
+            
+            <div class="form-group">
+              <label for="endDate">End Date *</label>
+              <input id="endDate" type="date" name="endDate" required>
+              <span class="field-hint">When voting ends</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="endTime">End Time *</label>
+              <input id="endTime" type="time" name="endTime" required>
+              <span class="field-hint">Time in 24-hour format</span>
+            </div>
+            
+            <div class="datetime-preview">
+              <i class="fas fa-clock"></i>
+              <span id="endPreview">Select date and time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duration Calculation -->
+        <div class="duration-card">
+          <h4><i class="fas fa-hourglass-half"></i> Voting Duration</h4>
+          <div class="duration-display" id="durationDisplay">
+            <span class="duration-text">Please select start and end dates</span>
+          </div>
+        </div>
+
+        <!-- Quick Date Presets -->
+        <div class="quick-presets">
+          <h4><i class="fas fa-magic"></i> Quick Presets</h4>
+          <div class="preset-buttons">
+            <button type="button" class="preset-btn" onclick="setPreset('today')">
+              <i class="fas fa-calendar-day"></i>
+              Today (9 AM - 5 PM)
+            </button>
+            <button type="button" class="preset-btn" onclick="setPreset('tomorrow')">
+              <i class="fas fa-calendar-plus"></i>
+              Tomorrow (9 AM - 5 PM)
+            </button>
+            <button type="button" class="preset-btn" onclick="setPreset('week')">
+              <i class="fas fa-calendar-week"></i>
+              One Week
+            </button>
+            <button type="button" class="preset-btn" onclick="setPreset('custom')">
+              <i class="fas fa-calendar-alt"></i>
+              Next Month
+            </button>
+          </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button id="submitDates" type="submit" class="btn-primary">
+            <i class="fas fa-save"></i>
+            Save Voting Dates
+          </button>
+          <button type="button" class="btn-secondary" onclick="syncWithBlockchain()">
+            <i class="fas fa-sync-alt"></i>
+            Sync with Blockchain
+          </button>
+          <button type="reset" class="btn-tertiary">
+            <i class="fas fa-redo"></i>
+            Reset Form
+          </button>
+          <button type="button" class="btn-tertiary" onclick="goBackToDashboard()">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+        </div>
+      </form>
+      
+      <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="instructions-card">
+      <h3><i class="fas fa-lightbulb"></i> Important Instructions</h3>
+      <ul>
+        <li>📌 Voting dates will be stored on the Ethereum blockchain</li>
+        <li>⏰ All times are in your local timezone</li>
+        <li>🔒 Once set, dates can only be changed by admin</li>
+        <li>✅ Ensure dates don't conflict with existing schedules</li>
+        <li>🔄 Use "Sync with Blockchain" to update from smart contract</li>
+        <li>🔍 Search candidates by ID to view their details</li>
+        <li>📍 Election Area specifies the constituency for voting</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+  <script src="/js/video-background.js"></script>
+  <script src="/js/bulletproof-setup.js"></script>
+  <script src="/app.bundle.js" type="module"></script>
+  <script src="/js/set-vote.js"></script>
+</body>
+</html>

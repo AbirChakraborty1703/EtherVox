@@ -318,7 +318,7 @@ window.App = {
     }
   },
 
-  // Load candidates from blockchain (primary source for voting)
+  // Load candidates from MongoDB API (primary source for voting)
   loadCandidates: async function () {
     const candidateContainer = $("#boxCandidate");
 
@@ -330,8 +330,86 @@ window.App = {
       </div>
     `);
 
-    // Always load from blockchain for voting - blockchain is the source of truth
-    await App.loadCandidatesFromBlockchain();
+    // Load candidates from MongoDB API
+    await App.loadCandidatesFromMongoDB();
+  },
+
+  // Load candidates from MongoDB API
+  loadCandidatesFromMongoDB: async function () {
+    const candidateContainer = $("#boxCandidate");
+    try {
+      console.log('Fetching candidates from MongoDB API...');
+      const response = await fetch('http://127.0.0.1:8001/candidates');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('MongoDB API response:', data);
+      
+      if (!data.candidates || data.candidates.length === 0) {
+        candidateContainer.html(`
+          <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <p>No candidates registered yet</p>
+          </div>
+        `);
+        return;
+      }
+
+      // Get vote counts from blockchain for each candidate
+      const instance = App.contracts.Voting;
+      const count = await instance.methods.getCountCandidates().call();
+      const blockchainCount = parseInt(count);
+      
+      console.log('Blockchain candidate count:', blockchainCount);
+      
+      // Map MongoDB candidates and fetch vote counts from blockchain
+      const candidates = [];
+      for (let i = 0; i < data.candidates.length && i < blockchainCount; i++) {
+        const candidate = data.candidates[i];
+        
+        // Fetch blockchain data for this candidate (blockchain IDs are 1-indexed)
+        try {
+          const blockchainCandidate = await instance.methods.getCandidate(i + 1).call();
+          const voteCount = parseInt(blockchainCandidate[10] || blockchainCandidate.voteCount || 0);
+          
+          candidates.push({
+            blockchainId: i + 1,
+            name: candidate.name || 'Unknown',
+            party: candidate.party || 'Independent',
+            voteCount: voteCount,
+            electionCenter: candidate.electionCenter,
+            candidateAddress: candidate.candidateAddress,
+            mongoId: candidate._id
+          });
+          
+          console.log(`Candidate ${i + 1}: ${candidate.name} - ${voteCount} votes`);
+        } catch (e) {
+          console.error(`Error fetching blockchain data for candidate ${i + 1}:`, e);
+          // Fallback without vote count
+          candidates.push({
+            blockchainId: i + 1,
+            name: candidate.name || 'Unknown',
+            party: candidate.party || 'Independent',
+            voteCount: 0,
+            electionCenter: candidate.electionCenter,
+            candidateAddress: candidate.candidateAddress,
+            mongoId: candidate._id
+          });
+        }
+      }
+
+      console.log('Displaying candidates with vote counts:', candidates);
+      App.displayCandidates(candidates);
+      
+    } catch (error) {
+      console.error('Error loading candidates from MongoDB:', error);
+      // Fallback to blockchain
+      console.log('Falling back to blockchain...');
+      await App.loadCandidatesFromBlockchain();
+    }
   },
 
   // Load candidates from blockchain (source of truth for voting)

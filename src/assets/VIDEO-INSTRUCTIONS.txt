@@ -1,0 +1,21 @@
+/* 
+ * VIDEO FALLBACK IMAGE PLACEHOLDER
+ * 
+ * This is a placeholder file. Please replace this with your actual fallback image.
+ * 
+ * Instructions:
+ * 1. Take a screenshot/frame from your video background
+ * 2. Save it as 'video-fallback.jpg' in this folder (src/assets/)
+ * 3. Recommended resolution: 1920x1080 pixels
+ * 4. Keep file size under 500KB for fast loading
+ * 
+ * The fallback image will be shown when:
+ * - The video is still loading
+ * - The video fails to load
+ * - User has reduced motion preferences enabled
+ * - Browser doesn't support video
+ * 
+ * Also add your video file:
+ * - Save your video as 'background-video.mp4' in src/assets/
+ * - Recommended: 10-30 seconds loop, 1080p, compressed to under 10MB
+ */

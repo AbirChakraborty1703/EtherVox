@@ -12,6 +12,14 @@ const jwt = require('jsonwebtoken');
 // Load environment variables from .env file
 require('dotenv').config();
 
+// Verify SECRET_KEY is loaded
+if (!process.env.SECRET_KEY) {
+  console.error('❌ CRITICAL: SECRET_KEY not found in environment variables!');
+  console.error('Please ensure .env file exists with SECRET_KEY defined');
+} else {
+  console.log('✅ SECRET_KEY loaded successfully');
+}
+
 // Initialize Express application
 const app = express();
 
@@ -24,9 +32,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Serve CSS files from src directory
 app.use('/css', express.static(path.join(__dirname, 'src/css')));
 
+// Serve assets (images) from src/assets directory
+app.use('/assets', express.static(path.join(__dirname, 'src/assets')));
+
+// Serve smart contract ABI files from build/contracts
+app.use('/contracts', express.static(path.join(__dirname, 'build/contracts')));
+
 // Debug middleware to log static file requests
 app.use((req, res, next) => {
-  if (req.path.includes('.js') || req.path.includes('.css')) {
+  if (req.path.includes('.js') || req.path.includes('.css') || req.path.includes('.json')) {
     console.log(`Static file request: ${req.method} ${req.path}`);
   }
   next();
@@ -36,8 +50,12 @@ app.use((req, res, next) => {
 const authorizeUser = (req, res, next) => {
   const authHeader = req.query.Authorization;
   
+  console.log(`[AUTH] Checking authorization for: ${req.path}`);
+  console.log(`[AUTH] Authorization header present: ${!!authHeader}`);
+  
   // Check if authorization header exists
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('[AUTH] ❌ No valid Bearer token in query');
     return res.status(401).send(`
       <html>
         <head>
@@ -78,9 +96,14 @@ const authorizeUser = (req, res, next) => {
   
   try {
     // Verify and decode the token with proper error handling
+    console.log(`[AUTH] Verifying token (first 50 chars): ${token.substring(0, 50)}...`);
+    console.log(`[AUTH] Using SECRET_KEY (first 20 chars): ${process.env.SECRET_KEY?.substring(0, 20)}...`);
+    
     const decodedToken = jwt.verify(token, process.env.SECRET_KEY, { 
       algorithms: ['HS256']
     });
+    
+    console.log(`[AUTH] ✅ Token verified for user: ${decodedToken.voter_id}`);
 
     // Add user info to request object
     req.user = decodedToken;
@@ -125,6 +148,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/login.html'));
 });
 
+// Login page alias (for backward compatibility)
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/login.html'));
+});
+
 // Login page assets
 app.get('/js/login.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/login.js'));
@@ -138,9 +166,19 @@ app.get('/css/login.css', (req, res) => {
 // ROUTES - Protected Pages (Require Authentication)
 // ===============================================
 
-// Admin dashboard
-app.get('/admin.html', authorizeUser, (req, res) => {
-  res.sendFile(path.join(__dirname, 'src/html/admin.html'));
+// Admin Dashboard
+app.get('/AdminDashboard.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/AdminDashboard.html'));
+});
+
+// Add Candidate
+app.get('/AddCandidate.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/AddCandidate.html'));
+});
+
+// Set Voting Information
+app.get('/SetVote.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/SetVote.html'));
 });
 
 // Voting interface
@@ -157,8 +195,28 @@ app.get('/css/index.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/index.css'));
 });
 
-app.get('/css/admin.css', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src/css/admin.css'));
+app.get('/css/admin-dashboard.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/admin-dashboard.css'));
+});
+
+app.get('/css/add-candidate.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/add-candidate.css'));
+});
+
+
+app.get('/js/admin-dashboard.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/admin-dashboard.js'));
+});
+
+app.get('/js/add-candidate.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/add-candidate.js'));
+});
+
+app.get('/js/set-vote.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/set-vote.js'));
+});
+app.get('/css/set-vote.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/set-vote.css'));
 });
 
 // JavaScript files
@@ -247,8 +305,10 @@ app.listen(PORT, () => {
    
 📍 Server running at: http://localhost:${PORT}
 🔐 Login page: http://localhost:${PORT}/
-👑 Admin access: http://localhost:${PORT}/admin.html (requires login)
-🗳️  Voting page: http://localhost:${PORT}/index.html (requires login)
+👑 Admin Dashboard: http://localhost:${PORT}/AdminDashboard.html (requires admin login)
+   📝 Add Candidate: http://localhost:${PORT}/AddCandidate.html (requires admin login)
+   📅 Set Voting Dates: http://localhost:${PORT}/SetVote.html (requires admin login)
+🗳️  Voting page: http://localhost:${PORT}/index.html (requires voter login)
 
 📊 Status: Ready for connections
 🛡️  Security: JWT authentication enabled

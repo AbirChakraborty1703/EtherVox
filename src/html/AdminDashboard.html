@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+  <title>Admin Dashboard - EtherVox</title>
+
+  <link rel="stylesheet" type="text/css" href="/css/admin-dashboard.css">
+  <link rel="stylesheet" type="text/css" href="/css/video-background.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+  <!-- Ethereum Background Image with Ultra HD Crystal Clear Animated Effects -->
+  <div class="video-background">
+    <div class="video-overlay crystal"></div>
+    <div class="glow-effect"></div>
+    <div class="particle-layer"></div>
+    <div class="shimmer-effect"></div>
+  </div>
+
+  <!-- Animated Floating Shapes (optional - on top of background) -->
+  <div class="background-animation">
+    <div class="floating-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+      <div class="shape shape-5"></div>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <i class="fas fa-vote-yea logo-icon"></i>
+        <h1 class="logo-text">EtherVox Admin</h1>
+      </div>
+      <div class="header-actions">
+        <div class="admin-info">
+          <i class="fas fa-user-shield"></i>
+          <span id="adminName">Administrator</span>
+        </div>
+        <button id="logoutButton" class="logout-btn" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Content -->
+  <div class="main-container">
+    <div class="dashboard-title">
+      <h2>🔐 Admin Control Panel</h2>
+      <p class="subtitle">Manage your blockchain voting system</p>
+    </div>
+
+    <!-- Dashboard Cards -->
+    <div class="dashboard-grid">
+      <!-- Add Candidate Card -->
+      <div class="dashboard-card add-candidate-card">
+        <div class="card-icon">
+          <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="card-content">
+          <h3>Add Candidate</h3>
+          <p>Register new candidates for the election</p>
+          <div class="card-stats">
+            <i class="fas fa-users"></i>
+            <span>Manage Candidates</span>
+          </div>
+        </div>
+        <button class="card-btn" onclick="navigateToAddCandidate()">
+          <i class="fas fa-arrow-right"></i>
+          <span>Add New Candidate</span>
+        </button>
+      </div>
+
+      <!-- Set Voting Information Card -->
+      <div class="dashboard-card set-vote-card">
+        <div class="card-icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="card-content">
+          <h3>Set Voting Information</h3>
+          <p>Configure election dates and settings</p>
+          <div class="card-stats">
+            <i class="fas fa-clock"></i>
+            <span>Configure Schedule</span>
+          </div>
+        </div>
+        <button class="card-btn" onclick="navigateToSetVote()">
+          <i class="fas fa-arrow-right"></i>
+          <span>Configure Voting</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="stats-section">
+      <h3>📊 Quick Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value" id="totalCandidates">0</span>
+            <span class="stat-label">Total Candidates</span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-vote-yea"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value" id="totalVotes">0</span>
+            <span class="stat-label">Total Votes</span>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value" id="votingStatus">Not Set</span>
+            <span class="stat-label">Voting Status</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>🔗 Powered by Ethereum Blockchain • Secure • Transparent • Decentralized</p>
+    </div>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+  <script src="/js/video-background.js"></script>
+  <script src="/js/admin-dashboard.js"></script>
+</body>
+</html>

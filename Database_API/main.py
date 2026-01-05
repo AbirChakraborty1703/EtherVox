@@ -42,7 +42,11 @@ if sys.platform.startswith('win'):
         pass
 
 # Loading the environment variables for database configuration
-dotenv.load_dotenv()
+# Load from parent directory's .env file
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+dotenv.load_dotenv(env_path)
+print(f"[INFO] Loading environment from: {env_path}")
+print(f"[INFO] SECRET_KEY loaded: {'Yes' if os.environ.get('SECRET_KEY') else 'No'}")
 
 # Initialize the FastAPI application instance
 app = FastAPI()
@@ -125,17 +129,18 @@ class CandidateModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     age: int = Field(..., ge=18, le=120)
     dateOfBirth: str = Field(..., description="Date in YYYY-MM-DD format")
-    electionCenter: str = Field(..., min_length=1, max_length=200)
+    electionCenter: Optional[str] = Field(default="Default Election Center", max_length=200)
     party: str = Field(..., min_length=1, max_length=100)
     candidateAddress: str = Field(..., min_length=1, max_length=300)
     email: str = Field(..., pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
     phoneNumber: str = Field(..., min_length=10, max_length=15)
     candidateId: str = Field(..., min_length=1, max_length=50)
     candidatePassword: str = Field(..., min_length=8)
-    electionStartDate: str = Field(..., description="Election start date in ISO format")
-    electionEndDate: str = Field(..., description="Election end date in ISO format")
+    electionStartDate: Optional[str] = Field(default=None, description="Election start date in ISO format")
+    electionEndDate: Optional[str] = Field(default=None, description="Election end date in ISO format")
     createdAt: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
-    blockchainAddress: Optional[str] = None
+    blockchainAddress: Optional[str] = Field(default=None, description="Blockchain transaction hash")
+    blockchainAccount: Optional[str] = Field(default=None, description="MetaMask account that added the candidate")
     isActive: bool = Field(default=True)
 
 class CandidateResponse(BaseModel):
@@ -532,6 +537,185 @@ async def delete_candidate(candidate_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete candidate: {str(e)}"
+        )
+
+# ===============================================
+# CANDIDATE SEARCH BY AREA ENDPOINT
+# ===============================================
+
+@app.get("/candidates/area/{election_area}")
+async def get_candidates_by_area(election_area: str):
+    """
+    Get all candidates for a specific election area/constituency
+    
+    Args:
+        election_area (str): The election area or constituency name
+    
+    Returns:
+        dict: List of candidates in the specified area
+    """
+    try:
+        # Search for candidates in the specified election area (case-insensitive)
+        candidates = []
+        query = {
+            "isActive": True,
+            "electionCenter": {"$regex": election_area, "$options": "i"}
+        }
+        
+        async for candidate in candidates_collection.find(query):
+            candidate["_id"] = str(candidate["_id"])
+            # Remove password from response
+            candidate.pop("candidatePassword", None)
+            candidates.append(candidate)
+        
+        return {
+            "message": f"Candidates retrieved for area: {election_area}",
+            "area": election_area,
+            "count": len(candidates),
+            "candidates": candidates
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidates by area: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidates: {str(e)}"
+        )
+
+@app.get("/candidates/info/{candidate_unique_id}")
+async def get_candidate_info_by_id(candidate_unique_id: str):
+    """
+    Get candidate basic info (ID, Name, Area) by their unique candidate ID
+    
+    Args:
+        candidate_unique_id (str): Unique candidate ID
+    
+    Returns:
+        dict: Candidate basic information (ID, Name, Election Area)
+    """
+    try:
+        candidate = await candidates_collection.find_one(
+            {"candidateId": candidate_unique_id, "isActive": True}
+        )
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Candidate not found"
+            )
+        
+        # Return only the basic info needed for SetVote page
+        return {
+            "message": "Candidate info retrieved successfully",
+            "candidateInfo": {
+                "candidateId": candidate.get("candidateId"),
+                "name": candidate.get("name"),
+                "electionArea": candidate.get("electionCenter"),
+                "party": candidate.get("party"),
+                "isActive": candidate.get("isActive", True)
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving candidate info: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve candidate info: {str(e)}"
+        )
+
+# ===============================================
+# VOTING DATES MANAGEMENT (MongoDB)
+# ===============================================
+
+class VotingDatesModel(BaseModel):
+    votingStartDate: str = Field(..., description="Voting start date in ISO format")
+    votingEndDate: str = Field(..., description="Voting end date in ISO format")
+    votingStartTimestamp: int = Field(..., description="Unix timestamp for start")
+    votingEndTimestamp: int = Field(..., description="Unix timestamp for end")
+    blockchainTxHash: Optional[str] = Field(default=None, description="Blockchain transaction hash")
+    blockchainAccount: Optional[str] = Field(default=None, description="Admin account that set the dates")
+    createdAt: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
+    isActive: bool = Field(default=True)
+
+@app.post("/voting-dates")
+async def set_voting_dates(voting_dates: VotingDatesModel):
+    """
+    Save voting dates to MongoDB
+    
+    Args:
+        voting_dates (VotingDatesModel): Voting dates data
+    
+    Returns:
+        dict: Created voting dates record
+    """
+    try:
+        # Convert pydantic model to dict
+        dates_dict = voting_dates.dict()
+        
+        # Deactivate any previous voting dates
+        await mongo_db.voting_dates.update_many(
+            {"isActive": True},
+            {"$set": {"isActive": False}}
+        )
+        
+        # Insert new voting dates
+        result = await mongo_db.voting_dates.insert_one(dates_dict)
+        
+        # Get the created record
+        created_dates = await mongo_db.voting_dates.find_one(
+            {"_id": result.inserted_id}
+        )
+        
+        # Convert ObjectId to string
+        created_dates["_id"] = str(created_dates["_id"])
+        
+        return {
+            "message": "Voting dates saved successfully",
+            "voting_dates": created_dates,
+            "mongodb_id": str(result.inserted_id)
+        }
+        
+    except Exception as e:
+        print(f"Error saving voting dates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save voting dates: {str(e)}"
+        )
+
+@app.get("/voting-dates")
+async def get_voting_dates():
+    """
+    Get current active voting dates from MongoDB
+    
+    Returns:
+        dict: Current voting dates information
+    """
+    try:
+        # Find the most recent active voting dates
+        voting_dates = await mongo_db.voting_dates.find_one(
+            {"isActive": True},
+            sort=[("createdAt", -1)]
+        )
+        
+        if not voting_dates:
+            return {
+                "message": "No voting dates configured",
+                "voting_dates": None
+            }
+        
+        # Convert ObjectId to string
+        voting_dates["_id"] = str(voting_dates["_id"])
+        
+        return {
+            "message": "Voting dates retrieved successfully",
+            "voting_dates": voting_dates
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving voting dates: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve voting dates: {str(e)}"
         )
 
 # ===============================================
