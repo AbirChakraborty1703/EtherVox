@@ -173,7 +173,7 @@
 
   <!-- Main header section -->
   <div id="head" class="text-center">
-    <div class="welcome-banner">
+    <div class="welcome-banner" data-animate="fade-in">
       <div class="welcome-icon">
         <i class="fas fa-vote-yea"></i>
       </div>
@@ -181,7 +181,7 @@
       <p class="welcome-subtitle">Your voice matters in this secure blockchain-powered election</p>
     </div>
 
-    <div class="voting-status-bar">
+    <div class="voting-status-bar" data-animate="fade-in-delay">
       <div class="status-item">
         <i class="fas fa-calendar-alt"></i>
         <span>Voting Period:</span>
@@ -236,7 +236,7 @@
       </div>
       <button id="voteButton" class="vote-btn" onclick="App.vote()" disabled>
         <i class="fas fa-check-circle"></i>
-        <span>Submit My Vote</span>
+        <span id="voteBtnText">Submit My Vote</span>
       </button>
       <div id="msg" class="vote-message"></div>
       <div id="vote-box"></div>

@@ -339,20 +339,31 @@ window.App = {
     const candidateContainer = $("#boxCandidate");
     try {
       console.log('Fetching candidates from MongoDB API...');
-      const response = await fetch('http://127.0.0.1:8001/candidates');
-      
+      const apiUrl = 'http://127.0.0.1:8001/candidates';
+      console.log('API URL:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors'
+      });
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('MongoDB API response:', data);
-      
+
       if (!data.candidates || data.candidates.length === 0) {
+        console.warn('No candidates found in MongoDB');
         candidateContainer.html(`
           <div class="empty-state">
             <i class="fas fa-user-slash"></i>
             <p>No candidates registered yet</p>
+            <p style="font-size: 14px; color: rgba(255,255,255,0.6);">Please add candidates from the Admin Dashboard</p>
           </div>
         `);
         return;
@@ -362,53 +373,65 @@ window.App = {
       const instance = App.contracts.Voting;
       const count = await instance.methods.getCountCandidates().call();
       const blockchainCount = parseInt(count);
-      
+
       console.log('Blockchain candidate count:', blockchainCount);
-      
+
       // Map MongoDB candidates and fetch vote counts from blockchain
       const candidates = [];
-      for (let i = 0; i < data.candidates.length && i < blockchainCount; i++) {
+
+      // Loop through ALL MongoDB candidates, not limited by blockchain count
+      for (let i = 0; i < data.candidates.length; i++) {
         const candidate = data.candidates[i];
-        
-        // Fetch blockchain data for this candidate (blockchain IDs are 1-indexed)
-        try {
-          const blockchainCandidate = await instance.methods.getCandidate(i + 1).call();
-          const voteCount = parseInt(blockchainCandidate[10] || blockchainCandidate.voteCount || 0);
-          
-          candidates.push({
-            blockchainId: i + 1,
-            name: candidate.name || 'Unknown',
-            party: candidate.party || 'Independent',
-            voteCount: voteCount,
-            electionCenter: candidate.electionCenter,
-            candidateAddress: candidate.candidateAddress,
-            mongoId: candidate._id
-          });
-          
-          console.log(`Candidate ${i + 1}: ${candidate.name} - ${voteCount} votes`);
-        } catch (e) {
-          console.error(`Error fetching blockchain data for candidate ${i + 1}:`, e);
-          // Fallback without vote count
-          candidates.push({
-            blockchainId: i + 1,
-            name: candidate.name || 'Unknown',
-            party: candidate.party || 'Independent',
-            voteCount: 0,
-            electionCenter: candidate.electionCenter,
-            candidateAddress: candidate.candidateAddress,
-            mongoId: candidate._id
-          });
+
+        // Try to fetch blockchain data if this candidate exists on blockchain
+        let voteCount = 0;
+        if (i < blockchainCount) {
+          try {
+            const blockchainCandidate = await instance.methods.getCandidate(i + 1).call();
+            voteCount = parseInt(blockchainCandidate[10] || blockchainCandidate.voteCount || 0);
+          } catch (e) {
+            console.warn(`Could not fetch blockchain data for candidate ${i + 1}:`, e);
+          }
         }
+
+        candidates.push({
+          blockchainId: i < blockchainCount ? i + 1 : null,
+          name: candidate.name || 'Unknown',
+          party: candidate.party || 'Independent',
+          voteCount: voteCount,
+          electionCenter: candidate.electionCenter,
+          candidateAddress: candidate.candidateAddress,
+          mongoId: candidate._id,
+          onBlockchain: i < blockchainCount
+        });
+
+        console.log(`Candidate ${i + 1}: ${candidate.name} - ${voteCount} votes (${i < blockchainCount ? 'on blockchain' : 'pending blockchain sync'})`);
       }
 
       console.log('Displaying candidates with vote counts:', candidates);
       App.displayCandidates(candidates);
-      
+
     } catch (error) {
       console.error('Error loading candidates from MongoDB:', error);
-      // Fallback to blockchain
-      console.log('Falling back to blockchain...');
-      await App.loadCandidatesFromBlockchain();
+
+      // Show specific error message for connection issues
+      if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+        console.error('MongoDB API connection failed - Backend may not be running');
+        candidateContainer.html(`
+          <div class="error-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Cannot connect to backend API</p>
+            <p style="font-size: 14px; color: rgba(255,255,255,0.6);">
+              Please ensure the Database API is running on port 8001<br>
+              Start it with: <code>cd Database_API && python main.py</code>
+            </p>
+          </div>
+        `);
+      } else {
+        // Fallback to blockchain for other errors
+        console.log('Falling back to blockchain...');
+        await App.loadCandidatesFromBlockchain();
+      }
     }
   },
 
