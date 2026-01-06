@@ -33,3 +33,8 @@ python-cors==1.7.0
 # Additional security packages
 secure==0.3.0
 safety==3.2.6
+
+# AI/ML libraries for anomaly detection
+scikit-learn==1.5.2
+numpy==1.26.4
+pandas==2.2.3

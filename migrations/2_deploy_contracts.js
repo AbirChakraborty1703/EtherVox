@@ -15,8 +15,11 @@ var Voting = artifacts.require("./Voting.sol")
 
 // Export the deployment function for Truffle framework
 module.exports = async function(deployer, network, accounts) {
-  // Deploy from the second account (your MetaMask account)
-  const deployerAccount = accounts[1]; // 0x996d2CcE9274F529f1A5f1Ab2540b05e33B85e51
+  // Display all available accounts
+  console.log('Available accounts:', accounts);
+  
+  // Deploy from the first account
+  const deployerAccount = accounts[0];
   
   console.log('Deploying from account:', deployerAccount);
   

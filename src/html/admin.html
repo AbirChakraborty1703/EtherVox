@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
     <title>Admin portal</title>
 
     <link rel="stylesheet" type="text/css" href="/css/admin.css">
@@ -15,6 +15,9 @@
   <body>
     <!-- Logout button -->
     <div class="logout-container">
+      <a href="/face-register.html" class="face-register-btn" title="Register voters' faces">
+        <i class="fas fa-user-plus"></i> Register Face
+      </a>
       <button id="logoutButton" class="logout-btn" onclick="logout()">
         <i class="fas fa-sign-out-alt"></i> Logout
       </button>
@@ -23,6 +26,94 @@
     <div id="head" class="text-center">
       <h1 align="center" class="admin-title">Decentralized Voting Using Ethereum Blockchain</h1>
       <br/> 
+    </div>
+
+    <!-- Fraud Detection Dashboard -->
+    <div class="fraud-dashboard-container" style="margin: 20px auto; max-width: 1400px;">
+      <div class="fraud-header">
+        <h2>🛡️ AI-Powered Fraud Detection Dashboard</h2>
+        <button id="refreshFraudData" class="refresh-btn">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+      
+      <!-- Statistics Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #4CAF50;">
+            <i class="fas fa-vote-yea"></i>
+          </div>
+          <div class="stat-details">
+            <h3 id="totalVotesMonitored">0</h3>
+            <p>Total Votes Monitored</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #2196F3;">
+            <i class="fas fa-network-wired"></i>
+          </div>
+          <div class="stat-details">
+            <h3 id="uniqueIPs">0</h3>
+            <p>Unique IP Addresses</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #FF9800;">
+            <i class="fas fa-mobile-alt"></i>
+          </div>
+          <div class="stat-details">
+            <h3 id="uniqueDevices">0</h3>
+            <p>Unique Devices</p>
+          </div>
+        </div>
+        
+        <div class="stat-card alert">
+          <div class="stat-icon" style="background: #f44336;">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-details">
+            <h3 id="suspiciousActivities">0</h3>
+            <p>Suspicious Activities</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Detection Systems Status -->
+      <div class="detection-systems">
+        <h3>🤖 Detection Systems Status</h3>
+        <div class="systems-grid">
+          <div class="system-status">
+            <span class="status-indicator active"></span>
+            <span>IP Monitoring</span>
+          </div>
+          <div class="system-status">
+            <span class="status-indicator active"></span>
+            <span>Device Tracking</span>
+          </div>
+          <div class="system-status">
+            <span class="status-indicator active"></span>
+            <span>Regional Spike</span>
+          </div>
+          <div class="system-status">
+            <span class="status-indicator active"></span>
+            <span>Temporal Patterns</span>
+          </div>
+          <div class="system-status" id="mlModelStatus">
+            <span class="status-indicator pending"></span>
+            <span>ML Model</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Flagged Voters Table -->
+      <div class="flagged-voters-section">
+        <h3>🚨 Flagged Suspicious Activities</h3>
+        <div id="flaggedVotersTable">
+          <p class="loading">Loading fraud detection data...</p>
+        </div>
+      </div>
     </div>
 
     <div class="container">
@@ -146,6 +237,139 @@
           }
         }
       }
+
+      // ========================================
+      // FRAUD DETECTION DASHBOARD FUNCTIONS
+      // ========================================
+      
+      async function loadFraudDetectionData() {
+        try {
+          // Fetch statistics
+          const statsResponse = await fetch('http://127.0.0.1:8001/anomaly/statistics');
+          const stats = await statsResponse.json();
+          
+          // Update statistics cards
+          document.getElementById('totalVotesMonitored').textContent = stats.total_votes || 0;
+          document.getElementById('uniqueIPs').textContent = stats.unique_ips || 0;
+          document.getElementById('uniqueDevices').textContent = stats.unique_devices || 0;
+          
+          const suspiciousCount = (stats.suspicious_ips || 0) + (stats.suspicious_devices || 0);
+          document.getElementById('suspiciousActivities').textContent = suspiciousCount;
+          
+          // Update ML model status
+          const mlStatus = document.getElementById('mlModelStatus').querySelector('.status-indicator');
+          if (stats.model_trained) {
+            mlStatus.classList.remove('pending');
+            mlStatus.classList.add('active');
+          }
+          
+          // Fetch flagged voters
+          const flaggedResponse = await fetch('http://127.0.0.1:8001/anomaly/flagged-voters');
+          const flaggedData = await flaggedResponse.json();
+          
+          displayFlaggedVoters(flaggedData);
+          
+        } catch (error) {
+          console.error('Error loading fraud detection data:', error);
+          document.getElementById('flaggedVotersTable').innerHTML = 
+            '<p style="color: #f44336; text-align: center;">⚠️ Unable to connect to fraud detection system. Make sure the API is running.</p>';
+        }
+      }
+      
+      function displayFlaggedVoters(data) {
+        const container = document.getElementById('flaggedVotersTable');
+        
+        if (!data.flagged_voters || data.flagged_voters.length === 0) {
+          container.innerHTML = `
+            <div class="no-fraud">
+              <i class="fas fa-check-circle"></i>
+              <div>✅ No Suspicious Activities Detected</div>
+              <small style="display: block; margin-top: 10px; color: rgba(255,255,255,0.6);">
+                All voting patterns appear normal
+              </small>
+            </div>
+          `;
+          return;
+        }
+        
+        let tableHTML = `
+          <table class="flagged-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Identifier</th>
+                <th>Vote Count</th>
+                <th>Severity</th>
+                <th>Voter IDs</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        data.flagged_voters.forEach(item => {
+          const severity = item.vote_count > 10 ? 'HIGH' : 'MEDIUM';
+          const severityClass = severity === 'HIGH' ? 'severity-high' : 'severity-medium';
+          const icon = item.type === 'IP' ? 'fa-network-wired' : 'fa-mobile-alt';
+          
+          tableHTML += `
+            <tr>
+              <td><i class="fas ${icon}"></i> ${item.type}</td>
+              <td><code>${item.identifier}</code></td>
+              <td><strong>${item.vote_count}</strong> votes</td>
+              <td><span class="severity-badge ${severityClass}">${severity}</span></td>
+              <td class="voter-ids">${item.voter_ids.join(', ')}</td>
+              <td>
+                <button onclick="investigateVoter('${item.identifier}', '${item.type}')" 
+                        style="background: #2196F3; color: white; border: none; padding: 6px 12px; 
+                               border-radius: 4px; cursor: pointer; font-size: 12px;">
+                  <i class="fas fa-search"></i> Investigate
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+        
+        tableHTML += `
+            </tbody>
+          </table>
+        `;
+        
+        container.innerHTML = tableHTML;
+      }
+      
+      function investigateVoter(identifier, type) {
+        alert(`🔍 Investigation Details:\n\n` +
+              `Type: ${type}\n` +
+              `Identifier: ${identifier}\n\n` +
+              `Actions Available:\n` +
+              `• Review voting history\n` +
+              `• Block IP/Device\n` +
+              `• Generate report\n` +
+              `• Contact voter for verification\n\n` +
+              `This feature connects to your blockchain audit logs.`);
+      }
+      
+      // Auto-refresh fraud data every 30 seconds
+      setInterval(loadFraudDetectionData, 30000);
+      
+      // Load fraud data on page load
+      window.addEventListener('load', () => {
+        setTimeout(loadFraudDetectionData, 1000);
+      });
+      
+      // Manual refresh button
+      document.addEventListener('DOMContentLoaded', () => {
+        const refreshBtn = document.getElementById('refreshFraudData');
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => {
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            loadFraudDetectionData().then(() => {
+              refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            });
+          });
+        }
+      });
     </script>
   <script src="/app.bundle.js" type="module"></script>
   </body>

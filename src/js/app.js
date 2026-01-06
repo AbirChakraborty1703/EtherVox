@@ -16,14 +16,66 @@ window.App = {
   web3: null,
   account: null,
   contracts: {},
+  faceModelsLoaded: false,
 
   // Initialize the application and Web3 connection
   eventStart: async function() { 
     try {
+      // Load face recognition models in parallel with Web3 initialization
+      App.loadFaceModels();
       return await App.initWeb3();
     } catch (error) {
       console.error('Error initializing app:', error);
       alert('Failed to initialize the application. Please check your connection and try again.');
+    }
+  },
+
+  // Load face-api.js models for face verification
+  loadFaceModels: async function() {
+    try {
+      // Check if face-api is available
+      if (typeof faceapi === 'undefined') {
+        console.warn('face-api.js not loaded yet, waiting...');
+        // Wait for face-api.js to load (increased timeout to 30 seconds)
+        await new Promise((resolve) => {
+          const checkFaceApi = setInterval(() => {
+            if (typeof faceapi !== 'undefined') {
+              clearInterval(checkFaceApi);
+              console.log('✅ face-api.js loaded successfully');
+              resolve();
+            }
+          }, 200);
+          // Timeout after 30 seconds
+          setTimeout(() => {
+            clearInterval(checkFaceApi);
+            resolve();
+          }, 30000);
+        });
+      }
+
+      if (typeof faceapi === 'undefined') {
+        console.error('❌ face-api.js failed to load - face verification will not work');
+        console.error('Please check your internet connection and refresh the page');
+        return false;
+      }
+
+      console.log('📦 Loading face recognition models...');
+      
+      const MODEL_URL = '/models';
+      
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+      ]);
+      
+      App.faceModelsLoaded = true;
+      console.log('✅ Face recognition models loaded successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error loading face models:', error);
+      App.faceModelsLoaded = false;
+      return false;
     }
   },
 
@@ -444,6 +496,13 @@ window.App = {
       return;
     }
 
+    // MANDATORY: Verify face before allowing vote
+    const faceVerified = await App.verifyFaceBeforeVoting();
+    if (!faceVerified) {
+      $("#msg").html("<p style='color: red;'>❌ Face verification failed. You must verify your identity to vote.</p>");
+      return;
+    }
+
     try {
       const instance = App.contracts.Voting;
       
@@ -603,6 +662,307 @@ window.App = {
                   .show();
     } else {
       console.log(`Status (${type}): ${message}`);
+    }
+  },
+
+  // ==========================================
+  // FACE VERIFICATION BEFORE VOTING
+  // ==========================================
+  verifyFaceBeforeVoting: async function() {
+    return new Promise((resolve) => {
+      // Show face verification dialog
+      const confirmVerify = confirm(
+        '🔐 Face Verification Required\n\n' +
+        'To ensure secure voting and prevent fraud, you must verify your identity using face recognition.\n\n' +
+        'Click OK to open the camera and verify your face.'
+      );
+      
+      if (!confirmVerify) {
+        resolve(false);
+        return;
+      }
+      
+      // Create modal for face verification
+      App.showFaceVerificationModal(resolve);
+    });
+  },
+
+  showFaceVerificationModal: function(resolveCallback) {
+    // Create modal HTML
+    const modalHTML = `
+      <div id="voteFaceVerificationModal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      ">
+        <div style="
+          background: white;
+          padding: 30px;
+          border-radius: 15px;
+          max-width: 500px;
+          width: 90%;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        ">
+          <h2 style="color: #333; margin-bottom: 20px; text-align: center;">
+            🔐 Verify Your Face to Vote
+          </h2>
+          <p style="color: #666; text-align: center; margin-bottom: 20px;">
+            Position your face clearly in the camera
+          </p>
+          <div style="text-align: center;">
+            <video id="voteVerifyVideo" autoplay style="
+              width: 100%;
+              max-width: 400px;
+              border-radius: 10px;
+              border: 3px solid #4CAF50;
+              margin-bottom: 20px;
+            "></video>
+            <canvas id="voteVerifyCanvas" style="display: none;"></canvas>
+            <div id="voteVerifyStatus" style="
+              margin: 15px 0;
+              padding: 10px;
+              border-radius: 5px;
+              font-weight: bold;
+            "></div>
+            <button id="captureVoteFaceBtn" style="
+              background: #4CAF50;
+              color: white;
+              border: none;
+              padding: 12px 30px;
+              font-size: 16px;
+              border-radius: 25px;
+              cursor: pointer;
+              margin-right: 10px;
+            ">Verify Face</button>
+            <button id="cancelVoteFaceBtn" style="
+              background: #f44336;
+              color: white;
+              border: none;
+              padding: 12px 30px;
+              font-size: 16px;
+              border-radius: 25px;
+              cursor: pointer;
+            ">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    $('body').append(modalHTML);
+    
+    // Initialize face verification after DOM update
+    setTimeout(() => {
+      App.initializeFaceVerification(resolveCallback);
+    }, 100);
+  },
+
+  initializeFaceVerification: async function(resolveCallback) {
+    console.log('🔧 Initializing face verification...');
+    
+    const video = document.getElementById('voteVerifyVideo');
+    const canvas = document.getElementById('voteVerifyCanvas');
+    const status = document.getElementById('voteVerifyStatus');
+    const captureBtn = document.getElementById('captureVoteFaceBtn');
+    const cancelBtn = document.getElementById('cancelVoteFaceBtn');
+    
+    console.log('📋 Elements found:', {video, canvas, status, captureBtn, cancelBtn});
+    
+    if (!video || !canvas || !status || !captureBtn || !cancelBtn) {
+      console.error('❌ Required elements not found!');
+      alert('Error: Modal elements not loaded properly. Please try again.');
+      resolveCallback(false);
+      return;
+    }
+    
+    let stream = null;
+    
+    // Setup cancel button first (always works)
+    cancelBtn.onclick = () => {
+      console.log('❌ User cancelled face verification');
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      $('#voteFaceVerificationModal').remove();
+      resolveCallback(false);
+    };
+    
+    try {
+      // Load face models if not already loaded
+      if (!App.faceModelsLoaded) {
+        status.textContent = '📦 Loading face recognition models...';
+        status.style.background = '#fff3cd';
+        status.style.color = '#856404';
+        console.log('📦 Loading face models...');
+        
+        const modelsLoaded = await App.loadFaceModels();
+        if (!modelsLoaded) {
+          throw new Error('Failed to load face recognition models');
+        }
+        console.log('✅ Face models loaded');
+      }
+      
+      status.textContent = '📹 Requesting camera access...';
+      status.style.background = '#fff3cd';
+      status.style.color = '#856404';
+      console.log('📹 Requesting camera access...');
+      
+      // Start camera
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }
+      });
+      
+      console.log('✅ Camera access granted, setting stream...');
+      video.srcObject = stream;
+      
+      // Wait for video to be ready
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Video loading timeout')), 5000);
+        
+        video.onloadedmetadata = () => {
+          clearTimeout(timeout);
+          console.log('✅ Video metadata loaded, playing...');
+          video.play()
+            .then(() => {
+              console.log('✅ Video playing');
+              resolve();
+            })
+            .catch(err => {
+              console.error('❌ Video play error:', err);
+              reject(err);
+            });
+        };
+      });
+      
+      status.textContent = '✅ Camera ready! Click "Verify Face" when ready';
+      status.style.background = '#d4edda';
+      status.style.color = '#155724';
+      console.log('✅ Camera ready!');
+      
+      // Capture button handler
+      captureBtn.onclick = async () => {
+        try {
+          captureBtn.disabled = true;
+          captureBtn.textContent = 'Verifying...';
+          status.textContent = '🔍 Detecting face...';
+          status.style.background = '#cfe2ff';
+          status.style.color = '#084298';
+          
+          // Draw video frame to canvas
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Check if face-api.js is loaded
+          if (typeof faceapi === 'undefined') {
+            throw new Error('Face recognition library not loaded');
+          }
+          
+          // Detect face in captured image
+          const detection = await faceapi
+            .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+          
+          if (!detection) {
+            throw new Error('No face detected. Please ensure your face is clearly visible.');
+          }
+          
+          status.textContent = '📤 Verifying with server...';
+          
+          // Get voter ID
+          const voterId = localStorage.getItem('currentVoterId');
+          const token = localStorage.getItem('jwtTokenVoter');
+          
+          if (!voterId || !token) {
+            throw new Error('Please log in again');
+          }
+          
+          // Send face descriptor to backend for verification
+          const descriptor = Array.from(detection.descriptor);
+          
+          const response = await fetch('http://127.0.0.1:8001/login-face', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              voter_id: voterId,
+              descriptor: descriptor
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Verification failed' }));
+            throw new Error(errorData.detail || 'Face verification failed');
+          }
+          
+          const result = await response.json();
+          
+          if (result.match || result.success) {
+            status.textContent = '✅ Face verified! Proceeding to vote...';
+            status.style.background = '#d4edda';
+            status.style.color = '#155724';
+            
+            // Stop camera
+            if (stream) {
+              stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Close modal and resolve
+            setTimeout(() => {
+              $('#voteFaceVerificationModal').remove();
+              resolveCallback(true);
+            }, 1000);
+          } else {
+            throw new Error('Face does not match registered face');
+          }
+          
+        } catch (error) {
+          console.error('Face verification error:', error);
+          status.textContent = '❌ ' + error.message;
+          status.style.background = '#f8d7da';
+          status.style.color = '#721c24';
+          captureBtn.disabled = false;
+          captureBtn.textContent = 'Verify Face';
+        }
+      };
+      
+      // Cancel button handler
+      cancelBtn.onclick = () => {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        $('#voteFaceVerificationModal').remove();
+        resolveCallback(false);
+      };
+      
+    } catch (error) {
+      console.error('Camera initialization error:', error);
+      status.textContent = '❌ Camera access denied. Please allow camera access and try again.';
+      status.style.background = '#f8d7da';
+      status.style.color = '#721c24';
+      
+      // Update cancel button to close modal
+      cancelBtn.onclick = () => {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        $('#voteFaceVerificationModal').remove();
+        resolveCallback(false);
+      };
     }
   }
 };

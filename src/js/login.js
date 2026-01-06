@@ -196,15 +196,40 @@ async function handleUserLogin(event) {
     const response = await authenticateUser(voterId, password, 'user');
     
     if (response.success) {
-      showMessage('🎉 Voter authentication successful! Entering voting portal...', 'success');
+      showMessage('✅ Password verified!', 'success');
       
-      // Store user token
-      localStorage.setItem('jwtTokenVoter', response.data.token);
+      // Store user token and voter ID temporarily
+      localStorage.setItem('tempToken', response.data.token);
+      localStorage.setItem('currentVoterId', voterId);
       
-      // Redirect to voting interface
-      setTimeout(() => {
-        window.location.replace(`http://localhost:8081/index.html?Authorization=Bearer ${response.data.token}`);
-      }, 1500);
+      // Check if face is registered
+      const faceRegistered = await checkFaceRegistered(voterId);
+      
+      if (!faceRegistered) {
+        // First time login - require face registration
+        showMessage('⚠️ Face registration required!', 'warning');
+        setTimeout(() => {
+          if (confirm('🔐 Enhanced Security Required!\n\nYou must register your face before voting.\n\nThis enables:\n✓ Three-factor authentication (ID + Password + Face)\n✓ Fraud prevention\n✓ Secure voting access\n\nProceed to face registration?')) {
+            localStorage.setItem('jwtTokenVoter', response.data.token);
+            window.location.replace('/face-register.html');
+          } else {
+            // Logout if they decline
+            localStorage.removeItem('tempToken');
+            localStorage.removeItem('currentVoterId');
+            showMessage('Face registration is mandatory. Please login again when ready.', 'error');
+            setLoadingState(submitButton, false);
+          }
+        }, 1500);
+      } else {
+        // Face registered - now require face authentication
+        showMessage('🔐 Now verify your face...', 'info');
+        setLoadingState(submitButton, false);
+        
+        setTimeout(() => {
+          // Open face authentication modal
+          showFaceAuthenticationModal();
+        }, 1000);
+      }
       
     } else {
       throw new Error('Invalid voter credentials');
@@ -214,6 +239,30 @@ async function handleUserLogin(event) {
     console.error('User login failed:', error);
     showMessage(`❌ Voter Login Failed: ${error.message}`, 'error');
     setLoadingState(submitButton, false);
+  }
+}
+
+// Show face authentication modal after password verification
+async function showFaceAuthenticationModal() {
+  const modal = document.getElementById('faceLoginModal');
+  if (modal) {
+    // Load face models first if not already loaded
+    if (!faceAuthModels) {
+      const modelsLoaded = await loadFaceModels();
+      if (!modelsLoaded) {
+        showMessage('⚠️ Face recognition models could not be loaded', 'error');
+        return;
+      }
+    }
+    // Open the face authentication modal
+    await openFaceAuthModal();
+  } else {
+    // Fallback: redirect to face login
+    alert('🔐 Face Authentication Required\n\nPlease authenticate your face to complete login.');
+    const faceLoginBtn = document.getElementById('faceLoginBtn');
+    if (faceLoginBtn) {
+      faceLoginBtn.click();
+    }
   }
 }
 
@@ -406,3 +455,227 @@ window.addEventListener('beforeunload', function() {
     input.value = '';
   });
 });
+// ===============================================
+// Face Authentication Integration
+// ===============================================
+let faceAuthStream = null;
+let faceAuthModels = null;
+
+async function loadFaceModels() {
+  if (faceAuthModels) return true;
+  
+  try {
+    await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+    await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+    await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+    faceAuthModels = true;
+    return true;
+  } catch (error) {
+    console.error('Error loading face models:', error);
+    showMessage('⚠️ Face recognition models could not be loaded', 'error');
+    return false;
+  }
+}
+
+function setupFaceAuthListeners() {
+  const faceLoginBtn = document.getElementById('faceLoginBtn');
+  const faceModal = document.getElementById('faceLoginModal');
+  const closeModal = document.querySelector('.close-modal');
+  const captureFaceBtn = document.getElementById('captureFaceBtn');
+  
+  if (faceLoginBtn) {
+    faceLoginBtn.addEventListener('click', async () => {
+      const modelsLoaded = await loadFaceModels();
+      if (modelsLoaded) {
+        openFaceAuthModal();
+      }
+    });
+  }
+  
+  if (closeModal) {
+    closeModal.addEventListener('click', closeFaceAuthModal);
+  }
+  
+  if (faceModal) {
+    faceModal.addEventListener('click', (e) => {
+      if (e.target === faceModal) {
+        closeFaceAuthModal();
+      }
+    });
+  }
+  
+  if (captureFaceBtn) {
+    captureFaceBtn.addEventListener('click', captureFaceForAuth);
+  }
+}
+
+async function openFaceAuthModal() {
+  const modal = document.getElementById('faceLoginModal');
+  const video = document.getElementById('faceVideo');
+  const status = document.getElementById('faceStatus');
+  
+  try {
+    modal.classList.add('active');
+    status.textContent = 'Initializing camera...';
+    status.className = 'status-message';
+    
+    faceAuthStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { width: 640, height: 480 } 
+    });
+    video.srcObject = faceAuthStream;
+    
+    video.addEventListener('loadedmetadata', () => {
+      status.textContent = 'Camera ready! Position your face in the frame.';
+      status.className = 'status-message';
+      startFaceDetection();
+    });
+  } catch (error) {
+    console.error('Camera error:', error);
+    status.textContent = '⚠️ Could not access camera. Please check permissions.';
+    status.className = 'status-message error';
+  }
+}
+
+function closeFaceAuthModal() {
+  const modal = document.getElementById('faceLoginModal');
+  const video = document.getElementById('faceVideo');
+  
+  modal.classList.remove('active');
+  
+  if (faceAuthStream) {
+    faceAuthStream.getTracks().forEach(track => track.stop());
+    faceAuthStream = null;
+  }
+  
+  video.srcObject = null;
+}
+
+async function startFaceDetection() {
+  const video = document.getElementById('faceVideo');
+  const canvas = document.getElementById('faceCanvas');
+  
+  if (!video || !canvas) return;
+  
+  const detectFace = async () => {
+    if (!video.srcObject) return;
+    
+    const detection = await faceapi.detectSingleFace(
+      video, 
+      new faceapi.TinyFaceDetectorOptions()
+    ).withFaceLandmarks();
+    
+    if (detection) {
+      const dims = faceapi.matchDimensions(canvas, video, true);
+      const resizedDetection = faceapi.resizeResults(detection, dims);
+      
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      faceapi.draw.drawDetections(canvas, resizedDetection);
+      faceapi.draw.drawFaceLandmarks(canvas, resizedDetection);
+    }
+    
+    if (video.srcObject) {
+      requestAnimationFrame(detectFace);
+    }
+  };
+  
+  detectFace();
+}
+
+async function captureFaceForAuth() {
+  const video = document.getElementById('faceVideo');
+  const status = document.getElementById('faceStatus');
+  const captureBtn = document.getElementById('captureFaceBtn');
+  
+  try {
+    captureBtn.disabled = true;
+    status.textContent = 'Capturing face data...';
+    status.className = 'status-message';
+    
+    const detection = await faceapi.detectSingleFace(
+      video,
+      new faceapi.TinyFaceDetectorOptions()
+    ).withFaceLandmarks().withFaceDescriptor();
+    
+    if (!detection) {
+      status.textContent = '⚠️ No face detected. Please position your face clearly.';
+      status.className = 'status-message error';
+      captureBtn.disabled = false;
+      return;
+    }
+    
+    status.textContent = 'Authenticating...';
+    
+    const faceDescriptor = Array.from(detection.descriptor);
+    
+    const response = await fetch('http://localhost:8001/login-face', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ face_descriptor: faceDescriptor })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.token) {
+      status.textContent = `✅ Welcome, ${data.voter_id}!`;
+      status.className = 'status-message success';
+      
+      // Store JWT token (use correct key based on role)
+      if (data.role === 'admin') {
+        localStorage.setItem('jwtTokenAdmin', data.token);
+      } else {
+        localStorage.setItem('jwtTokenVoter', data.token);
+      }
+      localStorage.setItem('userRole', data.role);
+      localStorage.setItem('userId', data.voter_id);
+      
+      // Close modal and redirect
+      setTimeout(() => {
+        closeFaceAuthModal();
+        
+        if (data.role === 'admin') {
+          window.location.href = '/admin.html';
+        } else {
+          window.location.href = `/index.html?Authorization=Bearer ${data.token}`;
+        }
+      }, 1500);
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'Face not recognized. Please try again.');
+      status.className = 'status-message error';
+      captureBtn.disabled = false;
+    }
+  } catch (error) {
+    console.error('Authentication error:', error);
+    status.textContent = '⚠️ Authentication failed. Please try again.';
+    status.className = 'status-message error';
+    captureBtn.disabled = false;
+  }
+}
+
+// Initialize face auth listeners
+document.addEventListener('DOMContentLoaded', setupFaceAuthListeners);
+
+// ==========================================
+// CHECK FACE REGISTRATION STATUS
+// ==========================================
+
+async function checkFaceRegistered(voterId) {
+  try {
+    const response = await fetch(`http://127.0.0.1:8001/face-registered/${voterId}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.registered === true;
+    }
+    
+    // If endpoint doesn't exist or error, assume not registered
+    return false;
+  } catch (error) {
+    console.log('Face registration check failed:', error);
+    // On error, assume not registered (safer default)
+    return false;
+  }
+}
+
+// ==========================================
+// MOBILE FINGERPRINT AUTHENTICATION
+// ==========================================

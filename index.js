@@ -21,6 +21,9 @@ app.use(express.json());
 // Serve static files from public directory (includes js/, favicon, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Explicitly serve models directory for face-api.js
+app.use('/models', express.static(path.join(__dirname, 'public/models')));
+
 // Serve CSS files from src directory
 app.use('/css', express.static(path.join(__dirname, 'src/css')));
 
@@ -134,6 +137,11 @@ app.get('/css/login.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/login.css'));
 });
 
+// Face registration page (public access for admin to register voters)
+app.get('/face-register.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/face-register.html'));
+});
+
 // ===============================================
 // ROUTES - Protected Pages (Require Authentication)
 // ===============================================
@@ -145,6 +153,7 @@ app.get('/admin.html', authorizeUser, (req, res) => {
 
 // Voting interface
 app.get('/index.html', authorizeUser, (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'src/html/index.html'));
 });
 

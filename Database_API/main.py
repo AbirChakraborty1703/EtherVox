@@ -53,12 +53,13 @@ origins = [
     "http://127.0.0.1:8080",   # Alternative localhost address
     "http://localhost:8081",    # New port for Express server
     "http://127.0.0.1:8081",   # Alternative localhost address for new port
+    "http://10.141.184.25:8081", # Local network access for mobile
 ]
 
 # Configure CORS middleware for cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # Allowed origin URLs
+    allow_origins=["*"],        # Allow all origins for mobile access
     allow_credentials=True,     # Allow credentials in requests
     allow_methods=["*"],        # Allow all HTTP methods
     allow_headers=["*"],        # Allow all headers
@@ -548,6 +549,40 @@ async def root():
         "database": "connected"
     }
 
+# Import anomaly detection routes
+try:
+    from anomaly_routes import router as anomaly_router
+    app.include_router(anomaly_router, prefix="/anomaly", tags=["Anomaly Detection"])
+    print("[OK] ✅ AI-Powered Anomaly Detection System loaded!")
+    print("     📊 Monitoring: IP/Device tracking, Regional spikes, ML patterns")
+except Exception as e:
+    print(f"[WARNING] Anomaly detection not available: {e}")
+    print(f"[INFO] Server will continue without anomaly detection")
+
+# Import face authentication routes
+try:
+    from face_auth_routes import router as face_router
+    app.include_router(face_router, tags=["Face Authentication"])
+    print("[OK] Face authentication routes loaded!")
+except Exception as e:
+    print(f"[WARNING] Face authentication not available: {e}")
+
+# Import fingerprint authentication routes
+try:
+    from fingerprint_auth_routes import router as fingerprint_router
+    app.include_router(fingerprint_router, tags=["Fingerprint Authentication"])
+    print("[OK] Fingerprint authentication routes loaded!")
+except Exception as e:
+    print(f"[WARNING] Fingerprint authentication not available: {e}")
+
+# Import mobile authentication routes
+try:
+    from mobile_auth_routes import router as mobile_router
+    app.include_router(mobile_router, tags=["Mobile Authentication"])
+    print("[OK] Mobile fingerprint authentication routes loaded!")
+except Exception as e:
+    print(f"[WARNING] Mobile authentication not available: {e}")
+
 # Server startup
 if __name__ == "__main__":
     import uvicorn
@@ -556,11 +591,15 @@ if __name__ == "__main__":
     print("[INFO] API Documentation: http://127.0.0.1:8001/docs")
     print("[INFO] Health Check: http://127.0.0.1:8001")
     print("[INFO] Login Endpoint: http://127.0.0.1:8001/login")
+    print("[INFO] Face Auth: http://127.0.0.1:8001/register-face")
+    print("[INFO] 🤖 Anomaly Detection: http://127.0.0.1:8001/anomaly/statistics")
+    print("[INFO] 🛡️  Fraud Monitoring: http://127.0.0.1:8001/anomaly/flagged-voters")
+    print("[INFO] Mobile Auth: Available on local network at http://10.141.184.25:8001")
     print()
     
     uvicorn.run(
         app, 
-        host="127.0.0.1", 
+        host="0.0.0.0",  # Listen on all network interfaces for mobile access
         port=8001, 
         log_level="info",
         reload=False

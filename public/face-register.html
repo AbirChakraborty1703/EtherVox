@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com https://cdn.jsdelivr.net ws: wss:; media-src 'self';">
+    <title>EtherVox - Face Registration</title>
+    <link rel="stylesheet" type="text/css" href="/css/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .face-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        #video-container {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            margin: 20px auto;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+        }
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .face-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .btn-face {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-face:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .status-msg {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .status-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="background-animation">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+    </div>
+
+    <div class="face-container">
+        <h1 style="text-align: center; color: #667eea;">
+            <i class="fas fa-user-lock"></i> Face Registration
+        </h1>
+        <p style="text-align: center; color: #666;">Register your face for biometric login</p>
+
+        <div id="status-msg"></div>
+
+        <div id="voter-id-section">
+            <input type="text" id="voter-id-input" placeholder="Enter your Voter ID" 
+                   style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin: 15px 0;">
+            <button class="btn-face btn-primary" onclick="startCamera()">
+                <i class="fas fa-camera"></i> Start Camera
+            </button>
+        </div>
+
+        <div id="video-container" class="hidden">
+            <video id="video" autoplay muted playsinline></video>
+            <canvas id="canvas" class="face-overlay"></canvas>
+        </div>
+
+        <div id="capture-section" class="hidden" style="text-align: center;">
+            <p>Position your face in the frame</p>
+            <div id="capture-count" style="font-size: 24px; font-weight: bold; color: #667eea; margin: 10px 0;">
+                Sample 1 of 3
+            </div>
+            <button class="btn-face btn-primary" onclick="captureAndRegister()">
+                <i class="fas fa-check"></i> Capture Face
+            </button>
+            <button class="btn-face btn-secondary" onclick="stopCamera()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/login.html" style="color: #667eea; text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Back to Login
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>
+        let video, canvas, ctx;
+        let modelsLoaded = false;
+        let captureCount = 0;
+        let faceDescriptors = [];
+        let voterId = '';
+
+        async function loadModels() {
+            try {
+                showStatus('Loading face recognition models...', 'info');
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                ]);
+                modelsLoaded = true;
+                showStatus('Models loaded successfully! ✅', 'success');
+                console.log('✅ Models loaded');
+            } catch (error) {
+                modelsLoaded = false;
+                showStatus('Error loading models: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function startCamera() {
+            voterId = document.getElementById('voter-id-input').value.trim();
+            if (!voterId) {
+                showStatus('Please enter your Voter ID', 'error');
+                return;
+            }
+
+            if (!modelsLoaded) {
+                try {
+                    await loadModels();
+                } catch (error) {
+                    return;
+                }
+            }
+
+            try {
+                video = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                ctx = canvas.getContext('2d');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    document.getElementById('voter-id-section').classList.add('hidden');
+                    document.getElementById('video-container').classList.remove('hidden');
+                    document.getElementById('capture-section').classList.remove('hidden');
+                    showStatus('Camera ready! Position your face clearly', 'success');
+                    detectFaces();
+                };
+            } catch (error) {
+                showStatus('Camera access denied: ' + error.message, 'error');
+            }
+        }
+
+        async function detectFaces() {
+            if (!video || video.paused || !modelsLoaded) return;
+
+            const detections = await faceapi
+                .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (detections) {
+                const resizedDetections = faceapi.resizeResults(detections, {
+                    width: video.videoWidth,
+                    height: video.videoHeight
+                });
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+                faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+            }
+
+            requestAnimationFrame(detectFaces);
+        }
+
+        async function captureAndRegister() {
+            try {
+                showStatus('Capturing face ' + (captureCount + 1) + '/3...', 'info');
+
+                const detection = await faceapi
+                    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    showStatus('No face detected! Please ensure your face is clearly visible', 'error');
+                    return;
+                }
+
+                faceDescriptors.push(Array.from(detection.descriptor));
+                captureCount++;
+                
+                document.getElementById('capture-count').textContent = `Sample ${captureCount + 1} of 3`;
+
+                if (captureCount >= 3) {
+                    await registerFace();
+                } else {
+                    showStatus(`Face ${captureCount}/3 captured! Capture ${3 - captureCount} more`, 'success');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            } catch (error) {
+                showStatus('Capture failed: ' + error.message, 'error');
+            }
+        }
+
+        async function registerFace() {
+            try {
+                showStatus('Registering your face...', 'info');
+
+                const response = await fetch('http://127.0.0.1:8001/register-face', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        voter_id: voterId,
+                        face_descriptors: faceDescriptors
+                    })
+                });
+
+                if (!response.ok) throw new Error('Registration failed');
+
+                showStatus('✅ Face registered successfully! Redirecting to voting...', 'success');
+                stopCamera();
+                
+                // Redirect to voting page after registration
+                setTimeout(() => {
+                    const token = localStorage.getItem('jwtTokenVoter');
+                    if (token) {
+                        window.location.href = `http://localhost:8081/index.html?Authorization=Bearer ${token}`;
+                    } else {
+                        window.location.href = 'http://localhost:8081/';
+                    }
+                }, 2000);
+            } catch (error) {
+                showStatus('Registration failed: ' + error.message, 'error');
+            }
+        }
+
+        function stopCamera() {
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            document.getElementById('video-container').classList.add('hidden');
+            document.getElementById('capture-section').classList.add('hidden');
+            document.getElementById('voter-id-section').classList.remove('hidden');
+            captureCount = 0;
+            faceDescriptors = [];
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status-msg');
+            statusDiv.className = 'status-msg status-' + type;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+
+        // Load models on page load
+        loadModels();
+    </script>
+</body>
+</html>

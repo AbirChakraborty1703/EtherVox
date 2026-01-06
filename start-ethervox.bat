@@ -16,7 +16,14 @@ taskkill /F /IM mongod.exe >nul 2>&1
 taskkill /F /IM python.exe >nul 2>&1
 taskkill /F /IM node.exe >nul 2>&1
 taskkill /F /IM ganache.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
+
+REM Kill any process using critical ports
+echo [1/7] Freeing up ports...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":7545 :8001 :8081" 2^>nul') do (
+    if not "%%a"=="0" taskkill /F /PID %%a >nul 2>&1
+)
+
+timeout /t 3 /nobreak >nul
 
 REM Step 2: Start MongoDB
 echo [2/7] Starting MongoDB...
@@ -31,6 +38,11 @@ cd ..
 
 REM Step 4: Start Ganache blockchain
 echo [4/7] Starting Ganache blockchain...
+REM Double-check port 7545 is free before starting
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":7545" 2^>nul') do (
+    if not "%%p"=="0" taskkill /F /PID %%p >nul 2>&1
+)
+timeout /t 2 /nobreak >nul
 start "Ganache Blockchain" cmd /c "ganache --port 7545 --networkId 5777 --accounts 10 --defaultBalanceEther 100"
 timeout /t 5 /nobreak >nul
 

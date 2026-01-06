@@ -279,6 +279,31 @@ input[type="submit"]:active {
   top: 20px;
   right: 20px;
   z-index: 9999;
+  display: flex;
+  gap: 10px;
+}
+
+.face-register-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.face-register-btn:hover {
+  background: linear-gradient(135deg, #764ba2, #667eea);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .logout-btn {
@@ -321,4 +346,240 @@ input[type="submit"]:active {
     padding: 10px 16px;
     font-size: 13px;
   }
+}
+
+/* ========================================
+   FRAUD DETECTION DASHBOARD STYLES
+   ======================================== */
+
+.fraud-dashboard-container {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0px 5px 20px rgba(255, 255, 255, 0.1);
+  margin-bottom: 30px;
+}
+
+.fraud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #4CAF50;
+}
+
+.fraud-header h2 {
+  color: #fff;
+  margin: 0;
+  font-size: 28px;
+}
+
+.refresh-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.refresh-btn i {
+  margin-right: 5px;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(76, 175, 80, 0.3);
+}
+
+.stat-card.alert {
+  border: 2px solid #f44336;
+}
+
+.stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+}
+
+.stat-details h3 {
+  color: #fff;
+  font-size: 32px;
+  margin: 0 0 5px 0;
+}
+
+.stat-details p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Detection Systems */
+.detection-systems {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.detection-systems h3 {
+  color: #fff;
+  margin-bottom: 15px;
+}
+
+.systems-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.system-status {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 15px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.active {
+  background: #4CAF50;
+  box-shadow: 0 0 10px #4CAF50;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.pending {
+  background: #FF9800;
+  box-shadow: 0 0 10px #FF9800;
+}
+
+.status-indicator.inactive {
+  background: #f44336;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Flagged Voters Section */
+.flagged-voters-section {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.flagged-voters-section h3 {
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.flagged-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.flagged-table thead {
+  background: rgba(244, 67, 54, 0.3);
+}
+
+.flagged-table th {
+  color: #fff;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #f44336;
+}
+
+.flagged-table td {
+  color: rgba(255, 255, 255, 0.9);
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.flagged-table tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.severity-high {
+  background: #f44336;
+  color: white;
+}
+
+.severity-medium {
+  background: #FF9800;
+  color: white;
+}
+
+.no-fraud {
+  text-align: center;
+  padding: 40px;
+  color: #4CAF50;
+  font-size: 18px;
+}
+
+.no-fraud i {
+  font-size: 48px;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.voter-ids {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
 }

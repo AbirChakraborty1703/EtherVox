@@ -116,6 +116,8 @@ body {
     top: 20px;
     right: 20px;
     z-index: 9999;
+    display: flex;
+    gap: 10px;
   }
   
   .logout-btn {
@@ -146,6 +148,48 @@ body {
     opacity: 0.7;
     cursor: not-allowed;
     background: linear-gradient(135deg, #999, #666);
+  }
+  
+  /* Face Register Button */
+  .face-register-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+  }
+  
+  .face-register-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  }
+  
+  .face-register-btn:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+  }
+  
+  /* Pulse animation for warning state */
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 6px 25px rgba(244, 67, 54, 0.6);
+    }
   }
   
   @media (max-width: 768px) {

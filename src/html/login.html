@@ -5,11 +5,59 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 ws: wss:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com https://cdn.jsdelivr.net ws: wss:;">
   <title>EtherVox - Secure Login Portal</title>
   <link rel="stylesheet" type="text/css" href="/css/login.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+  <style>
+    .mobile-login-btn {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      margin-top: 10px;
+    }
+    .mobile-login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 35px rgba(17, 153, 142, 0.3);
+    }
+    .qr-container {
+      text-align: center;
+      padding: 30px;
+      background: white;
+      border-radius: 15px;
+      margin: 20px 0;
+    }
+    #qrCanvas {
+      max-width: 100%;
+      height: auto;
+    }
+    .mobile-instructions {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: left;
+    }
+    .mobile-instructions h4 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+    .mobile-instructions ol {
+      padding-left: 20px;
+      line-height: 1.8;
+    }
+    .mobile-instructions li {
+      margin: 8px 0;
+      color: #555;
+    }
+    .status-message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
 </head>
 
 <body>
@@ -91,6 +139,12 @@
           <i class="fas fa-vote-yea user-icon"></i>
           <h2>Voter Access</h2>
           <p>Cast your vote securely on the blockchain</p>
+          <div style="background: rgba(255,193,7,0.2); padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #ffc107;">
+            <small style="color: #fff; display: flex; align-items: center; gap: 5px;">
+              <i class="fas fa-shield-alt"></i>
+              <span><strong>3-Factor Authentication:</strong> ID + Password + Face Recognition</span>
+            </small>
+          </div>
         </div>
         
         <form id="userLoginForm" class="login-form">
@@ -118,11 +172,74 @@
             <span>Enter Voting Portal</span>
             <div class="btn-glow"></div>
           </button>
+          
+          <div class="divider">
+            <span>OR</span>
+          </div>
+          
+          <button type="button" id="faceLoginBtn" class="login-btn face-login-btn">
+            <i class="fas fa-camera"></i>
+            <span>Login with Face Recognition</span>
+            <div class="btn-glow"></div>
+          </button>
+          
+          <button type="button" id="mobileLoginBtn" class="login-btn mobile-login-btn">
+            <i class="fas fa-mobile-alt"></i>
+            <span>Login with Mobile Fingerprint</span>
+            <div class="btn-glow"></div>
+          </button>
         </form>
       </div>
 
       <!-- Error/Success Messages -->
       <div id="message-container" class="message-container"></div>
+      
+      <!-- Face Login Modal -->
+      <div id="faceLoginModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3><i class="fas fa-camera"></i> Face Authentication</h3>
+            <button class="close-modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="faceStatus" class="status-message">Position your face in the camera...</div>
+            <div class="video-container">
+              <video id="faceVideo" autoplay playsinline></video>
+              <canvas id="faceCanvas"></canvas>
+            </div>
+            <button id="captureFaceBtn" class="login-btn">
+              <i class="fas fa-camera"></i>
+              <span>Capture & Authenticate</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Fingerprint Login Modal -->
+      <div id="mobileLoginModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3><i class="fas fa-mobile-alt"></i> Mobile Fingerprint Authentication</h3>
+            <button class="close-modal" id="closeMobileModal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="mobileStatus" class="status-message info">Scan the QR code with your phone...</div>
+            <div class="qr-container" id="qrContainer">
+              <canvas id="qrCanvas"></canvas>
+            </div>
+            <div class="mobile-instructions">
+              <h4>📱 How to use:</h4>
+              <ol>
+                <li>Open your phone's camera app</li>
+                <li>Scan the QR code above</li>
+                <li>Enter your credentials on your phone</li>
+                <li>Authenticate with your fingerprint</li>
+                <li>You'll be logged in automatically</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -133,6 +250,7 @@
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="/js/permanent-metamask.js"></script>
   <script src="/js/login.js" type="module"></script>
 </body>

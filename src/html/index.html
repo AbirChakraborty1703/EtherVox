@@ -20,7 +20,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
     <!-- Page title displayed in browser tab -->
     <title>Voting Page</title>
 
@@ -28,10 +28,16 @@
     <link rel="stylesheet" type="text/css" href="/css/index.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <!-- Face Recognition Library (Local copy for reliability) -->
+    <script defer src="/js/face-api.min.js?v=2"></script>
+    
   </head>
   <body>
     <!-- Logout button -->
     <div class="logout-container">
+      <button id="registerFaceBtn" class="face-register-btn" style="margin-right: 10px;">
+        <i class="fas fa-user-lock"></i> Register Face
+      </button>
       <button id="logoutButton" class="logout-btn" onclick="logout()">
         <i class="fas fa-sign-out-alt"></i> Logout
       </button>
@@ -72,12 +78,56 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
     <script src="/js/permanent-metamask.js"></script>
     <script>
+      // Check face registration status on page load
+      async function checkFaceRegistrationStatus() {
+        const voterId = localStorage.getItem('currentVoterId');
+        if (!voterId) return;
+        
+        try {
+          const response = await fetch(`http://127.0.0.1:8001/face-registered/${voterId}`);
+          const data = await response.json();
+          
+          const registerBtn = document.getElementById('registerFaceBtn');
+          
+          if (data.registered) {
+            // Face already registered
+            registerBtn.innerHTML = '<i class="fas fa-check-circle"></i> Face Registered';
+            registerBtn.style.background = '#4CAF50';
+            registerBtn.disabled = true;
+            registerBtn.style.cursor = 'not-allowed';
+          } else {
+            // Face not registered - show warning
+            registerBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Register Face Required';
+            registerBtn.style.background = '#f44336';
+            registerBtn.style.animation = 'pulse 2s infinite';
+            
+            // Show notification
+            alert('⚠️ Security Notice:\n\nYour face is not registered yet!\n\nFor enhanced security and future logins, please register your face.\n\nClick the "Register Face Required" button to proceed.');
+          }
+        } catch (error) {
+          console.error('Face check failed:', error);
+        }
+      }
+      
+      // Handle face registration button click
+      document.addEventListener('DOMContentLoaded', () => {
+        const registerBtn = document.getElementById('registerFaceBtn');
+        
+        registerBtn.addEventListener('click', () => {
+          window.location.href = '/face-register.html';
+        });
+        
+        // Check face status on page load
+        setTimeout(checkFaceRegistrationStatus, 1000);
+      });
+      
       // Logout function for user page
       function logout() {
         if (confirm('🔐 Are you sure you want to logout?\n\nThis will end your current voting session.')) {
           try {
             localStorage.removeItem('jwtTokenVoter');
             localStorage.removeItem('jwtTokenAdmin');
+            localStorage.removeItem('currentVoterId');
             sessionStorage.clear();
             
             const logoutBtn = document.getElementById('logoutButton');
@@ -96,6 +146,6 @@
         }
       }
     </script>
-  <script src="/app.bundle.js" type="module"></script>
+  <script src="/app.bundle.js?v=20260105" type="module"></script>
   </body>
 </html>
