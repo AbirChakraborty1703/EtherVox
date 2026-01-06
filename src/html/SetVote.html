@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
   <title>Set Voting Information - EtherVox Admin</title>
 
   <link rel="stylesheet" type="text/css" href="/css/set-vote.css">
@@ -55,7 +57,8 @@
         </div>
         <div class="form-group">
           <label for="electionArea">Election Area *</label>
-          <input id="electionArea" type="text" name="electionArea" placeholder="Enter Election Area/Constituency" required>
+          <input id="electionArea" type="text" name="electionArea" placeholder="Enter Election Area/Constituency"
+            required>
           <span class="field-hint">Area or constituency for the election</span>
         </div>
       </div>
@@ -68,7 +71,7 @@
         </button>
       </div>
       <div id="candidateStatusMessage" class="status-message"></div>
-      
+
       <!-- Candidate Details Display -->
       <div id="candidateDetails" class="candidate-details hidden">
         <h4><i class="fas fa-id-card"></i> Candidate Details</h4>
@@ -132,19 +135,19 @@
           <!-- Election Start Date & Time -->
           <div class="form-section">
             <h3><i class="fas fa-play-circle"></i> Election Start</h3>
-            
+
             <div class="form-group">
               <label for="startDate">Start Date *</label>
               <input id="startDate" type="date" name="startDate" required>
               <span class="field-hint">When voting begins</span>
             </div>
-            
+
             <div class="form-group">
               <label for="startTime">Start Time *</label>
               <input id="startTime" type="time" name="startTime" required>
               <span class="field-hint">Time in 24-hour format</span>
             </div>
-            
+
             <div class="datetime-preview">
               <i class="fas fa-clock"></i>
               <span id="startPreview">Select date and time</span>
@@ -154,19 +157,19 @@
           <!-- Election End Date & Time -->
           <div class="form-section">
             <h3><i class="fas fa-stop-circle"></i> Election End</h3>
-            
+
             <div class="form-group">
               <label for="endDate">End Date *</label>
               <input id="endDate" type="date" name="endDate" required>
               <span class="field-hint">When voting ends</span>
             </div>
-            
+
             <div class="form-group">
               <label for="endTime">End Time *</label>
               <input id="endTime" type="time" name="endTime" required>
               <span class="field-hint">Time in 24-hour format</span>
             </div>
-            
+
             <div class="datetime-preview">
               <i class="fas fa-clock"></i>
               <span id="endPreview">Select date and time</span>
@@ -204,7 +207,7 @@
             </button>
           </div>
         </div>
-        
+
         <!-- Form Actions -->
         <div class="form-actions">
           <button id="submitDates" type="submit" class="btn-primary">
@@ -214,6 +217,11 @@
           <button type="button" class="btn-secondary" onclick="syncWithBlockchain()">
             <i class="fas fa-sync-alt"></i>
             Sync with Blockchain
+          </button>
+          <button type="button" class="btn-danger" onclick="resetElection()"
+            title="Reset all voting dates and election data">
+            <i class="fas fa-trash-restore"></i>
+            Reset Election
           </button>
           <button type="reset" class="btn-tertiary">
             <i class="fas fa-redo"></i>
@@ -225,7 +233,7 @@
           </button>
         </div>
       </form>
-      
+
       <div id="statusMessage" class="status-message"></div>
     </div>
 
@@ -251,4 +259,5 @@
   <script src="/app.bundle.js" type="module"></script>
   <script src="/js/set-vote.js"></script>
 </body>
+
 </html>

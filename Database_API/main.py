@@ -57,6 +57,9 @@ origins = [
     "http://127.0.0.1:8080",   # Alternative localhost address
     "http://localhost:8081",    # New port for Express server
     "http://127.0.0.1:8081",   # Alternative localhost address for new port
+    "http://localhost",         # Default localhost
+    "http://127.0.0.1",        # Default 127.0.0.1
+    "*"                         # Allow all origins for development
 ]
 
 # Configure CORS middleware for cross-origin requests
