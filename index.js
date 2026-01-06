@@ -250,8 +250,8 @@ app.get('/app.bundle.js', (req, res) => {
 });
 
 // Image assets
-app.get('/assets/eth5.jpg', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src/assets/eth5.jpg'));
+app.get('/assets/eth5.jpeg', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/assets/eth5.jpeg'));
 });
 
 // Favicon
