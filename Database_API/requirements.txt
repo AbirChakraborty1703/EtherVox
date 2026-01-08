@@ -21,7 +21,7 @@ python-dotenv==1.0.1
 # HTTP requests and additional utilities (ULTRA-CRITICAL SECURITY PATCHES)
 requests==2.32.3
 pydantic==2.9.1
-urllib3==2.2.2
+urllib3==2.6.3
 
 # Development and testing dependencies (SECURITY PATCHED VERSIONS)
 pytest==8.3.2
