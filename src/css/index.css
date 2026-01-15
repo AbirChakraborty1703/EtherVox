@@ -156,8 +156,8 @@ body::before {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   border-bottom: 2px solid rgba(15, 52, 96, 0.3);
-  backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
   animation: slideInDown 0.5s ease;
 }
 
@@ -300,6 +300,7 @@ body::before {
   height: 100%;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.8);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease;
 }
@@ -315,6 +316,7 @@ body::before {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
@@ -398,6 +400,19 @@ body::before {
   margin: 0;
   font-size: 16px;
   word-break: break-all;
+}
+
+/* Status badge styles */
+.status-pending {
+  color: #ff9800;
+}
+
+.status-completed {
+  color: #4caf50;
+}
+
+.status-inactive {
+  color: #f44336;
 }
 
 .address-text {
@@ -640,6 +655,7 @@ body::before {
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   border: 1px solid rgba(255, 255, 255, 0.2);
   margin-bottom: 30px;
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
   animation: fadeInUp 0.6s ease;
 }
@@ -742,6 +758,7 @@ body::before {
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.1));
   border-radius: 15px;
   margin-bottom: 30px;
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border: 1px solid rgba(255, 255, 255, 0.15);
   animation: fadeInUp 0.7s ease 0.2s both;

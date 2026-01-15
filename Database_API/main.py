@@ -31,15 +31,22 @@ from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 
+# ===============================================
+# CONSTANTS
+# ===============================================
+BEARER_PREFIX = "Bearer "
+AUTH_HEADER_MISSING = "Missing or invalid authorization header"
+CANDIDATE_NOT_FOUND = "Candidate not found"
+
 # Set UTF-8 encoding for Windows console
 if sys.platform.startswith('win'):
     try:
         import codecs
         sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
         sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
-    except:
+    except (AttributeError, ValueError, TypeError) as e:
         # Fallback if UTF-8 setting fails
-        pass
+        print(f"[WARNING] UTF-8 encoding setup failed: {e}")
 
 # Loading the environment variables for database configuration
 # Load from parent directory's .env file
@@ -87,7 +94,8 @@ try:
         collation='utf8mb4_unicode_ci',                         # Collation
         autocommit=True                                         # Auto-commit transactions
     )
-    cursor = cnx.cursor(dictionary=True)  # Create database cursor for queries with dictionary results
+    # Use DictCursor to return results as dictionaries instead of tuples
+    cursor = cnx.cursor(dictionary=True)
     print("[OK] MySQL Database connection established successfully!")
     print(f"Connected to MySQL database: {os.environ.get('MYSQL_DB', 'ethervox_voting')}")
 except mysql.connector.Error as err:
@@ -121,7 +129,38 @@ try:
 except Exception as err:
     print(f"[ERROR] MongoDB connection error: {err}")
     print("Make sure MongoDB is running on your system")
+    print("You can start MongoDB using: mongod --dbpath Database_API/mongodb_data")
     exit(1)
+
+# ===============================================
+# STARTUP EVENT - Verify MongoDB Connection
+# ===============================================
+
+@app.on_event("startup")
+async def startup_db_client():
+    """
+    Verify MongoDB connection on startup
+    """
+    try:
+        # Test MongoDB connection
+        await mongo_db.command('ping')
+        print("[STARTUP] MongoDB connection verified successfully!")
+        
+        # Count candidates in database
+        candidate_count = await candidates_collection.count_documents({})
+        print(f"[INFO] Found {candidate_count} candidates in database")
+        
+    except Exception as e:
+        print(f"[WARNING] MongoDB connection test failed: {e}")
+        print("[WARNING] Candidate login may not work until MongoDB is properly connected")
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    """
+    Close MongoDB connection on shutdown
+    """
+    mongo_client.close()
+    print("[SHUTDOWN] MongoDB connection closed")
 
 # ===============================================
 # DATA MODELS
@@ -171,17 +210,21 @@ class CandidateResponse(BaseModel):
 # ===============================================
 
 # Authentication middleware to verify voter credentials
-async def authenticate(request: Request):
+def authenticate(request: Request):
+    """
+    Synchronous authentication function to verify voter credentials.
+    Note: This is not async as it performs blocking database operations.
+    """
     try:
         # Extract Bearer token from authorization header
         auth_header = request.headers.get('authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
+        if not auth_header or not auth_header.startswith(BEARER_PREFIX):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing or invalid authorization header"
+                detail=AUTH_HEADER_MISSING
             )
         
-        api_key = auth_header.replace("Bearer ", "")
+        api_key = auth_header.replace(BEARER_PREFIX, "")
         
         # Verify voter exists in database using parameterized query
         cursor.execute("SELECT voter_id FROM voters WHERE voter_id = %s", (api_key,))
@@ -199,6 +242,8 @@ async def authenticate(request: Request):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Database authentication error"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Authentication error: {e}")
         raise HTTPException(
@@ -237,16 +282,17 @@ async def login(voter_id: str, password: str):
         try:
             cursor.execute("SELECT role FROM voters WHERE voter_id = %s", (voter_id,))
             role_result = cursor.fetchone()
-            user_role = role_result['role'] if role_result and 'role' in role_result else 'user'
+            user_role = role_result['role'] if role_result and 'role' in role_result else ('admin' if voter_id.startswith('A') else 'user')
         except mysql.connector.Error:
             # Role column doesn't exist, default to 'user' for regular users, 'admin' for A-prefixed IDs
             user_role = 'admin' if voter_id.startswith('A') else 'user'
         
         # Generate JWT token with user information
+        from datetime import timezone
         token_payload = {
             'voter_id': user['voter_id'],
             'role': user_role,
-            'exp': datetime.utcnow() + timedelta(hours=24)  # Token expires in 24 hours
+            'exp': datetime.now(timezone.utc) + timedelta(hours=24)  # Token expires in 24 hours
         }
         
         token = jwt.encode(token_payload, os.environ.get('SECRET_KEY', 'default_secret'), algorithm='HS256')
@@ -274,7 +320,11 @@ async def login(voter_id: str, password: str):
         )
 
 # Helper function to determine user role based on credentials (deprecated - now handled in login)
-async def get_role(voter_id, password):
+def get_role(voter_id, password):
+    """
+    Synchronous function to get user role.
+    Note: This is not async as it performs blocking database operations.
+    """
     try:
         # Query database for user with credentials
         cursor.execute("SELECT voter_id FROM voters WHERE voter_id = %s AND password = %s", (voter_id, password,))
@@ -393,7 +443,7 @@ async def get_candidate_by_id(candidate_id: str):
         if not candidate:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Candidate not found"
+                detail=CANDIDATE_NOT_FOUND
             )
         
         # Convert ObjectId to string and remove password
@@ -431,7 +481,7 @@ async def get_candidate_by_unique_id(candidate_unique_id: str):
         if not candidate:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Candidate not found"
+                detail=CANDIDATE_NOT_FOUND
             )
         
         # Convert ObjectId to string and remove password
@@ -482,7 +532,7 @@ async def update_candidate(candidate_id: str, candidate: CandidateModel):
         if result.matched_count == 0:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Candidate not found"
+                detail=CANDIDATE_NOT_FOUND
             )
         
         # Get updated candidate
@@ -527,7 +577,7 @@ async def delete_candidate(candidate_id: str):
         if result.matched_count == 0:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Candidate not found"
+                detail=CANDIDATE_NOT_FOUND
             )
         
         return {
@@ -604,7 +654,7 @@ async def get_candidate_info_by_id(candidate_unique_id: str):
         if not candidate:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Candidate not found"
+                detail=CANDIDATE_NOT_FOUND
             )
         
         # Return only the basic info needed for SetVote page
@@ -719,6 +769,240 @@ async def get_voting_dates():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve voting dates: {str(e)}"
+        )
+
+# ===============================================
+# CANDIDATE AUTHENTICATION & MANAGEMENT ENDPOINTS
+# ===============================================
+
+# Candidate login model
+class CandidateLoginRequest(BaseModel):
+    candidateId: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=6)
+
+# Candidate login endpoint
+@app.post("/api/candidate/login")
+async def candidate_login(login_data: CandidateLoginRequest):
+    """
+    Authenticate candidate and return JWT token
+    """
+    try:
+        # Find candidate by candidateId
+        candidate = await candidates_collection.find_one({
+            "candidateId": login_data.candidateId
+        })
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid candidate ID or password"
+            )
+        
+        # Hash the incoming password to compare with stored hashed password
+        import hashlib
+        hashed_password = hashlib.sha256(login_data.password.encode()).hexdigest()
+        
+        # Verify password
+        if candidate.get("candidatePassword") != hashed_password:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid candidate ID or password"
+            )
+        
+        # Check if candidate is active
+        if not candidate.get("isActive", True):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Candidate account is inactive"
+            )
+        
+        # Generate JWT token
+        from datetime import timezone
+        secret_key = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
+        token_data = {
+            'candidateId': candidate['candidateId'],
+            'name': candidate['name'],
+            'role': 'candidate',
+            'exp': datetime.now(timezone.utc) + timedelta(hours=24)
+        }
+        
+        token = jwt.encode(token_data, secret_key, algorithm='HS256')
+        
+        return {
+            "success": True,
+            "token": token,
+            "candidateId": candidate['candidateId'],
+            "name": candidate['name'],
+            "message": "Candidate authentication successful"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error during candidate login: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
+        )
+
+# Get candidate profile endpoint
+@app.get("/api/candidate/profile")
+async def get_candidate_profile(request: Request):
+    """
+    Get candidate profile information (requires JWT authentication)
+    """
+    try:
+        # Extract and verify JWT token
+        auth_header = request.headers.get('authorization')
+        if not auth_header or not auth_header.startswith(BEARER_PREFIX):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=AUTH_HEADER_MISSING
+            )
+        
+        token = auth_header.replace(BEARER_PREFIX, "")
+        secret_key = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
+        
+        try:
+            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            candidate_id = payload.get('candidateId')
+            
+            if not candidate_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload"
+                )
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired"
+            )
+        except jwt.InvalidTokenError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        
+        # Fetch candidate from MongoDB
+        candidate = await candidates_collection.find_one({
+            "candidateId": candidate_id
+        })
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=CANDIDATE_NOT_FOUND
+            )
+        
+        # Convert ObjectId to string
+        candidate["_id"] = str(candidate["_id"])
+        
+        # Remove password from response
+        candidate.pop("candidatePassword", None)
+        
+        return candidate
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching candidate profile: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch profile: {str(e)}"
+        )
+
+# Password reset model
+class PasswordResetRequest(BaseModel):
+    currentPassword: str = Field(..., min_length=6)
+    newPassword: str = Field(..., min_length=8)
+
+# Reset candidate password endpoint
+@app.put("/api/candidate/reset-password")
+async def reset_candidate_password(request: Request, reset_data: PasswordResetRequest):
+    """
+    Reset candidate password (requires JWT authentication)
+    """
+    try:
+        # Extract and verify JWT token
+        auth_header = request.headers.get('authorization')
+        if not auth_header or not auth_header.startswith(BEARER_PREFIX):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=AUTH_HEADER_MISSING
+            )
+        
+        token = auth_header.replace(BEARER_PREFIX, "")
+        secret_key = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
+        
+        try:
+            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            candidate_id = payload.get('candidateId')
+            
+            if not candidate_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token payload"
+                )
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired"
+            )
+        except jwt.InvalidTokenError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        
+        # Find candidate
+        candidate = await candidates_collection.find_one({
+            "candidateId": candidate_id
+        })
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=CANDIDATE_NOT_FOUND
+            )
+        
+        # Verify current password
+        if candidate.get("candidatePassword") != reset_data.currentPassword:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is incorrect"
+            )
+        
+        # Check if new password is different
+        if reset_data.currentPassword == reset_data.newPassword:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be different from current password"
+            )
+        
+        # Update password
+        result = await candidates_collection.update_one(
+            {"candidateId": candidate_id},
+            {"$set": {"candidatePassword": reset_data.newPassword}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update password"
+            )
+        
+        return {
+            "success": True,
+            "message": "Password updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reset password: {str(e)}"
         )
 
 # ===============================================
