@@ -32,6 +32,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Serve CSS files from src directory
 app.use('/css', express.static(path.join(__dirname, 'src/css')));
 
+// Serve JavaScript files from src/js directory
+app.use('/js', express.static(path.join(__dirname, 'src/js')));
+
 // Serve assets (images) from src/assets directory
 app.use('/assets', express.static(path.join(__dirname, 'src/assets')));
 
