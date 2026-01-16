@@ -38,10 +38,70 @@
     <!-- Header -->
     <div class="header">
       <div class="logo-section">
-        <i class="fas fa-vote-yea logo-icon"></i>
-        <h1 class="logo-text">EtherVox</h1>
+        <div class="logo-wrapper">
+          <i class="fas fa-vote-yea logo-icon"></i>
+          <h1 class="logo-text">EtherVox</h1>
+          <button class="project-info-btn" id="projectInfoBtn" title="About EtherVox">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
       </div>
-      <p class="subtitle">🔐 Secure Blockchain Voting Platform</p>
+      <p class="subtitle"></p>
+    </div>
+
+    <!-- Project Info Modal -->
+    <div class="project-modal" id="projectModal">
+      <div class="modal-content">
+        <button class="modal-close" id="modalClose">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="modal-header">
+          <div class="modal-logo">
+            <i class="fas fa-vote-yea"></i>
+          </div>
+          <h2>EtherVox Project</h2>
+          <p class="modal-tagline">Decentralized Blockchain Voting System</p>
+        </div>
+        <div class="modal-body">
+          <div class="info-section">
+            <h3><i class="fas fa-lightbulb"></i> About Our Project</h3>
+            <p>EtherVox is a revolutionary blockchain-based voting platform built on Ethereum technology. Our system ensures transparent, secure, and tamper-proof elections by leveraging the immutability of blockchain and smart contracts.</p>
+          </div>
+          <div class="info-section">
+            <h3><i class="fas fa-bullseye"></i> Our Mission</h3>
+            <p>To democratize voting through cutting-edge blockchain technology, ensuring every vote counts and is securely recorded on an immutable ledger, making electoral fraud virtually impossible.</p>
+          </div>
+          <div class="info-section">
+            <h3><i class="fas fa-eye"></i> Our Vision</h3>
+            <p>Creating a world where democratic processes are transparent, accessible, and trustworthy. We envision a future where blockchain-powered voting becomes the global standard for fair elections.</p>
+          </div>
+          <div class="info-section contributors">
+            <h3><i class="fas fa-users"></i> Project Contributors</h3>
+            <div class="contributors-grid">
+              <div class="contributor-card">
+                <i class="fas fa-user-circle"></i>
+                <span>Abir Chakraborty</span>
+              </div>
+              <div class="contributor-card">
+                <i class="fas fa-user-circle"></i>
+                <span>Atin Singha</span>
+              </div>
+              <div class="contributor-card">
+                <i class="fas fa-user-circle"></i>
+                <span>Abhinava Ghosh</span>
+              </div>
+              <div class="contributor-card">
+                <i class="fas fa-user-circle"></i>
+                <span>Arpan Sarkhel</span>
+              </div>
+              <div class="contributor-card">
+                <i class="fas fa-user-circle"></i>
+                <span>Anomit Pal</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Login Container -->
@@ -55,6 +115,10 @@
         <button class="tab-btn" data-tab="user">
           <i class="fas fa-user"></i>
           <span>User Login</span>
+        </button>
+        <button class="tab-btn" data-tab="candidate">
+          <i class="fas fa-user-tie"></i>
+          <span>Candidate Login</span>
         </button>
       </div>
 
@@ -130,13 +194,49 @@
         </form>
       </div>
 
+      <!-- Candidate Login Form -->
+      <div class="tab-content" id="candidate-tab">
+        <div class="form-header">
+          <i class="fas fa-user-tie candidate-icon"></i>
+          <h2>Candidate Access</h2>
+          <p>View your profile and manage your credentials</p>
+        </div>
+        
+        <form id="candidateLoginForm" class="login-form">
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-id-badge input-icon"></i>
+              <input type="text" id="candidate-id" name="candidate-id" placeholder="Candidate ID" required>
+              <label for="candidate-id">Candidate ID</label>
+            </div>
+          </div>
+          
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="candidate-password" name="candidate-password" placeholder="Password" required>
+              <label for="candidate-password">Password</label>
+              <button type="button" class="toggle-password" data-target="candidate-password" title="Toggle password visibility" aria-label="Show/hide password">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="login-btn candidate-btn">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Access Candidate Portal</span>
+            <div class="btn-glow"></div>
+          </button>
+        </form>
+      </div>
+
       <!-- Error/Success Messages -->
       <div id="message-container" class="message-container"></div>
     </div>
 
     <!-- Footer -->
     <div class="footer">
-      <p>🔗 Powered by Ethereum Blockchain • Secure • Transparent • Decentralized</p>
+      <p></p>
     </div>
   </div>
 

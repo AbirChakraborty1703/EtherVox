@@ -1,143 +1,148 @@
 /**
- * Sync MongoDB candidates to blockchain
- * This script reads candidates from MongoDB and adds them to the blockchain contract
+ * Sync Candidates to Blockchain
+ * 
+ * This script syncs candidate data from MongoDB to the Ethereum blockchain
+ * by calling the smart contract's addCandidate function for each candidate.
  */
 
-const { Web3 } = require('web3');
-const votingArtifacts = require('./build/contracts/Voting.json');
+const Web3 = require('web3');
+const contract = require('@truffle/contract');
+const { MongoClient } = require('mongodb');
+require('dotenv').config();
 
-async function syncCandidates() {
+// MongoDB configuration
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
+const MONGODB_DB = process.env.MONGODB_DB || 'ethervox_candidates';
+const MONGODB_COLLECTION = process.env.MONGODB_COLLECTION || 'candidates';
+
+// Web3 and contract setup
+const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));
+const VotingJSON = require('./build/contracts/Voting.json');
+const VotingContract = contract(VotingJSON);
+VotingContract.setProvider(web3.currentProvider);
+
+/**
+ * Sync candidates from MongoDB to blockchain
+ */
+async function syncCandidatesToBlockchain() {
+  let mongoClient;
+  
   try {
-    console.log('=== SYNCING MONGODB CANDIDATES TO BLOCKCHAIN ===\n');
-    
-    // 1. Fetch candidates from MongoDB API
-    console.log('Step 1: Fetching candidates from MongoDB API...');
-    const response = await fetch('http://127.0.0.1:8001/candidates');
-    
-    if (!response.ok) {
-      throw new Error('MongoDB API not responding. Is it running on port 8001?');
-    }
-    
-    const data = await response.json();
-    console.log(`Found ${data.count} candidates in MongoDB\n`);
-    
-    if (data.count === 0) {
-      console.log('No candidates to sync!');
+    console.log('\n' + '='.repeat(60));
+    console.log('Syncing Candidates to Blockchain');
+    console.log('='.repeat(60) + '\n');
+
+    // Connect to MongoDB
+    console.log('[1/5] Connecting to MongoDB...');
+    mongoClient = await MongoClient.connect(MONGODB_URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+    const db = mongoClient.db(MONGODB_DB);
+    const candidatesCollection = db.collection(MONGODB_COLLECTION);
+    console.log('✅ Connected to MongoDB\n');
+
+    // Fetch all active candidates
+    console.log('[2/5] Fetching candidates from MongoDB...');
+    const candidates = await candidatesCollection.find({ isActive: true }).toArray();
+    console.log(`✅ Found ${candidates.length} active candidates\n`);
+
+    if (candidates.length === 0) {
+      console.log('⚠️  No candidates to sync. Please add candidates first.');
       return;
     }
-    
-    // 2. Connect to blockchain
-    console.log('Step 2: Connecting to Ganache blockchain...');
-    const web3 = new Web3('http://127.0.0.1:7545');
-    const networkId = await web3.eth.net.getId();
-    console.log('Network ID:', networkId);
-    
-    const deployedNetwork = votingArtifacts.networks[networkId];
-    if (!deployedNetwork) {
-      throw new Error(`Contract not deployed on network ${networkId}`);
-    }
-    
-    console.log('Contract Address:', deployedNetwork.address);
-    
-    const contract = new web3.eth.Contract(
-      votingArtifacts.abi,
-      deployedNetwork.address
-    );
-    
-    // 3. Get contract owner account (first Ganache account)
+
+    // Get accounts from Ganache
+    console.log('[3/5] Getting blockchain accounts...');
     const accounts = await web3.eth.getAccounts();
-    const ownerAccount = accounts[0];
-    console.log('Using account:', ownerAccount);
-    
-    const contractOwner = await contract.methods.owner().call();
-    console.log('Contract owner:', contractOwner);
-    
-    if (ownerAccount.toLowerCase() !== contractOwner.toLowerCase()) {
-      console.log('\n⚠️  WARNING: Account is not contract owner!');
-      console.log('Make sure the first Ganache account matches the contract owner.');
-    }
-    
-    // 4. Check current blockchain candidates
-    const currentCount = await contract.methods.getCountCandidates().call();
-    console.log(`\nCurrent candidates on blockchain: ${currentCount}`);
-    
-    // 5. Add each MongoDB candidate to blockchain
-    console.log('\n=== ADDING CANDIDATES TO BLOCKCHAIN ===\n');
-    
-    for (let i = 0; i < data.candidates.length; i++) {
-      const candidate = data.candidates[i];
-      console.log(`\nAdding candidate ${i + 1}/${data.count}:`);
-      console.log(`  Name: ${candidate.name}`);
-      console.log(`  Party: ${candidate.party}`);
-      console.log(`  Date of Birth: ${candidate.dateOfBirth}`);
-      console.log(`  Election Center: ${candidate.electionCenter}`);
-      console.log(`  Address: ${candidate.candidateAddress}`);
+    console.log(`✅ Using account: ${accounts[0]}\n`);
+
+    // Deploy or get voting contract instance
+    console.log('[4/5] Getting voting contract instance...');
+    const votingInstance = await VotingContract.deployed();
+    console.log(`✅ Voting contract at: ${votingInstance.address}\n`);
+
+    // Sync each candidate to blockchain
+    console.log('[5/5] Syncing candidates to blockchain...');
+    console.log('-'.repeat(60));
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
       
       try {
+        console.log(`\n[${i + 1}/${candidates.length}] Syncing candidate:`);
+        console.log(`   ID: ${candidate.candidateId}`);
+        console.log(`   Name: ${candidate.name}`);
+        console.log(`   Party: ${candidate.party}`);
+
         // Add candidate to blockchain
-        // Parameters: name, age, dateOfBirth, electionCenter, party, candidateAddress, email, phoneNumber, candidateId, candidatePassword
-        const tx = await contract.methods.addCandidate(
+        const result = await votingInstance.addCandidate(
+          candidate.candidateId,
           candidate.name,
-          parseInt(candidate.age) || 25,
-          candidate.dateOfBirth || '2000-01-01',
-          candidate.electionCenter,
           candidate.party,
-          candidate.candidateAddress,
-          candidate.email || `${candidate.name.replace(/\s+/g, '').toLowerCase()}@example.com`,
-          candidate.phoneNumber || '0000000000',
-          candidate.candidateId || `CAND${String(i + 1).padStart(6, '0')}`,
-          candidate.candidatePassword || 'temp123'
-        ).send({
-          from: ownerAccount,
-          gas: 500000
-        });
+          candidate.electionCenter || 'Default Center',
+          { from: accounts[0], gas: 3000000 }
+        );
+
+        console.log(`   ✅ Transaction hash: ${result.tx}`);
         
-        console.log(`  ✅ Added to blockchain! TX: ${tx.transactionHash}`);
-        
-        // Update MongoDB with new blockchain address
-        try {
-          const updateResponse = await fetch(`http://127.0.0.1:8001/candidates/${candidate._id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              blockchainAddress: tx.transactionHash,
-              blockchainAccount: ownerAccount
-            })
-          });
-          
-          if (updateResponse.ok) {
-            console.log(`  ✅ Updated MongoDB with new blockchain address`);
+        // Update MongoDB with blockchain info
+        await candidatesCollection.updateOne(
+          { _id: candidate._id },
+          {
+            $set: {
+              blockchainAddress: result.tx,
+              blockchainAccount: accounts[0],
+              syncedToBlockchain: true,
+              syncedAt: new Date().toISOString()
+            }
           }
-        } catch (updateError) {
-          console.log(`  ⚠️  MongoDB update failed: ${updateError.message}`);
-        }
-        
-      } catch (txError) {
-        console.error(`  ❌ Failed to add to blockchain:`, txError.message);
+        );
+
+        successCount++;
+      } catch (error) {
+        console.log(`   ❌ Error: ${error.message}`);
+        errorCount++;
       }
     }
-    
-    // 6. Verify final count
-    const finalCount = await contract.methods.getCountCandidates().call();
-    console.log(`\n=== SYNC COMPLETE ===`);
-    console.log(`Total candidates on blockchain: ${finalCount}`);
-    console.log(`MongoDB candidates: ${data.count}`);
-    
-    if (parseInt(finalCount) === data.count) {
-      console.log('✅ All candidates synced successfully!');
-    } else {
-      console.log('⚠️  Some candidates may not have synced. Check errors above.');
+
+    console.log('\n' + '-'.repeat(60));
+    console.log('\n' + '='.repeat(60));
+    console.log('Sync Complete!');
+    console.log('='.repeat(60));
+    console.log(`✅ Successfully synced: ${successCount} candidates`);
+    if (errorCount > 0) {
+      console.log(`❌ Failed to sync: ${errorCount} candidates`);
     }
-    
+    console.log('='.repeat(60) + '\n');
+
   } catch (error) {
-    console.error('\n❌ ERROR:', error.message);
-    console.log('\nTroubleshooting:');
-    console.log('1. Is Ganache running on port 7545?');
-    console.log('2. Is MongoDB API running on port 8001?');
-    console.log('3. Is the contract deployed? (Run: npx truffle migrate)');
+    console.error('\n❌ Fatal error during sync:');
+    console.error(error);
+    process.exit(1);
+  } finally {
+    if (mongoClient) {
+      await mongoClient.close();
+      console.log('MongoDB connection closed.');
+    }
   }
 }
 
-syncCandidates();
+// Run the sync
+if (require.main === module) {
+  syncCandidatesToBlockchain()
+    .then(() => {
+      console.log('\n✅ Sync process completed successfully!\n');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('\n❌ Sync process failed:');
+      console.error(error);
+      process.exit(1);
+    });
+}
+
+module.exports = syncCandidatesToBlockchain;

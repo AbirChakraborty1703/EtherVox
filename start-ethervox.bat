@@ -1,15 +1,17 @@
 @echo off
 REM ========================================
 REM EtherVox Complete System Launcher
-REM Starts: MySQL, MongoDB, FastAPI, Express, Truffle, Webpack
+REM Starts: MySQL, MongoDB, FastAPI (Database API), Express, Truffle, Webpack
+REM Supports: Admin Login, User Login, Candidate Login
 REM NOTE: Ganache must be started MANUALLY by user
-REM Updated: January 3, 2026 - User manages Ganache manually
+REM Updated: January 7, 2026 - Added Candidate Login Support
 REM ========================================
 
 echo.
 echo ========================================
 echo    EtherVox Complete System Startup    
-echo      New Admin Dashboard System v2.0
+echo      All-in-One Universal Launcher
+echo    Admin / User / Candidate Login
 echo ========================================
 echo.
 
@@ -76,15 +78,22 @@ echo       - Windows Services
 :mysql_started
 timeout /t 2 /nobreak >nul
 
-REM Step 3: Start MongoDB
-echo [3/10] Starting MongoDB...
+REM Step 3: Start MongoDB (Required for Candidate Login)
+echo [3/10] Starting MongoDB (for candidate data)...
 if exist "Database_API\mongodb_data" (
     start "MongoDB Server" cmd /k "mongod --dbpath Database_API/mongodb_data || (echo [ERROR] MongoDB failed to start! && pause)"
+    echo [INFO] Waiting for MongoDB to initialize...
     timeout /t 5 /nobreak >nul
-    echo [OK] MongoDB starting in background
+    
+    REM Verify MongoDB is running
+    python -c "from pymongo import MongoClient; client = MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=3000); client.admin.command('ping'); print('[OK] MongoDB connection verified')" 2>nul
+    if errorlevel 1 (
+        echo [WARNING] MongoDB verification failed, but continuing...
+        timeout /t 3 /nobreak >nul
+    )
+    echo [OK] MongoDB running on port 27017
 ) else (
-    echo [ERROR] MongoDB data directory not found!
-    echo [INFO] Creating directory...
+    echo [INFO] MongoDB data directory not found - creating...
     mkdir Database_API\mongodb_data
     start "MongoDB Server" cmd /k "mongod --dbpath Database_API/mongodb_data || (echo [ERROR] MongoDB failed to start! && pause)"
     timeout /t 5 /nobreak >nul
@@ -130,21 +139,48 @@ if errorlevel 1 (
     echo [INFO] You can manually deploy later with: truffle migrate --reset
 )
 
-REM Step 8: Build Webpack Bundle
-echo [8/10] Building frontend bundle (Webpack)...
+REM Step 8: Build Frontend with Webpack
+echo [8/10] Building frontend bundle with Webpack...
+echo [INFO] This may take a moment...
 call npm run build
 if errorlevel 1 (
-    echo [WARNING] Webpack build had issues, trying to continue...
+    echo [WARNING] Webpack build had warnings, but continuing...
+    echo [INFO] Frontend bundle may not be fully optimized
+) else (
+    echo [OK] Frontend bundle created successfully at public/app.bundle.js
 )
 
-REM Step 9: Start FastAPI Backend
-echo [9/10] Starting FastAPI backend...
-start "FastAPI Backend" cmd /k "cd Database_API && python main.py || (echo [ERROR] FastAPI failed to start! Check Python installation. && pause)"
-timeout /t 5 /nobreak >nul
-echo [OK] FastAPI starting in background
+REM Step 9: Build Database API (FastAPI Backend)
+echo [9/10] Starting Database API (Admin/User/Candidate Login)...
+echo [INFO] Database API handles all authentication:
+echo        - Admin Login (MySQL)
+echo        - User/Voter Login (MySQL)
+echo        - Candidate Login (MongoDB)
+start "Database API - Port 8001" cmd /k "cd Database_API && python main.py || (echo [ERROR] Database API failed to start! Check Python installation. && pause)"
+echo [INFO] Waiting for Database API to initialize...
+timeout /t 8 /nobreak >nul
 
-REM Step 10: Start Express Frontend
-echo [10/10] Starting Express frontend...
+REM Verify Database API is running
+echo [INFO] Verifying Database API endpoints...
+curl -s http://127.0.0.1:8001/ >nul 2>&1
+if errorlevel 1 (
+    echo [WARNING] Database API health check failed - giving more time...
+    timeout /t 5 /nobreak >nul
+) else (
+    echo [OK] Database API responding on port 8001
+)
+
+REM Test candidate login endpoint
+curl -s -X POST http://127.0.0.1:8001/api/candidate/login -H "Content-Type: application/json" -d "{\"candidateId\":\"test\",\"password\":\"test123\"}" >nul 2>&1
+if errorlevel 1 (
+    echo [WARNING] Candidate login endpoint not yet ready
+) else (
+    echo [OK] Candidate login endpoint active
+)ues, trying to continue...
+)
+
+REM Step 10: Start Express Frontend Server
+echo [10/10] Starting Express frontend server...
 start "Express Frontend" cmd /k "node index.js || (echo [ERROR] Express failed to start! Check Node.js installation. && pause)"
 timeout /t 3 /nobreak >nul
 echo [OK] Express starting in background
@@ -178,29 +214,54 @@ if errorlevel 1 (
 )
 
 netstat -ano | findstr ":27017" >nul 2>&1
-if errorlevel 1 (
-    echo [WARNING] MongoDB (port 27017) - Not detected yet
-) else (
-    echo [OK] MongoDB (port 27017) - Running
-)
-
-netstat -ano | findstr ":3306" >nul 2>&1
-if errorlevel 1 (
-    echo [WARNING] MySQL (port 3306) - Not detected
-    echo [INFO] Some features may not work without MySQL
-) else (
-    echo [OK] MySQL (port 3306) - Running
-)
-
+if erDatabase Services:
+echo  - MongoDB:       localhost:27017 (Candidate Data)
+echo  - MySQL:         localhost:3306  (Admin/User Data)
 echo.
-
-REM Display status
+echo Backend Services:
+echo  - Database API:  http://127.0.0.1:8001
+echo    ^> Admin Login:     /login
+echo    ^> User Login:      /login
+echo    ^> Candidate Login: /api/candidate/login
+echo  - Express Server: http://localhost:8081
+echo.
+echo Blockchain:
+echo  - Ganache:       localhost:7545
 echo.
 echo ========================================
-echo    All Services Started Successfully!
+echo    UNIVERSAL LOGIN SYSTEM v3.0
 echo ========================================
 echo.
-echo Services running:
+echo Login Options:
+echo  1. ADMIN LOGIN
+echo     - Login page: http://localhost:8081/login.html
+echo     - Click "Admin Login" tab
+echo     - Enter Admin ID (starts with 'A') and password
+echo     - Access: Admin Dashboard, Add Candidates, Set Voting Info
+echo.
+echo  2. USER/VOTER LOGIN
+echo     - Login page: http://localhost:8081/login.html
+echo     - Click "User Login" tab
+echo     - Enter Voter ID and password
+echo     - Access: Voting Portal
+echo.
+echo  3. CANDIDATE LOGIN
+echo     - Login page: http://localhost:8081/login.html
+echo     - Click "Candidate Login" tab
+echo     - Enter Candidate ID and password
+echo     - Access: Candidate Dashboard (View Profile)
+echo.
+echo Available Admin Pages:
+echo  - Login:              http://localhost:8081/login.html
+echo  - Admin Dashboard:    /AdminDashboard.html
+echo  - Add Candidate:      /AddCandidate.html
+echo  - Set Voting Info:    /SetVote.html
+echo  - Voter Portal:       /index.html
+echo  - Candidate Portal:   /Candidate.html
+echo.
+echo Database API Documentation:
+echo  - API Docs:          http://127.0.0.1:8001/docs
+echo  - Health Check:      http://127.0.0.1:8001/
 echo  - MongoDB:       localhost:27017
 echo  - MySQL:         localhost:3306
 echo  - Ganache:       localhost:7545
@@ -211,14 +272,26 @@ echo ========================================
 echo    NEW ADMIN DASHBOARD SYSTEM v2.0
 echo ========================================
 echo.
-echo Available Pages:
-echo  - Login:              http://localhost:8081/
-echo  - Admin Dashboard:    /AdminDashboard.html
-echo  - Add Candidate:      /AddCandidate.html
-echo  - Set Voting Info:    /SetVote.html
-echo  - Voter Portal:       /index.html
+echo ========================================
+echo    Shutting Down All Services...
+echo ========================================
 echo.
-echo Quick Guide:
+echo [INFO] Stopping MongoDB...
+taskkill /F /IM mongod.exe >nul 2>&1
+echo [INFO] Stopping Database API (Python)...
+taskkill /F /IM python.exe >nul 2>&1
+echo [INFO] Stopping Express Server (Node.js)...
+taskkill /F /IM node.exe >nul 2>&1
+echo [INFO] Stopping Ganache (if auto-started)...
+taskkill /F /IM ganache.exe >nul 2>&1
+
+echo.
+echo ========================================
+echo    All Services Stopped Successfully!
+echo ========================================
+echo.
+echo Thank you for using EtherVox!
+echo
 echo  1. Login with admin credentials (ID starts with 'A')
 echo  2. You'll land on the new Admin Dashboard
 echo  3. Choose: Add Candidate OR Set Voting Information

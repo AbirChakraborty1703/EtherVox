@@ -181,6 +181,11 @@ app.get('/SetVote.html', authorizeUser, (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/SetVote.html'));
 });
 
+// Candidate Dashboard
+app.get('/Candidate.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/Candidate.html'));
+});
+
 // Voting interface
 app.get('/index.html', authorizeUser, (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/index.html'));
@@ -203,6 +208,9 @@ app.get('/css/add-candidate.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/add-candidate.css'));
 });
 
+app.get('/css/candidate.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/candidate.css'));
+});
 
 app.get('/js/admin-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/admin-dashboard.js'));
@@ -215,6 +223,11 @@ app.get('/js/add-candidate.js', (req, res) => {
 app.get('/js/set-vote.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/set-vote.js'));
 });
+
+app.get('/js/candidate.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/candidate.js'));
+});
+
 app.get('/css/set-vote.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/set-vote.css'));
 });
