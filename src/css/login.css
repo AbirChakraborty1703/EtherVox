@@ -135,6 +135,7 @@ body {
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: none;
+  -webkit-backdrop-filter: blur(0px);
   backdrop-filter: blur(0px);
 }
 
@@ -190,8 +191,8 @@ body {
     #0000ff, #4b0082, #9400d3, #ff0000);
   background-size: 300% 300%;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 15px rgba(255, 0, 255, 0.8));
   animation: pulse 2s ease-in-out infinite, rainbowFlow 4s linear infinite;
 }
@@ -231,8 +232,8 @@ body {
     #0000ff, #4b0082, #9400d3, #ff0000);
   background-size: 200% 200%;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
   letter-spacing: 2px;
   position: relative;
@@ -496,6 +497,7 @@ body {
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.08),
     inset 0 1px 2px rgba(255, 255, 255, 0.04);
+  -webkit-backdrop-filter: blur(0px);
   backdrop-filter: blur(0px);
 }
 
@@ -671,8 +673,8 @@ body {
 .admin-icon {
   background: linear-gradient(135deg, #34d399, #10b981, #059669);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 25px rgba(16, 185, 129, 0.8)) 
           drop-shadow(0 0 40px rgba(52, 211, 153, 0.6));
   animation: iconFloat 3s ease-in-out infinite, adminGlow 2s ease-in-out infinite;
@@ -692,8 +694,8 @@ body {
 .user-icon {
   background: linear-gradient(135deg, #f472b6, #ec4899, #db2777);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 25px rgba(236, 72, 153, 0.8)) 
           drop-shadow(0 0 40px rgba(244, 114, 182, 0.6));
   animation: iconFloat 3s ease-in-out infinite 0.5s, userGlow 2s ease-in-out infinite;
@@ -713,8 +715,8 @@ body {
 .candidate-icon {
   background: linear-gradient(135deg, #a78bfa, #8b5cf6, #7c3aed);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.8)) 
           drop-shadow(0 0 40px rgba(167, 139, 250, 0.6));
   animation: iconFloat 3s ease-in-out infinite 1s, candidateGlow 2s ease-in-out infinite;
@@ -818,6 +820,7 @@ body {
   letter-spacing: 0.3px;
   transition: all 0.3s ease;
   outline: none;
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   box-shadow: 
     0 4px 15px rgba(59, 130, 246, 0.15),
@@ -1101,6 +1104,7 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   z-index: 9999;
   animation: fadeIn 0.3s ease;
@@ -1133,6 +1137,7 @@ body {
     0 0 100px rgba(139, 92, 246, 0.3),
     inset 0 0 50px rgba(139, 92, 246, 0.05);
   animation: modalSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
 }
 
@@ -1200,6 +1205,7 @@ body {
   font-size: 40px;
   background: linear-gradient(135deg, #667eea, #8b5cf6, #a78bfa);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.8));
 }
@@ -1209,6 +1215,7 @@ body {
   font-weight: 700;
   background: linear-gradient(135deg, #ffffff, #e0e7ff);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 10px;
   letter-spacing: 1px;

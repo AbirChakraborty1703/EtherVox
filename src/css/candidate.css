@@ -1,15 +1,4 @@
-/**
- * EtherVox Candidate Dashboard Styles
- * 
- * @file candidate.css
- * @author EtherVox Development Team
- * @description Modern, responsive styling for candidate dashboard
- * @version 1.0.0
- */
 
-/* ===============================================
-   GLOBAL STYLES & RESET
-   =============================================== */
 * {
   margin: 0;
   padding: 0;
@@ -84,6 +73,7 @@ body {
    =============================================== */
 .header {
   background: rgba(26, 26, 46, 0.8);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--card-border);
   padding: var(--spacing-md) var(--spacing-xl);
@@ -146,6 +136,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -274,6 +265,7 @@ body {
    =============================================== */
 .card {
   background: var(--card-bg);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
@@ -590,6 +582,7 @@ body {
   gap: var(--spacing-sm);
   box-shadow: var(--shadow-lg);
   animation: slideIn 0.3s ease;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -616,6 +609,7 @@ body {
    =============================================== */
 .footer {
   background: rgba(26, 26, 46, 0.8);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--card-border);
   padding: var(--spacing-md);
