@@ -194,6 +194,11 @@ app.get('/index.html', authorizeUser, (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/index.html'));
 });
 
+// Election Results Page (Public Access - no authentication required)
+app.get('/result.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/result.html'));
+});
+
 // ===============================================
 // ROUTES - Static Assets (CSS, JS, Images)
 // ===============================================
@@ -215,6 +220,10 @@ app.get('/css/candidate.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/candidate.css'));
 });
 
+app.get('/css/result.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/result.css'));
+});
+
 app.get('/js/admin-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/admin-dashboard.js'));
 });
@@ -229,6 +238,10 @@ app.get('/js/set-vote.js', (req, res) => {
 
 app.get('/js/candidate.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/candidate.js'));
+});
+
+app.get('/js/result.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/result.js'));
 });
 
 app.get('/css/set-vote.css', (req, res) => {
@@ -321,7 +334,8 @@ app.listen(PORT, () => {
    
 📍 Server running at: http://localhost:${PORT}
 🔐 Login page: http://localhost:${PORT}/
-👑 Admin Dashboard: http://localhost:${PORT}/AdminDashboard.html (requires admin login)
+� Results page: http://localhost:${PORT}/result.html (public access)
+�👑 Admin Dashboard: http://localhost:${PORT}/AdminDashboard.html (requires admin login)
    📝 Add Candidate: http://localhost:${PORT}/AddCandidate.html (requires admin login)
    📅 Set Voting Dates: http://localhost:${PORT}/SetVote.html (requires admin login)
 🗳️  Voting page: http://localhost:${PORT}/index.html (requires voter login)
