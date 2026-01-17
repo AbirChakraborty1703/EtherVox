@@ -122,12 +122,7 @@ FIX_*.md
 Database_API/mongodb_data/
 
 # Temporary screen clips and system files
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.bmp
-*.tiff
+
 TempState/
 ScreenClip/
 

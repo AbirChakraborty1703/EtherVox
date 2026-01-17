@@ -106,7 +106,7 @@
           </div>
           <div class="profile-item">
             <label><i class="fas fa-check-circle"></i> Voting Status:</label>
-            <p id="profileVotingStatus"><span style="color: #ff9800;"><i class="fas fa-clock"></i> Pending</span></p>
+            <p id="profileVotingStatus"><span class="status-pending"><i class="fas fa-clock"></i> Pending</span></p>
           </div>
         </div>
       </div>
@@ -115,15 +115,15 @@
       <div id="profile-edit-tab" class="profile-tab-content">
         <form id="editProfileForm" class="profile-form">
           <div class="form-group">
-            <label><i class="fas fa-user"></i> Full Name</label>
+            <label for="editName"><i class="fas fa-user"></i> Full Name</label>
             <input type="text" id="editName" placeholder="Enter your full name">
           </div>
           <div class="form-group">
-            <label><i class="fas fa-envelope"></i> Email Address</label>
+            <label for="editEmail"><i class="fas fa-envelope"></i> Email Address</label>
             <input type="email" id="editEmail" placeholder="Enter your email">
           </div>
           <div class="form-group">
-            <label><i class="fas fa-phone"></i> Phone Number</label>
+            <label for="editPhone"><i class="fas fa-phone"></i> Phone Number</label>
             <input type="tel" id="editPhone" placeholder="Enter your phone number">
           </div>
           <button type="submit" class="profile-save-btn">
@@ -137,28 +137,28 @@
       <div id="profile-password-tab" class="profile-tab-content">
         <form id="changePasswordForm" class="profile-form">
           <div class="form-group">
-            <label><i class="fas fa-lock"></i> Current Password</label>
+            <label for="currentPassword"><i class="fas fa-lock"></i> Current Password</label>
             <div class="password-input-wrapper">
               <input type="password" id="currentPassword" placeholder="Enter current password" required>
-              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('currentPassword')">
+              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('currentPassword')" title="Toggle password visibility" aria-label="Toggle current password visibility">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
           </div>
           <div class="form-group">
-            <label><i class="fas fa-key"></i> New Password</label>
+            <label for="newPassword"><i class="fas fa-key"></i> New Password</label>
             <div class="password-input-wrapper">
               <input type="password" id="newPassword" placeholder="Enter new password" required>
-              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('newPassword')">
+              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('newPassword')" title="Toggle password visibility" aria-label="Toggle new password visibility">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
           </div>
           <div class="form-group">
-            <label><i class="fas fa-check-double"></i> Confirm New Password</label>
+            <label for="confirmPassword"><i class="fas fa-check-double"></i> Confirm New Password</label>
             <div class="password-input-wrapper">
               <input type="password" id="confirmPassword" placeholder="Confirm new password" required>
-              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('confirmPassword')">
+              <button type="button" class="toggle-pass-btn" onclick="togglePasswordVisibility('confirmPassword')" title="Toggle password visibility" aria-label="Toggle confirm password visibility">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
