@@ -11,6 +11,11 @@ const { Web3 } = require('web3');
 const votingArtifacts = require('../../build/contracts/Voting.json');
 
 // ===============================================
+// API CONFIGURATION
+// ===============================================
+const API_BASE_URL = 'http://127.0.0.1:8001';
+
+// ===============================================
 // GLOBAL VARIABLES
 // ===============================================
 let web3 = null;
@@ -213,6 +218,9 @@ function setupFormSubmission() {
       name: document.getElementById('name').value.trim(),
       age: parseInt(document.getElementById('age').value),
       dateOfBirth: document.getElementById('dateOfBirth').value,
+      panNumber: document.getElementById('panNumber').value.trim().toUpperCase(),
+      aadharNumber: document.getElementById('aadharNumber').value.trim(),
+      voterEpicNumber: document.getElementById('voterEpicNumber').value.trim().toUpperCase(),
       email: document.getElementById('email').value.trim(),
       phoneNumber: document.getElementById('phoneNumber').value.trim(),
       candidateAddress: document.getElementById('candidateAddress').value.trim(),
@@ -221,6 +229,13 @@ function setupFormSubmission() {
       candidateId: document.getElementById('candidateId').value.trim(),
       candidatePassword: document.getElementById('candidatePassword').value
     };
+    
+    // Debug: Log collected form data
+    console.log('=== FORM DATA COLLECTED ===');
+    console.log('PAN Number:', formData.panNumber);
+    console.log('Aadhar Number:', formData.aadharNumber);
+    console.log('Voter EPIC Number:', formData.voterEpicNumber);
+    console.log('All fields:', formData);
     
     // Validate password match
     const confirmPassword = document.getElementById('confirmPassword').value;
@@ -257,57 +272,73 @@ async function submitCandidate(candidateData) {
   submitButton.innerHTML = '<div class="spinner"></div> Processing...';
   
   let blockchainTxHash = null;
+  let blockchainSuccess = false;
   
+  // ========================================
+  // STEP 1: Try to add candidate to blockchain (optional)
+  // ========================================
   try {
-    // ========================================
-    // STEP 1: Add candidate to blockchain via MetaMask
-    // ========================================
     if (!web3 || !votingContract || !account) {
       showStatusMessage('🔄 Reconnecting to MetaMask...', 'info');
       const connected = await initWeb3();
       if (!connected) {
-        throw new Error('Failed to connect to MetaMask. Please refresh and try again.');
+        console.warn('MetaMask not connected - will save to database only');
+        showStatusMessage('⚠️ MetaMask not connected - saving to database only...', 'warning');
+      } else {
+        // Try blockchain transaction
+        showStatusMessage('🦊 Please confirm the transaction in MetaMask...', 'info');
+        console.log('Adding candidate to blockchain:', candidateData);
+        
+        // Call smart contract addCandidate function
+        const tx = await votingContract.methods.addCandidate(
+          candidateData.name,
+          candidateData.age,
+          candidateData.dateOfBirth,
+          candidateData.panNumber,
+          candidateData.aadharNumber,
+          candidateData.voterEpicNumber,
+          candidateData.electionCenter,
+          candidateData.party,
+          candidateData.candidateAddress,
+          candidateData.email,
+          candidateData.phoneNumber,
+          candidateData.candidateId,
+          candidateData.candidatePassword
+        ).send({ 
+          from: account,
+          gas: 600000
+        });
+        
+        blockchainTxHash = tx.transactionHash;
+        blockchainSuccess = true;
+        console.log('✅ Blockchain transaction successful:', tx);
+        console.log('Transaction hash:', blockchainTxHash);
+        showStatusMessage('✅ Blockchain transaction confirmed! Saving to database...', 'success');
       }
     }
-    
-    showStatusMessage('🦊 Please confirm the transaction in MetaMask...', 'info');
-    console.log('Adding candidate to blockchain:', candidateData);
-    
-    // Call smart contract addCandidate function
-    const tx = await votingContract.methods.addCandidate(
-      candidateData.name,
-      candidateData.age,
-      candidateData.dateOfBirth,
-      candidateData.electionCenter,
-      candidateData.party,
-      candidateData.candidateAddress,
-      candidateData.email,
-      candidateData.phoneNumber,
-      candidateData.candidateId,
-      candidateData.candidatePassword
-    ).send({ 
-      from: account,
-      gas: 500000
-    });
-    
-    blockchainTxHash = tx.transactionHash;
-    console.log('Blockchain transaction successful:', tx);
-    console.log('Transaction hash:', blockchainTxHash);
-    
-    showStatusMessage('✅ Blockchain transaction confirmed! Saving to database...', 'success');
+  } catch (blockchainError) {
+    console.error('⚠️ Blockchain transaction failed:', blockchainError);
+    showStatusMessage('⚠️ Blockchain failed - continuing with database save...', 'warning');
+  }
+  
+  // ========================================
+  // STEP 2: Save candidate to MongoDB (always attempt)
+  // ========================================
+  try {
     
     // ========================================
     // STEP 2: Save candidate to MongoDB with blockchain address
     // ========================================
     const mongoData = {
       ...candidateData,
-      blockchainAddress: blockchainTxHash,
-      blockchainAccount: account
+      blockchainAddress: blockchainTxHash || null,
+      blockchainAccount: account || null
     };
     
     console.log('Saving to MongoDB:', mongoData);
+    console.log('MongoDB data includes:', Object.keys(mongoData));
     
-    const response = await fetch('http://127.0.0.1:8001/candidates', {
+    const response = await fetch(`${API_BASE_URL}/candidates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -320,7 +351,13 @@ async function submitCandidate(candidateData) {
     console.log('MongoDB response:', response.status, data);
     
     if (response.ok) {
-      showStatusMessage(`✅ Candidate added successfully!\n📦 Blockchain TX: ${blockchainTxHash.substring(0, 20)}...`, 'success');
+      let successMessage = '✅ Candidate added successfully to database!';
+      if (blockchainSuccess) {
+        successMessage += `\n📦 Blockchain TX: ${blockchainTxHash.substring(0, 20)}...`;
+      } else {
+        successMessage += '\n⚠️ Note: Not yet registered on blockchain';
+      }
+      showStatusMessage(successMessage, 'success');
       
       // Reset form after 3 seconds
       setTimeout(() => {
@@ -330,7 +367,7 @@ async function submitCandidate(candidateData) {
       }, 3000);
       
     } else {
-      // Blockchain succeeded but database failed
+      // Database failed - show detailed error
       let errorMessage = 'Database save failed';
       if (data.detail) {
         if (Array.isArray(data.detail)) {
@@ -342,29 +379,22 @@ async function submitCandidate(candidateData) {
           errorMessage = data.detail;
         }
       }
-      showStatusMessage(`⚠️ Blockchain OK (TX: ${blockchainTxHash.substring(0, 15)}...) but database failed: ${errorMessage}`, 'warning');
+      
+      if (blockchainSuccess) {
+        showStatusMessage(`⚠️ Blockchain OK (TX: ${blockchainTxHash.substring(0, 15)}...) but database failed: ${errorMessage}`, 'warning');
+      } else {
+        showStatusMessage(`❌ Database save failed: ${errorMessage}`, 'error');
+      }
     }
     
-  } catch (error) {
-    console.error('Error adding candidate:', error);
+  } catch (databaseError) {
+    console.error('Error saving to database:', databaseError);
     
     // Determine error type and show appropriate message
-    if (error.message.includes('User denied') || error.message.includes('User rejected')) {
-      showStatusMessage('❌ Transaction cancelled by user in MetaMask.', 'error');
-    } else if (error.message.includes('NotOwner')) {
-      showStatusMessage('❌ Only the contract owner can add candidates. Please use the owner account in MetaMask.', 'error');
-    } else if (error.message.includes('Failed to fetch')) {
-      if (blockchainTxHash) {
-        showStatusMessage(`⚠️ Blockchain OK (TX: ${blockchainTxHash.substring(0, 15)}...) but cannot connect to database server.`, 'warning');
-      } else {
-        showStatusMessage('❌ Cannot connect to server. Please ensure the Database API is running.', 'error');
-      }
-    } else if (error.message.includes('gas')) {
-      showStatusMessage('❌ Transaction failed: Insufficient gas. Please try again.', 'error');
-    } else if (error.message.includes('revert')) {
-      showStatusMessage(`❌ Smart contract error: ${error.message}`, 'error');
+    if (databaseError.message && databaseError.message.includes('Failed to fetch')) {
+      showStatusMessage('❌ Cannot connect to database server. Please ensure the Database API is running on port 8001.', 'error');
     } else {
-      showStatusMessage(`❌ Error: ${error.message}`, 'error');
+      showStatusMessage(`❌ Database error: ${databaseError.message}`, 'error');
     }
     
   } finally {
@@ -425,6 +455,27 @@ const dobField = document.getElementById('dateOfBirth');
 if (dobField) {
   dobField.max = maxDate.toISOString().split('T')[0];
 }
+
+// Auto-format Aadhar Number with spaces
+document.getElementById('aadharNumber')?.addEventListener('input', function(e) {
+  let value = e.target.value.replace(/\s/g, ''); // Remove existing spaces
+  if (value.length > 12) {
+    value = value.substring(0, 12); // Limit to 12 digits
+  }
+  // Add spaces after every 4 digits
+  const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+  e.target.value = formatted;
+});
+
+// Auto-uppercase PAN Number
+document.getElementById('panNumber')?.addEventListener('input', function(e) {
+  e.target.value = e.target.value.toUpperCase();
+});
+
+// Auto-uppercase Voter EPIC Number
+document.getElementById('voterEpicNumber')?.addEventListener('input', function(e) {
+  e.target.value = e.target.value.toUpperCase();
+});
 
 // ===============================================
 // ERROR HANDLING

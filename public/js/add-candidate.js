@@ -76,11 +76,15 @@ async function loadContractInfo() {
     const contractData = await response.json();
     votingContractABI = contractData.abi;
 
-    // Get the deployed contract address from networks
-    if (contractData.networks && contractData.networks['5777']) {
+    // Get the deployed contract address from networks (check 1337 first, then 5777)
+    if (contractData.networks && contractData.networks['1337']) {
+      votingContractAddress = contractData.networks['1337'].address;
+      console.log('[CONTRACT] Using chain 1337 (Ganache)');
+    } else if (contractData.networks && contractData.networks['5777']) {
       votingContractAddress = contractData.networks['5777'].address;
+      console.log('[CONTRACT] Using chain 5777 (Ganache)');
     } else {
-      throw new Error('Contract not deployed on Ganache network (5777)');
+      throw new Error('Contract not deployed on Ganache network (1337 or 5777)');
     }
     console.log('[CONTRACT] Loaded contract address:', votingContractAddress);
   } catch (error) {
@@ -133,7 +137,7 @@ async function initWeb3() {
 
     // Verify we're on Ganache (network 5777 or 1337)
     if (chainIdDec !== 5777 && chainIdDec !== 1337) {
-      showStatusMessage(`⚠️ Please switch MetaMask to Ganache network (Chain ID: 5777). Currently on: ${chainIdDec}`, 'warning');
+      showStatusMessage(`⚠️ Please switch MetaMask to Ganache network (Chain ID: 1337 or 5777). Currently on: ${chainIdDec}`, 'warning');
       console.warn('[WEB3] Not on Ganache network!');
     }
 
@@ -300,6 +304,9 @@ function setupFormSubmission() {
       name: document.getElementById('name').value.trim(),
       age: parseInt(document.getElementById('age').value),
       dateOfBirth: document.getElementById('dateOfBirth').value,
+      panNumber: document.getElementById('panNumber').value.trim().toUpperCase(),
+      aadharNumber: document.getElementById('aadharNumber').value.trim(),
+      voterEpicNumber: document.getElementById('voterEpicNumber').value.trim().toUpperCase(),
       email: document.getElementById('email').value.trim(),
       phoneNumber: document.getElementById('phoneNumber').value.trim(),
       candidateAddress: document.getElementById('candidateAddress').value.trim(),
@@ -310,6 +317,9 @@ function setupFormSubmission() {
     };
 
     console.log('[FORM] Form data collected:', formData.name);
+    console.log('[DEBUG] PAN:', formData.panNumber);
+    console.log('[DEBUG] Aadhar:', formData.aadharNumber);
+    console.log('[DEBUG] EPIC:', formData.voterEpicNumber);
 
     // Validate password match
     const confirmPassword = document.getElementById('confirmPassword').value;
@@ -362,6 +372,9 @@ async function submitCandidate(candidateData) {
           candidateData.name,
           candidateData.age,
           candidateData.dateOfBirth,
+          candidateData.panNumber,
+          candidateData.aadharNumber,
+          candidateData.voterEpicNumber,
           candidateData.electionCenter,
           candidateData.party,
           candidateData.candidateAddress,
@@ -371,7 +384,7 @@ async function submitCandidate(candidateData) {
           candidateData.candidatePassword
         ).send({
           from: account,
-          gas: 500000
+          gas: 600000
         });
 
         blockchainTxHash = tx.transactionHash;
@@ -394,8 +407,9 @@ async function submitCandidate(candidateData) {
     // ========================================
     const mongoData = {
       ...candidateData,
-      blockchainAddress: blockchainTxHash || null,
-      blockchainAccount: account || null
+      blockchainAddress: votingContractAddress || null,
+      blockchainAccount: account || null,
+      blockchainTxHash: blockchainTxHash || null
     };
 
     console.log('[DATABASE] Saving to MongoDB...');
@@ -608,6 +622,9 @@ async function syncCandidatesToBlockchain() {
           candidate.name || 'Unknown',
           candidate.age || 18,
           dob,
+          candidate.panNumber || 'XXXXX0000X',
+          candidate.aadharNumber || '0000 0000 0000',
+          candidate.voterEpicNumber || 'XXX0000000',
           candidate.electionCenter || 'Unknown',
           candidate.party || 'Independent',
           candidate.candidateAddress || 'Unknown',
@@ -617,7 +634,7 @@ async function syncCandidatesToBlockchain() {
           candidate.candidatePassword || 'default123'
         ).send({
           from: account,
-          gas: 500000
+          gas: 600000
         });
 
         console.log(`[SYNC] ✅ Synced ${candidate.name}:`, tx.transactionHash);

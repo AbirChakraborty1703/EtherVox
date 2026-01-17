@@ -1,27 +1,7 @@
-/**
- * EtherVox Candidate Dashboard
- * 
- * @file candidate.js
- * @author EtherVox Development Team
- * @description Frontend logic for candidate dashboard with profile display and password reset
- * @version 1.0.0
- * 
- * Features:
- * - JWT token authentication
- * - Fetch candidate profile from MongoDB
- * - Display candidate information
- * - Password reset functionality
- * - Real-time UI updates
- */
 
-// ===============================================
-// CONFIGURATION
-// ===============================================
 const API_BASE_URL = 'http://127.0.0.1:8001';
 
-// ===============================================
-// DOM READY INITIALIZATION
-// ===============================================
+
 document.addEventListener('DOMContentLoaded', function() {
   initializeDashboard();
   setupEventListeners();
@@ -144,6 +124,11 @@ function displayCandidateInfo(candidate) {
   setElementText('candidate-dob', formatDate(candidate.dateOfBirth));
   setElementText('candidate-email', candidate.email);
   setElementText('candidate-phone', candidate.phoneNumber);
+
+  // Government ID Numbers
+  setElementText('candidate-pan', candidate.panNumber || 'Not provided');
+  setElementText('candidate-aadhar', candidate.aadharNumber || 'Not provided');
+  setElementText('candidate-epic', candidate.voterEpicNumber || 'Not provided');
 
   // Election & Party Information
   setElementText('candidate-party', candidate.party);
@@ -339,7 +324,7 @@ function showMessage(message, type = 'info') {
   
   container.appendChild(messageDiv);
 
-  // Auto-remove after 5 seconds (except for errors and success which stay longer)
+  
   const timeout = type === 'info' ? 3000 : 5000;
   setTimeout(() => {
     messageDiv.style.opacity = '0';

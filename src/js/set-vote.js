@@ -7,6 +7,11 @@
  */
 
 // ===============================================
+// API CONFIGURATION
+// ===============================================
+const API_BASE_URL = 'http://127.0.0.1:8001';
+
+// ===============================================
 // INITIALIZATION
 // ===============================================
 document.addEventListener('DOMContentLoaded', function () {
@@ -307,7 +312,7 @@ async function submitVotingDates() {
 
     console.log('Saving voting dates to MongoDB:', mongoData);
 
-    const response = await fetch('http://127.0.0.1:8001/voting-dates', {
+    const response = await fetch(`${API_BASE_URL}/voting-dates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -596,7 +601,7 @@ async function searchCandidate() {
   showCandidateStatus('🔍 Searching for candidate...', 'info');
 
   try {
-    const response = await fetch(`${CANDIDATE_API_URL}/candidates/search/${candidateId}`);
+    const response = await fetch(`${API_BASE_URL}/candidates/search/${candidateId}`);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -691,7 +696,7 @@ function clearCandidateStatus() {
  */
 async function getCandidatesByArea(electionArea) {
   try {
-    const response = await fetch(`${CANDIDATE_API_URL}/candidates`);
+    const response = await fetch(`${API_BASE_URL}/candidates`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

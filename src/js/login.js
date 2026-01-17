@@ -169,7 +169,7 @@ async function handleAdminLogin(event) {
       
       // Redirect to admin dashboard
       setTimeout(() => {
-        window.location.replace(`http://localhost:8081/AdminDashboard.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`AdminDashboard.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {
@@ -212,7 +212,7 @@ async function handleUserLogin(event) {
       
       // Redirect to voting interface
       setTimeout(() => {
-        window.location.replace(`http://localhost:8081/index.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`index.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {
@@ -255,7 +255,7 @@ async function handleCandidateLogin(event) {
       
       // Redirect to candidate dashboard
       setTimeout(() => {
-        window.location.replace(`http://localhost:8081/Candidate.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`Candidate.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {

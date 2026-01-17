@@ -171,6 +171,9 @@ class CandidateModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     age: int = Field(..., ge=18, le=120)
     dateOfBirth: str = Field(..., description="Date in YYYY-MM-DD format")
+    panNumber: str = Field(..., min_length=10, max_length=10, pattern=r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', description="PAN Number (Format: ABCDE1234F)")
+    aadharNumber: str = Field(..., min_length=12, max_length=14, description="Aadhar Number (12 digits, may include spaces)")
+    voterEpicNumber: str = Field(..., min_length=10, max_length=10, pattern=r'^[A-Z]{3}[0-9]{7}$', description="Voter EPIC Number (Format: ABC1234567)")
     electionCenter: Optional[str] = Field(default="Default Election Center", max_length=200)
     party: str = Field(..., min_length=1, max_length=100)
     candidateAddress: str = Field(..., min_length=1, max_length=300)
@@ -190,6 +193,9 @@ class CandidateResponse(BaseModel):
     name: str
     age: int
     dateOfBirth: str
+    panNumber: str
+    aadharNumber: str
+    voterEpicNumber: str
     electionCenter: str
     party: str
     candidateAddress: str

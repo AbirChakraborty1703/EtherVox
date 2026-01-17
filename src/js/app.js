@@ -4,6 +4,11 @@
  * Description: Handles Web3 interaction, voting functionality, and UI updates
  */
 
+// ===============================================
+// API CONFIGURATION
+// ===============================================
+const API_BASE_URL = 'http://127.0.0.1:8001';
+
 // Web3 and contract interaction imports
 // Web3.js v4 import syntax
 const { Web3 } = require('web3');
@@ -797,7 +802,7 @@ window.App = {
       }
 
       // Then save to MongoDB database
-      const response = await fetch('http://127.0.0.1:8001/candidates', {
+      const response = await fetch(`${API_BASE_URL}/candidates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
