@@ -158,14 +158,24 @@ window.App = {
       const networkId = await App.web3.eth.net.getId();
       console.log('Current network ID:', networkId);
 
-      // Check if contract is deployed on this network
-      const deployedNetwork = votingArtifacts.networks[networkId];
+      // Prefer network 5777 (latest deployment), fallback to detected networkId
+      let deployedNetwork = votingArtifacts.networks['5777'];
+      let selectedNetwork = '5777';
+      
+      if (!deployedNetwork) {
+        // Fallback to detected network ID
+        deployedNetwork = votingArtifacts.networks[networkId];
+        selectedNetwork = networkId.toString();
+      }
+      
       if (!deployedNetwork) {
         console.error('Contract not deployed on network:', networkId);
         console.log('Available networks:', Object.keys(votingArtifacts.networks));
         alert(`Contract not deployed on current network (ID: ${networkId}). Please deploy the contract or switch to the correct network.`);
         return;
       }
+
+      console.log(`Using contract from network ${selectedNetwork}: ${deployedNetwork.address}`);
 
       // Get the necessary contract artifact file and instantiate it with truffle-contract
       App.contracts.Voting = new App.web3.eth.Contract(
