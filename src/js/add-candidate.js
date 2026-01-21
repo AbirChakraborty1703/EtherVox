@@ -287,7 +287,95 @@ async function submitCandidate(candidateData) {
       } else {
         // Try blockchain transaction
         showStatusMessage('🦊 Please confirm the transaction in MetaMask...', 'info');
-        console.log('Adding candidate to blockchain:', candidateData);
+        console.log('[BLOCKCHAIN] Adding candidate to blockchain:', {
+          name: candidateData.name,
+          age: candidateData.age,
+          dateOfBirth: candidateData.dateOfBirth,
+          panNumber: candidateData.panNumber,
+          aadharNumber: candidateData.aadharNumber,
+          voterEpicNumber: candidateData.voterEpicNumber,
+          electionCenter: candidateData.electionCenter,
+          party: candidateData.party,
+          candidateAddress: candidateData.candidateAddress,
+          email: candidateData.email,
+          phoneNumber: candidateData.phoneNumber,
+          candidateId: candidateData.candidateId,
+          hasPassword: !!candidateData.candidatePassword
+        });
+
+        // Validate all required fields before calling blockchain
+        const requiredFields = [
+          'name', 'age', 'dateOfBirth', 'panNumber', 'aadharNumber', 
+          'voterEpicNumber', 'electionCenter', 'party', 'candidateAddress', 
+          'email', 'phoneNumber', 'candidateId', 'candidatePassword'
+        ];
+        
+        const missingFields = [];
+        for (const field of requiredFields) {
+          if (!candidateData[field] || (typeof candidateData[field] === 'string' && candidateData[field].trim() === '')) {
+            missingFields.push(field);
+          }
+        }
+
+        if (missingFields.length > 0) {
+          const errorMsg = `Missing or empty required fields: ${missingFields.join(', ')}`;
+          console.error('[BLOCKCHAIN] Validation failed:', errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        if (candidateData.age < 18) {
+          const errorMsg = `Age must be at least 18 (received: ${candidateData.age})`;
+          console.error('[BLOCKCHAIN] Validation failed:', errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        console.log('[BLOCKCHAIN] ✅ All required fields validated');
+        
+        // Log actual values with types for debugging
+        console.log('[BLOCKCHAIN] Detailed parameter inspection:');
+        console.table({
+          name: { value: candidateData.name, type: typeof candidateData.name, length: candidateData.name?.length },
+          age: { value: candidateData.age, type: typeof candidateData.age, isEmpty: candidateData.age === 0 },
+          dateOfBirth: { value: candidateData.dateOfBirth, type: typeof candidateData.dateOfBirth, length: candidateData.dateOfBirth?.length },
+          panNumber: { value: candidateData.panNumber, type: typeof candidateData.panNumber, length: candidateData.panNumber?.length },
+          aadharNumber: { value: candidateData.aadharNumber, type: typeof candidateData.aadharNumber, length: candidateData.aadharNumber?.length },
+          voterEpicNumber: { value: candidateData.voterEpicNumber, type: typeof candidateData.voterEpicNumber, length: candidateData.voterEpicNumber?.length },
+          electionCenter: { value: candidateData.electionCenter, type: typeof candidateData.electionCenter, length: candidateData.electionCenter?.length },
+          party: { value: candidateData.party, type: typeof candidateData.party, length: candidateData.party?.length },
+          candidateAddress: { value: candidateData.candidateAddress, type: typeof candidateData.candidateAddress, length: candidateData.candidateAddress?.length },
+          email: { value: candidateData.email, type: typeof candidateData.email, length: candidateData.email?.length },
+          phoneNumber: { value: candidateData.phoneNumber, type: typeof candidateData.phoneNumber, length: candidateData.phoneNumber?.length },
+          candidateId: { value: candidateData.candidateId, type: typeof candidateData.candidateId, length: candidateData.candidateId?.length },
+          candidatePassword: { value: '***HIDDEN***', type: typeof candidateData.candidatePassword, length: candidateData.candidatePassword?.length }
+        });
+
+        // First simulate the transaction to check for errors
+        try {
+          await votingContract.methods.addCandidate(
+            candidateData.name,
+            candidateData.age,
+            candidateData.dateOfBirth,
+            candidateData.panNumber,
+            candidateData.aadharNumber,
+            candidateData.voterEpicNumber,
+            candidateData.electionCenter,
+            candidateData.party,
+            candidateData.candidateAddress,
+            candidateData.email,
+            candidateData.phoneNumber,
+            candidateData.candidateId,
+            candidateData.candidatePassword
+          ).call({ from: account });
+          console.log('[BLOCKCHAIN] ✅ Call simulation successful');
+        } catch (callError) {
+          console.error('[BLOCKCHAIN] ❌ Call simulation failed:', callError);
+          console.error('[BLOCKCHAIN] Error details:', {
+            message: callError.message,
+            code: callError.code,
+            data: callError.data
+          });
+          throw new Error(`Contract will revert: ${callError.message}`);
+        }
         
         // Call smart contract addCandidate function
         const tx = await votingContract.methods.addCandidate(
@@ -306,7 +394,7 @@ async function submitCandidate(candidateData) {
           candidateData.candidatePassword
         ).send({ 
           from: account,
-          gas: 600000
+          gas: 3000000
         });
         
         blockchainTxHash = tx.transactionHash;

@@ -76,13 +76,13 @@ async function loadContractInfo() {
     const contractData = await response.json();
     votingContractABI = contractData.abi;
 
-    // Get the deployed contract address from networks (check 1337 first, then 5777)
-    if (contractData.networks && contractData.networks['1337']) {
-      votingContractAddress = contractData.networks['1337'].address;
-      console.log('[CONTRACT] Using chain 1337 (Ganache)');
-    } else if (contractData.networks && contractData.networks['5777']) {
+    // Get the deployed contract address from networks (prefer 5777, then 1337)
+    if (contractData.networks && contractData.networks['5777']) {
       votingContractAddress = contractData.networks['5777'].address;
-      console.log('[CONTRACT] Using chain 5777 (Ganache)');
+      console.log('[CONTRACT] Using network 5777 (Ganache)');
+    } else if (contractData.networks && contractData.networks['1337']) {
+      votingContractAddress = contractData.networks['1337'].address;
+      console.log('[CONTRACT] Using network 1337 (Ganache)');
     } else {
       throw new Error('Contract not deployed on Ganache network (1337 or 5777)');
     }
@@ -366,8 +366,82 @@ async function submitCandidate(candidateData) {
     if (web3 && votingContract && account) {
       showStatusMessage('🦊 Please confirm the transaction in MetaMask...', 'info');
       console.log('[BLOCKCHAIN] Adding candidate to blockchain...');
+      console.log('[BLOCKCHAIN] All Parameters:', {
+        name: candidateData.name,
+        age: candidateData.age,
+        dateOfBirth: candidateData.dateOfBirth,
+        panNumber: candidateData.panNumber,
+        aadharNumber: candidateData.aadharNumber,
+        voterEpicNumber: candidateData.voterEpicNumber,
+        electionCenter: candidateData.electionCenter,
+        party: candidateData.party,
+        candidateAddress: candidateData.candidateAddress,
+        email: candidateData.email,
+        phoneNumber: candidateData.phoneNumber,
+        candidateId: candidateData.candidateId,
+        candidatePassword: candidateData.candidatePassword ? '***HIDDEN***' : 'MISSING'
+      });
+
+      // Validate all required fields before calling blockchain
+      const requiredFields = [
+        'name', 'age', 'dateOfBirth', 'panNumber', 'aadharNumber', 
+        'voterEpicNumber', 'electionCenter', 'party', 'candidateAddress', 
+        'email', 'phoneNumber', 'candidateId', 'candidatePassword'
+      ];
+      
+      const missingFields = [];
+      for (const field of requiredFields) {
+        if (!candidateData[field] || (typeof candidateData[field] === 'string' && candidateData[field].trim() === '')) {
+          missingFields.push(field);
+        }
+      }
+
+      if (missingFields.length > 0) {
+        const errorMsg = `Missing or empty required fields: ${missingFields.join(', ')}`;
+        console.error('[BLOCKCHAIN] Validation failed:', errorMsg);
+        showStatusMessage(`❌ ${errorMsg}`, 'error');
+        return;
+      }
+
+      if (candidateData.age < 18) {
+        const errorMsg = `Age must be at least 18 (received: ${candidateData.age})`;
+        console.error('[BLOCKCHAIN] Validation failed:', errorMsg);
+        showStatusMessage(`❌ ${errorMsg}`, 'error');
+        return;
+      }
+
+      console.log('[BLOCKCHAIN] ✅ All required fields validated');
 
       try {
+        // First, try to call (simulate) the transaction to check for errors
+        try {
+          await votingContract.methods.addCandidate(
+            candidateData.name,
+            candidateData.age,
+            candidateData.dateOfBirth,
+            candidateData.panNumber,
+            candidateData.aadharNumber,
+            candidateData.voterEpicNumber,
+            candidateData.electionCenter,
+            candidateData.party,
+            candidateData.candidateAddress,
+            candidateData.email,
+            candidateData.phoneNumber,
+            candidateData.candidateId,
+            candidateData.candidatePassword
+          ).call({ from: account });
+          console.log('[BLOCKCHAIN] Call simulation successful ✅');
+        } catch (callError) {
+          console.error('[BLOCKCHAIN] Call simulation failed:', callError);
+          console.error('[BLOCKCHAIN] Error details:', {
+            message: callError.message,
+            code: callError.code,
+            data: callError.data
+          });
+          throw new Error(`Contract will revert: ${callError.message}`);
+        }
+
+        // Now send the actual transaction
         const tx = await votingContract.methods.addCandidate(
           candidateData.name,
           candidateData.age,
@@ -384,13 +458,14 @@ async function submitCandidate(candidateData) {
           candidateData.candidatePassword
         ).send({
           from: account,
-          gas: 600000
+          gas: 3000000
         });
 
         blockchainTxHash = tx.transactionHash;
         console.log('[BLOCKCHAIN] Transaction successful:', blockchainTxHash);
         showStatusMessage('✅ Blockchain transaction confirmed! Saving to database...', 'success');
       } catch (blockchainError) {
+        console.error('[BLOCKCHAIN] Full Error Object:', blockchainError);
         console.warn('[BLOCKCHAIN] Error:', blockchainError.message);
         if (blockchainError.message.includes('User denied') || blockchainError.message.includes('User rejected')) {
           showStatusMessage('❌ Transaction cancelled. Candidate not added.', 'error');
@@ -614,27 +689,105 @@ async function syncCandidatesToBlockchain() {
       try {
         showStatusMessage(`⏳ Syncing ${i + 1}/${candidatesToSync.length}: ${candidate.name}...`, 'info');
 
-        // Format date of birth (DD-MM-YYYY)
-        const dob = candidate.dateOfBirth || '01-01-2000';
+        // Prepare candidate data with defaults for missing fields
+        // (MongoDB candidates might not have all blockchain-required fields)
+        const syncData = {
+          name: candidate.name || 'Unknown',
+          age: candidate.age || 25,
+          dateOfBirth: candidate.dateOfBirth || '01-01-2000',
+          panNumber: candidate.panNumber || 'XXXXX0000X',
+          aadharNumber: candidate.aadharNumber || '0000 0000 0000',
+          voterEpicNumber: candidate.voterEpicNumber || 'XXX0000000',
+          electionCenter: candidate.electionCenter || 'Default Center',
+          party: candidate.party || 'Independent',
+          candidateAddress: candidate.candidateAddress || 'Not Provided',
+          email: candidate.email || 'noemail@example.com',
+          phoneNumber: candidate.phoneNumber || '0000000000',
+          candidateId: candidate.candidateId || `CID-${Date.now()}`,
+          candidatePassword: candidate.candidatePassword || 'default123' // Default for legacy candidates
+        };
 
-        // Call addCandidate on blockchain
+        console.log(`[SYNC] Candidate data for ${candidate.name}:`, {
+          name: syncData.name,
+          age: syncData.age,
+          dateOfBirth: syncData.dateOfBirth,
+          panNumber: syncData.panNumber,
+          hasPassword: !!candidate.candidatePassword ? 'YES' : 'NO (using default)',
+          usingDefaults: !candidate.candidatePassword || !candidate.electionCenter || !candidate.candidateAddress
+        });
+
+        // Basic validation
+        if (!syncData.name || syncData.name === 'Unknown') {
+          throw new Error(`Missing candidate name`);
+        }
+
+        if (syncData.age < 18) {
+          throw new Error(`Invalid age: ${syncData.age} (must be at least 18)`);
+        }
+        
+        console.log(`[SYNC] ✅ Validation passed for ${candidate.name}`);
+        
+        // Log exact values being sent (for debugging)
+        console.log(`[SYNC] EXACT VALUES being sent to contract:`);
+        console.table({
+          '1_name': { value: syncData.name, type: typeof syncData.name, empty: !syncData.name },
+          '2_age': { value: syncData.age, type: typeof syncData.age, zero: syncData.age === 0 },
+          '3_dateOfBirth': { value: syncData.dateOfBirth, type: typeof syncData.dateOfBirth, empty: !syncData.dateOfBirth },
+          '4_panNumber': { value: syncData.panNumber, type: typeof syncData.panNumber, empty: !syncData.panNumber },
+          '5_aadharNumber': { value: syncData.aadharNumber, type: typeof syncData.aadharNumber, empty: !syncData.aadharNumber },
+          '6_voterEpicNumber': { value: syncData.voterEpicNumber, type: typeof syncData.voterEpicNumber, empty: !syncData.voterEpicNumber },
+          '7_electionCenter': { value: syncData.electionCenter, type: typeof syncData.electionCenter, empty: !syncData.electionCenter },
+          '8_party': { value: syncData.party, type: typeof syncData.party, empty: !syncData.party },
+          '9_candidateAddress': { value: syncData.candidateAddress, type: typeof syncData.candidateAddress, empty: !syncData.candidateAddress },
+          '10_email': { value: syncData.email, type: typeof syncData.email, empty: !syncData.email },
+          '11_phoneNumber': { value: syncData.phoneNumber, type: typeof syncData.phoneNumber, empty: !syncData.phoneNumber },
+          '12_candidateId': { value: syncData.candidateId, type: typeof syncData.candidateId, empty: !syncData.candidateId },
+          '13_candidatePassword': { value: '***HIDDEN***', type: typeof syncData.candidatePassword, empty: !syncData.candidatePassword }
+        });
+
+        // First, simulate the transaction to check for errors
+        try {
+          await votingContract.methods.addCandidate(
+            syncData.name,
+            syncData.age,
+            syncData.dateOfBirth,
+            syncData.panNumber,
+            syncData.aadharNumber,
+            syncData.voterEpicNumber,
+            syncData.electionCenter,
+            syncData.party,
+            syncData.candidateAddress,
+            syncData.email,
+            syncData.phoneNumber,
+            syncData.candidateId,
+            syncData.candidatePassword
+          ).call({ from: account });
+          console.log(`[SYNC] Call simulation successful for ${candidate.name} ✅`);
+        } catch (callError) {
+          console.error(`[SYNC] Call simulation failed for ${candidate.name}:`, callError);
+          console.error(`[SYNC] Error message:`, callError.message);
+          console.error(`[SYNC] Error data:`, callError.data);
+          throw new Error(`Contract will revert for ${candidate.name}: ${callError.message}`);
+        }
+
+        // Now send the actual transaction
         const tx = await votingContract.methods.addCandidate(
-          candidate.name || 'Unknown',
-          candidate.age || 18,
-          dob,
-          candidate.panNumber || 'XXXXX0000X',
-          candidate.aadharNumber || '0000 0000 0000',
-          candidate.voterEpicNumber || 'XXX0000000',
-          candidate.electionCenter || 'Unknown',
-          candidate.party || 'Independent',
-          candidate.candidateAddress || 'Unknown',
-          candidate.email || 'unknown@example.com',
-          candidate.phoneNumber || '0000000000',
-          candidate.candidateId || `CID-${Date.now()}`,
-          candidate.candidatePassword || 'default123'
+          syncData.name,
+          syncData.age,
+          syncData.dateOfBirth,
+          syncData.panNumber,
+          syncData.aadharNumber,
+          syncData.voterEpicNumber,
+          syncData.electionCenter,
+          syncData.party,
+          syncData.candidateAddress,
+          syncData.email,
+          syncData.phoneNumber,
+          syncData.candidateId,
+          syncData.candidatePassword
         ).send({
           from: account,
-          gas: 600000
+          gas: 3000000
         });
 
         console.log(`[SYNC] ✅ Synced ${candidate.name}:`, tx.transactionHash);
@@ -642,6 +795,8 @@ async function syncCandidatesToBlockchain() {
 
       } catch (error) {
         console.error(`[SYNC] ❌ Failed to sync ${candidate.name}:`, error);
+        console.error(`[SYNC] Error message:`, error.message);
+        console.error(`[SYNC] Full error details:`, JSON.stringify(error, null, 2));
         failCount++;
       }
     }
