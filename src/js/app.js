@@ -1,12 +1,4 @@
-/**
- * EtherVox Frontend Application Logic
- * Author: Abir Chakraborty
- * Description: Handles Web3 interaction, voting functionality, and UI updates
- */
 
-// ===============================================
-// API CONFIGURATION
-// ===============================================
 const API_BASE_URL = 'http://127.0.0.1:8001';
 
 // Web3 and contract interaction imports
@@ -22,8 +14,7 @@ window.App = {
   account: null,
   contracts: {},
 
-  // Sync Ganache blockchain time with current system time
-  // This is needed because Ganache's block.timestamp can drift from real time
+
   syncGanacheTime: async function () {
     try {
       // Get current blockchain timestamp
@@ -151,7 +142,7 @@ window.App = {
     }
   },
 
-  // Initialize the smart contract
+ 
   initContract: async function () {
     try {
       // Get network ID and check deployment
