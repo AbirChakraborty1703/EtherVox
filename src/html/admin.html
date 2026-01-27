@@ -11,6 +11,9 @@
     <link rel="stylesheet" type="text/css" href="/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <!-- Face Recognition Library (Local copy for reliability) -->
+    <script defer src="/js/face-api.min.js?v=1768399482"></script>
+    
   </head>
   <body>
     <!-- Logout button -->
@@ -82,7 +85,7 @@
       
       <!-- Detection Systems Status -->
       <div class="detection-systems">
-        <h3>🤖 Detection Systems Status</h3>
+        <h3>🤖 AI Detection Systems Status</h3>
         <div class="systems-grid">
           <div class="system-status">
             <span class="status-indicator active"></span>
@@ -94,7 +97,7 @@
           </div>
           <div class="system-status">
             <span class="status-indicator active"></span>
-            <span>Regional Spike</span>
+            <span>Burst Detection</span>
           </div>
           <div class="system-status">
             <span class="status-indicator active"></span>
@@ -102,7 +105,60 @@
           </div>
           <div class="system-status" id="mlModelStatus">
             <span class="status-indicator pending"></span>
-            <span>ML Model</span>
+            <span>Isolation Forest ML</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ML Model Information Card -->
+      <div class="ml-model-card" id="mlModelInfo" style="display: none;">
+        <div class="ml-header">
+          <h3>🧠 Machine Learning Model Details</h3>
+          <button id="trainModelBtn" class="train-btn">
+            <i class="fas fa-brain"></i> Train Model
+          </button>
+        </div>
+        <div class="ml-stats-grid">
+          <div class="ml-stat">
+            <i class="fas fa-project-diagram"></i>
+            <div>
+              <strong id="mlAlgorithm">Isolation Forest</strong>
+              <span>Algorithm</span>
+            </div>
+          </div>
+          <div class="ml-stat">
+            <i class="fas fa-chart-line"></i>
+            <div>
+              <strong id="mlAccuracy">0%</strong>
+              <span>Accuracy</span>
+            </div>
+          </div>
+          <div class="ml-stat">
+            <i class="fas fa-database"></i>
+            <div>
+              <strong id="mlSamples">0</strong>
+              <span>Training Samples</span>
+            </div>
+          </div>
+          <div class="ml-stat">
+            <i class="fas fa-layer-group"></i>
+            <div>
+              <strong id="mlFeatures">12</strong>
+              <span>Features</span>
+            </div>
+          </div>
+          <div class="ml-stat">
+            <i class="fas fa-percentage"></i>
+            <div>
+              <strong id="mlContamination">0%</strong>
+              <span>Contamination Rate</span>
+            </div>
+          </div>
+        </div>
+        <div class="feature-importance" id="featureImportance">
+          <h4>📊 Top Contributing Features</h4>
+          <div id="featureList" class="feature-list">
+            <p class="loading-text">Features will appear after training...</p>
           </div>
         </div>
       </div>
@@ -256,11 +312,49 @@
           const suspiciousCount = (stats.suspicious_ips || 0) + (stats.suspicious_devices || 0);
           document.getElementById('suspiciousActivities').textContent = suspiciousCount;
           
-          // Update ML model status
+          // Update ML model status and details
           const mlStatus = document.getElementById('mlModelStatus').querySelector('.status-indicator');
+          const mlModelInfo = document.getElementById('mlModelInfo');
+          
           if (stats.model_trained) {
+            // Update status indicator to active (green)
             mlStatus.classList.remove('pending');
             mlStatus.classList.add('active');
+            
+            // Show ML model information card
+            mlModelInfo.style.display = 'block';
+            
+            // Populate ML metrics
+            document.getElementById('mlAlgorithm').textContent = stats.ml_algorithm || 'Isolation Forest';
+            document.getElementById('mlAccuracy').textContent = stats.ml_accuracy || '0%';
+            document.getElementById('mlSamples').textContent = stats.ml_training_samples || 0;
+            document.getElementById('mlFeatures').textContent = stats.feature_count || 12;
+            document.getElementById('mlContamination').textContent = 
+              stats.contamination_rate ? (stats.contamination_rate * 100).toFixed(1) + '%' : '0%';
+            
+            // Display feature importance if available
+            if (stats.ml_stats && stats.ml_stats.feature_importance) {
+              const featureList = document.getElementById('featureList');
+              featureList.innerHTML = '';
+              
+              const features = stats.ml_stats.feature_importance;
+              const topFeatures = features.slice(0, 5); // Show top 5 features
+              
+              topFeatures.forEach((feature, index) => {
+                const featureItem = document.createElement('div');
+                featureItem.className = 'feature-item';
+                featureItem.innerHTML = `
+                  <span class="feature-rank">#${index + 1}</span>
+                  <span class="feature-name">${feature.feature}</span>
+                  <span class="feature-score">${(feature.importance * 100).toFixed(1)}%</span>
+                  <div class="feature-bar" style="width: ${feature.importance * 100}%"></div>
+                `;
+                featureList.appendChild(featureItem);
+              });
+            }
+          } else {
+            // Model not trained yet - hide the card
+            mlModelInfo.style.display = 'none';
           }
           
           // Fetch flagged voters
@@ -350,6 +444,51 @@
               `This feature connects to your blockchain audit logs.`);
       }
       
+      // Train ML Model function
+      async function trainMLModel() {
+        const trainBtn = document.getElementById('trainModelBtn');
+        const originalHTML = trainBtn.innerHTML;
+        
+        try {
+          trainBtn.disabled = true;
+          trainBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training Model...';
+          
+          const response = await fetch('http://127.0.0.1:8001/anomaly/train-model', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            alert(`✅ Model Training Successful!\n\n` +
+                  `Algorithm: ${result.algorithm || 'Isolation Forest'}\n` +
+                  `Votes Used: ${result.votes_used}\n` +
+                  `Accuracy: ${result.accuracy || 'N/A'}\n\n` +
+                  `The fraud detection system has been updated with the new model.`);
+            
+            // Refresh fraud detection data to show updated metrics
+            await loadFraudDetectionData();
+          } else {
+            alert(`❌ Training Failed\n\n` +
+                  `Reason: ${result.message}\n` +
+                  `Votes Available: ${result.votes_available || 0}\n` +
+                  `Minimum Required: ${result.min_required || 20}\n\n` +
+                  `Please collect more voting data before training.`);
+          }
+        } catch (error) {
+          console.error('Training error:', error);
+          alert(`⚠️ Error Training Model\n\n` +
+                `Unable to connect to the training service.\n` +
+                `Make sure the API server is running.`);
+        } finally {
+          trainBtn.disabled = false;
+          trainBtn.innerHTML = originalHTML;
+        }
+      }
+      
       // Auto-refresh fraud data every 30 seconds
       setInterval(loadFraudDetectionData, 30000);
       
@@ -358,7 +497,7 @@
         setTimeout(loadFraudDetectionData, 1000);
       });
       
-      // Manual refresh button
+      // Manual refresh button and train model button
       document.addEventListener('DOMContentLoaded', () => {
         const refreshBtn = document.getElementById('refreshFraudData');
         if (refreshBtn) {
@@ -368,6 +507,12 @@
               refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
             });
           });
+        }
+        
+        // Add training button event listener
+        const trainBtn = document.getElementById('trainModelBtn');
+        if (trainBtn) {
+          trainBtn.addEventListener('click', trainMLModel);
         }
       });
     </script>

@@ -14,10 +14,6 @@ mongo_client = MongoClient('mongodb://localhost:27017/')
 mongo_db = mongo_client['voter_db']
 voters_collection = mongo_db['voters']
 
-# Store face descriptors (in production, use proper database)
-# Format: { "voter_id": [descriptor1, descriptor2, ...] }
-face_database = {}
-
 class FaceRegisterRequest(BaseModel):
     voter_id: str
     face_descriptors: List[List[float]]
@@ -29,11 +25,11 @@ def euclidean_distance(desc1, desc2):
     """Calculate euclidean distance between two descriptors"""
     return np.linalg.norm(np.array(desc1) - np.array(desc2))
 
-def find_match(descriptor, threshold=0.4):
+def find_match(descriptor, threshold=0.3):
     """
     Find matching face in database (checks MongoDB)
-    threshold: 0.4 is stricter for better security (lower = stricter)
-    Standard face-api.js uses 0.6, but we use 0.4 for higher accuracy
+    threshold: 0.3 is strict for face-api.js (high security)
+    Lower = stricter matching
     """
     best_match = None
     best_distance = float('inf')
@@ -83,11 +79,8 @@ async def register_face(request: FaceRegisterRequest):
             upsert=True
         )
         
-        # Also keep in memory for current session
-        face_database[voter_id] = request.face_descriptors
-        
         print(f"✅ Face registered for voter: {voter_id}")
-        print(f"📊 Saved to MongoDB: {result.modified_count > 0 or result.upserted_id}")
+        print(f"📊 Saved to MongoDB: {result.modified_count > 0 or result.upserted_id is not None}")
         
         return {
             "success": True,
@@ -163,15 +156,19 @@ async def login_face(request: FaceLoginRequest):
 @router.get("/face-registered/{voter_id}")
 async def check_face_registered(voter_id: str):
     """Check if voter has registered face"""
+    voter = voters_collection.find_one({"voter_id": voter_id, "face_descriptor": {"$exists": True}})
     return {
-        "registered": voter_id in face_database,
+        "registered": voter is not None,
         "voter_id": voter_id
     }
 
 @router.delete("/face/{voter_id}")
 async def delete_face(voter_id: str):
     """Delete registered face"""
-    if voter_id in face_database:
-        del face_database[voter_id]
+    result = voters_collection.update_one(
+        {"voter_id": voter_id},
+        {"$unset": {"face_descriptor": ""}}
+    )
+    if result.modified_count > 0:
         return {"success": True, "message": "Face deleted"}
     raise HTTPException(status_code=404, detail="Face not registered")

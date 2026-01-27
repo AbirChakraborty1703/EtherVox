@@ -286,13 +286,14 @@ window.App = {
     }
     
     candidates.forEach((candidate, index) => {
+      const candidateId = index + 1; // Convert 0-based index to 1-based candidate ID
       const row = `
         <tr>
           <td>
-            <input type="radio" name="candidate" value="${index}" id="candidate${index}">
+            <input type="radio" name="candidate" value="${candidateId}" id="candidate${candidateId}">
           </td>
           <td>
-            <label for="candidate${index}">
+            <label for="candidate${candidateId}">
               <strong>${candidate.name}</strong><br>
               <small>Age: ${candidate.age} | Party: ${candidate.party}</small>
             </label>
@@ -537,6 +538,12 @@ window.App = {
       
       // Validate candidate ID
       const countCandidates = await instance.methods.getCountCandidates().call();
+      console.log('📊 Voting Debug:', {
+        selectedCandidateID: candidateID,
+        totalCandidates: countCandidates,
+        isValid: parseInt(candidateID) >= 1 && parseInt(candidateID) <= parseInt(countCandidates)
+      });
+      
       if (parseInt(candidateID) > parseInt(countCandidates) || parseInt(candidateID) < 1) {
         $("#msg").html("<p style='color: red;'>❌ Invalid candidate selection.</p>");
         return;
@@ -688,7 +695,10 @@ window.App = {
   },
 
   showFaceVerificationModal: function(resolveCallback) {
-    // Create modal HTML
+    // Remove any existing modal first
+    $('#voteFaceVerificationModal').remove();
+    
+    // Create modal HTML (using same structure as face-register.html)
     const modalHTML = `
       <div id="voteFaceVerificationModal" style="
         position: fixed;
@@ -706,7 +716,7 @@ window.App = {
           background: white;
           padding: 30px;
           border-radius: 15px;
-          max-width: 500px;
+          max-width: 600px;
           width: 90%;
           box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         ">
@@ -716,21 +726,27 @@ window.App = {
           <p style="color: #666; text-align: center; margin-bottom: 20px;">
             Position your face clearly in the camera
           </p>
-          <div style="text-align: center;">
-            <video id="voteVerifyVideo" autoplay style="
+          <div style="position: relative; width: 100%; max-width: 480px; margin: 20px auto; border-radius: 10px; overflow: hidden; background: #000;">
+            <video id="voteVerifyVideo" autoplay muted playsinline style="
               width: 100%;
-              max-width: 400px;
-              border-radius: 10px;
-              border: 3px solid #4CAF50;
-              margin-bottom: 20px;
+              height: auto;
+              display: block;
             "></video>
-            <canvas id="voteVerifyCanvas" style="display: none;"></canvas>
-            <div id="voteVerifyStatus" style="
-              margin: 15px 0;
-              padding: 10px;
-              border-radius: 5px;
-              font-weight: bold;
-            "></div>
+            <canvas id="voteVerifyCanvas" style="
+              position: absolute;
+              top: 0;
+              left: 0;
+              pointer-events: none;
+            "></canvas>
+          </div>
+          <div id="voteVerifyStatus" style="
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+          "></div>
+          <div style="text-align: center;">
             <button id="captureVoteFaceBtn" style="
               background: #4CAF50;
               color: white;
@@ -761,6 +777,33 @@ window.App = {
     setTimeout(() => {
       App.initializeFaceVerification(resolveCallback);
     }, 100);
+  },
+
+  // Continuous face detection for visual feedback (like face-register)
+  detectFacesForVerification: async function(video, canvas) {
+    if (!video || video.paused || !App.faceModelsLoaded) return;
+
+    try {
+      const ctx = canvas.getContext('2d');
+      const detections = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.3 }))
+        .withFaceLandmarks();
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (detections) {
+        const resizedDetections = faceapi.resizeResults(detections, {
+          width: canvas.width,
+          height: canvas.height
+        });
+        faceapi.draw.drawDetections(canvas, resizedDetections);
+        faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+      }
+    } catch (err) {
+      console.warn('Detection frame skipped:', err.message);
+    }
+
+    requestAnimationFrame(() => App.detectFacesForVerification(video, canvas));
   },
 
   initializeFaceVerification: async function(resolveCallback) {
@@ -825,21 +868,22 @@ window.App = {
       console.log('✅ Camera access granted, setting stream...');
       video.srcObject = stream;
       
-      // Wait for video to be ready
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Video loading timeout')), 5000);
-        
+      // Wait for video to be ready and set canvas dimensions
+      await new Promise((resolve) => {
         video.onloadedmetadata = () => {
-          clearTimeout(timeout);
-          console.log('✅ Video metadata loaded, playing...');
+          console.log('✅ Video metadata loaded, setting canvas dimensions...');
+          // Set canvas to match displayed video size, not internal resolution
+          canvas.width = video.clientWidth;
+          canvas.height = video.clientHeight;
           video.play()
             .then(() => {
               console.log('✅ Video playing');
               resolve();
             })
             .catch(err => {
-              console.error('❌ Video play error:', err);
-              reject(err);
+              console.warn('⚠️ Video play warning:', err);
+              // Continue anyway
+              resolve();
             });
         };
       });
@@ -848,6 +892,9 @@ window.App = {
       status.style.background = '#d4edda';
       status.style.color = '#155724';
       console.log('✅ Camera ready!');
+      
+      // Start face detection visualization
+      App.detectFacesForVerification(video, canvas);
       
       // Capture button handler
       captureBtn.onclick = async () => {
@@ -858,20 +905,14 @@ window.App = {
           status.style.background = '#cfe2ff';
           status.style.color = '#084298';
           
-          // Draw video frame to canvas
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          
           // Check if face-api.js is loaded
           if (typeof faceapi === 'undefined') {
             throw new Error('Face recognition library not loaded');
           }
           
-          // Detect face in captured image
+          // Detect face directly from video (same as login system)
           const detection = await faceapi
-            .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
             .withFaceLandmarks()
             .withFaceDescriptor();
           
@@ -895,12 +936,10 @@ window.App = {
           const response = await fetch('http://127.0.0.1:8001/login-face', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              voter_id: voterId,
-              descriptor: descriptor
+              face_descriptor: descriptor
             })
           });
           
