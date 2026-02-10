@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liveness Detection - EtherVox</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            z-index: 10;
+        }
+
+        .status-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .status-value {
+            font-weight: 500;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-complete {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-active {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .instructions h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #555;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Liveness Detection</h1>
+            <p>Verify your identity to proceed with voting</p>
+        </div>
+
+        <div class="alert alert-info" id="alertBox"></div>
+
+        <div class="instructions">
+            <h3>📋 Instructions</h3>
+            <ol>
+                <li><strong>Blink naturally</strong> at least 2 times</li>
+                <li><strong>Turn your head slowly to the LEFT</strong></li>
+                <li><strong>Turn your head slowly to the RIGHT</strong></li>
+                <li>Complete all steps within 15 seconds</li>
+            </ol>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+            <div class="video-overlay" id="videoOverlay">
+                <div class="loading"></div>
+            </div>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-item">
+                <span class="status-label">Session Status:</span>
+                <span class="status-value status-pending" id="sessionStatus">Not Started</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Eye Blinks:</span>
+                <span class="status-value status-pending" id="blinkStatus">0/2</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Head Movement:</span>
+                <span class="status-value status-pending" id="headStatus">Pending</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Confidence:</span>
+                <span class="status-value status-pending" id="confidenceStatus">0%</span>
+            </div>
+        </div>
+
+        <div class="metrics" id="metricsPanel" style="display: none;">
+            <div class="metric-card">
+                <div class="metric-value" id="totalAttempts">0</div>
+                <div class="metric-label">Attempts</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="avgConfidence">0%</div>
+                <div class="metric-label">Avg Confidence</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="timeElapsed">0s</div>
+                <div class="metric-label">Time Elapsed</div>
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <button class="btn btn-primary" id="startBtn" onclick="startLiveness()">
+                🚀 Start Liveness Check
+            </button>
+            <button class="btn btn-secondary" id="resetBtn" onclick="resetLiveness()" style="display: none;">
+                🔄 Try Again
+            </button>
+            <button class="btn btn-success" id="proceedBtn" onclick="proceedToVote()" style="display: none;">
+                ✓ Proceed to Vote
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://127.0.0.1:8001';
+        const VOTER_ID = localStorage.getItem('voter_id') || 'demo_voter_001'; // Get from login session
+
+        // State management
+        let sessionId = null;
+        let isChecking = false;
+        let videoStream = null;
+        let checkInterval = null;
+        let startTime = null;
+
+        // Initialize camera
+        async function initCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    }
+                });
+                document.getElementById('video').srcObject = videoStream;
+                showAlert('Camera initialized successfully', 'success');
+            } catch (error) {
+                showAlert('Failed to access camera: ' + error.message, 'error');
+                console.error('Camera error:', error);
+            }
+        }
+
+        // Start liveness detection
+        async function startLiveness() {
+            if (!videoStream) {
+                await initCamera();
+            }
+
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('videoOverlay').style.display = 'flex';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/liveness/start-liveness`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        voter_id: VOTER_ID,
+                        session_type: 'voting'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionId = data.session_id;
+                    isChecking = true;
+                    startTime = Date.now();
+
+                    updateStatus('Active', 'active');
+                    document.getElementById('videoOverlay').style.display = 'none';
+                    document.getElementById('metricsPanel').style.display = 'grid';
+
+                    showAlert('Liveness check started! Follow the instructions.', 'info');
+
+                    // Start capturing and sending frames
+                    startFrameCapture();
+                } else {
+                    showAlert('Failed to start liveness check', 'error');
+                    document.getElementById('startBtn').disabled = false;
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('videoOverlay').style.display = 'none';
+            }
+        }
+
+        // Capture and send frames for analysis
+        function startFrameCapture() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+
+            checkInterval = setInterval(async () => {
+                if (!isChecking) {
+                    clearInterval(checkInterval);
+                    return;
+                }
+
+                // Update time elapsed
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timeElapsed').textContent = elapsed + 's';
+
+                // Capture frame
+                ctx.drawImage(video, 0, 0);
+                const frameData = canvas.toDataURL('image/jpeg', 0.8);
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/liveness/check-liveness`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            frame: frameData
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        updateLivenessUI(result);
+
+                        if (result.is_live) {
+                            // Liveness confirmed!
+                            completeLiveness(result);
+                        }
+                    } else {
+                        showAlert(result.message || 'Check failed', 'error');
+                    }
+                } catch (error) {
+                    console.error('Frame check error:', error);
+                }
+            }, 500); // Check every 500ms
+        }
+
+        // Update UI with liveness results
+        function updateLivenessUI(result) {
+            const details = result.details || {};
+
+            // Update blink status
+            const blinkCount = details.blink_count || 0;
+            const blinkStatus = document.getElementById('blinkStatus');
+            blinkStatus.textContent = `${blinkCount}/2`;
+            if (blinkCount >= 2) {
+                blinkStatus.className = 'status-value status-complete';
+            }
+
+            // Update head movement status
+            const headStatus = document.getElementById('headStatus');
+            let headText = '';
+            if (details.left_turn && details.right_turn) {
+                headText = 'Complete ✓';
+                headStatus.className = 'status-value status-complete';
+            } else if (details.left_turn) {
+                headText = 'Turn RIGHT →';
+                headStatus.className = 'status-value status-active';
+            } else if (details.right_turn) {
+                headText = 'Turn LEFT ←';
+                headStatus.className = 'status-value status-active';
+            } else {
+                headText = 'Turn L/R';
+                headStatus.className = 'status-value status-pending';
+            }
+            headStatus.textContent = headText;
+
+            // Update confidence
+            const confidence = result.confidence || 0;
+            const confidenceStatus = document.getElementById('confidenceStatus');
+            confidenceStatus.textContent = confidence.toFixed(1) + '%';
+            if (confidence >= 80) {
+                confidenceStatus.className = 'status-value status-complete';
+            } else if (confidence >= 40) {
+                confidenceStatus.className = 'status-value status-active';
+            }
+
+            // Update progress bar
+            document.getElementById('progressBar').style.width = confidence + '%';
+
+            // Update average confidence metric
+            document.getElementById('avgConfidence').textContent = confidence.toFixed(0) + '%';
+        }
+
+        // Complete liveness detection
+        function completeLiveness(result) {
+            isChecking = false;
+            clearInterval(checkInterval);
+
+            updateStatus('Verified ✓', 'complete');
+            showAlert('Liveness verified successfully! You can now proceed to vote.', 'success');
+
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'inline-flex';
+            document.getElementById('proceedBtn').style.display = 'inline-flex';
+            document.getElementById('proceedBtn').classList.add('pulse');
+
+            // Update final metrics
+            document.getElementById('totalAttempts').textContent = result.details.attempts || 1;
+        }
+
+        // Reset liveness check
+        async function resetLiveness() {
+            if (sessionId) {
+                try {
+                    await fetch(`${API_BASE_URL}/liveness/reset-liveness`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+                } catch (error) {
+                    console.error('Reset error:', error);
+                }
+            }
+
+            // Reset UI
+            isChecking = false;
+            sessionId = null;
+            clearInterval(checkInterval);
+
+            updateStatus('Not Started', 'pending');
+            document.getElementById('blinkStatus').textContent = '0/2';
+            document.getElementById('blinkStatus').className = 'status-value status-pending';
+            document.getElementById('headStatus').textContent = 'Pending';
+            document.getElementById('headStatus').className = 'status-value status-pending';
+            document.getElementById('confidenceStatus').textContent = '0%';
+            document.getElementById('confidenceStatus').className = 'status-value status-pending';
+            document.getElementById('progressBar').style.width = '0%';
+
+            document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('resetBtn').style.display = 'none';
+            document.getElementById('proceedBtn').style.display = 'none';
+            document.getElementById('metricsPanel').style.display = 'none';
+
+            showAlert('Liveness check reset. You can start again.', 'info');
+        }
+
+        // Proceed to voting
+        async function proceedToVote() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/liveness/verify-liveness`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        voter_id: VOTER_ID
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.verified && result.can_vote) {
+                    // Store verification in session
+                    sessionStorage.setItem('liveness_verified', 'true');
+                    sessionStorage.setItem('liveness_session_id', sessionId);
+
+                    showAlert('Redirecting to voting page...', 'success');
+
+                    // Redirect to voting page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/voting.html';
+                    }, 2000);
+                } else {
+                    showAlert('Liveness verification failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showAlert('Verification error: ' + error.message, 'error');
+            }
+        }
+
+        // Update status display
+        function updateStatus(text, type) {
+            const statusEl = document.getElementById('sessionStatus');
+            statusEl.textContent = text;
+            statusEl.className = `status-value status-${type}`;
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type}`;
+            alertBox.style.display = 'block';
+
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Initialize camera on page load
+        window.addEventListener('load', initCamera);
+    </script>
+</body>
+</html>

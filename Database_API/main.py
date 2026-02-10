@@ -583,6 +583,14 @@ try:
 except Exception as e:
     print(f"[WARNING] Mobile authentication not available: {e}")
 
+# Import liveness detection routes
+try:
+    from liveness_routes import router as liveness_router
+    app.include_router(liveness_router, prefix="/liveness", tags=["Liveness Detection"])
+    print("[OK] ✓ Liveness detection routes loaded!")
+except Exception as e:
+    print(f"[WARNING] Liveness detection not available: {e}")
+
 # Server startup
 if __name__ == "__main__":
     import uvicorn
@@ -594,6 +602,7 @@ if __name__ == "__main__":
     print("[INFO] Face Auth: http://127.0.0.1:8001/register-face")
     print("[INFO] 🤖 Anomaly Detection: http://127.0.0.1:8001/anomaly/statistics")
     print("[INFO] 🛡️  Fraud Monitoring: http://127.0.0.1:8001/anomaly/flagged-voters")
+    print("[INFO] 👁️  Liveness Detection: http://127.0.0.1:8001/liveness/start-liveness")
     print("[INFO] Mobile Auth: Available on local network at http://10.141.184.25:8001")
     print()
     
