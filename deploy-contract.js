@@ -58,6 +58,16 @@ async function deployContract() {
     fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2));
     console.log(`✅ Deployment info saved to: deployment-info.json\n`);
 
+    // Copy updated contract artifact to public/contracts/ so the AddCandidate page
+    // (which loads the artifact at runtime via fetch) uses the same contract address
+    // as the webpack-bundled voting app
+    const buildArtifact = path.join(__dirname, 'build', 'contracts', 'Voting.json');
+    const publicArtifact = path.join(__dirname, 'public', 'contracts', 'Voting.json');
+    if (fs.existsSync(buildArtifact)) {
+      fs.copyFileSync(buildArtifact, publicArtifact);
+      console.log(`✅ Contract artifact synced to: public/contracts/Voting.json\n`);
+    }
+
     console.log('='.repeat(60));
     console.log('Deployment Summary');
     console.log('='.repeat(60));
