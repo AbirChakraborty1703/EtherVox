@@ -23,7 +23,7 @@
   height: 100vh;
   z-index: -3;
   overflow: hidden;
-  background-image: url('/eth5.jpeg');
+  background-image: url('/assets/eth5.jpeg');
   /* Use contain to show full image, or 100% 100% to stretch to fit */
   background-size: cover;
   background-position: center center;

@@ -7,6 +7,11 @@
  */
 
 // ===============================================
+// API CONFIGURATION
+// ===============================================
+const API_BASE_URL = 'http://127.0.0.1:8001';
+
+// ===============================================
 // INITIALIZATION
 // ===============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -151,85 +156,58 @@ function logout() {
 // LOAD DASHBOARD STATISTICS
 // ===============================================
 async function loadDashboardStats() {
-  try {
-    // Load total candidates from MongoDB
-    await loadCandidatesCount();
-    
-    // Load voting status
-    await loadVotingStatus();
-    
-    // Load total votes (if available)
-    await loadTotalVotes();
-    
-  } catch (error) {
-    console.error('Error loading dashboard stats:', error);
-    showNotification('⚠️ Could not load some statistics', 'warning');
+  const adminToken = localStorage.getItem('jwtTokenAdmin');
+  
+  if (!adminToken) {
+    console.warn('[DASHBOARD] No admin token available for stats loading');
+    return;
   }
-}
-
-// ===============================================
-// LOAD CANDIDATES COUNT
-// ===============================================
-async function loadCandidatesCount() {
+  
   try {
-    const response = await fetch('http://127.0.0.1:8001/candidates', {
+    // Fetch candidates count from MongoDB
+    const candidatesResponse = await fetch(`${API_BASE_URL}/candidates`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('jwtTokenAdmin')}`
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
       }
     });
     
-    if (response.ok) {
-      const data = await response.json();
-      const candidatesCount = data.count || 0;
+    if (candidatesResponse.ok) {
+      const candidatesData = await candidatesResponse.json();
+      const candidateCount = candidatesData.count || candidatesData.candidates?.length || 0;
       
-      const totalCandidatesElement = document.getElementById('totalCandidates');
-      if (totalCandidatesElement) {
-        animateCounter(totalCandidatesElement, 0, candidatesCount, 1000);
+      // Update candidates count in UI
+      const candidatesCountEl = document.querySelector('.stat-number');
+      if (candidatesCountEl) {
+        candidatesCountEl.textContent = candidateCount;
       }
-    } else {
-      console.warn('Could not load candidates count');
-      document.getElementById('totalCandidates').textContent = '-';
+      
+      console.log('[DASHBOARD] Loaded candidates:', candidateCount);
     }
-  } catch (error) {
-    console.error('Error loading candidates count:', error);
-    document.getElementById('totalCandidates').textContent = '-';
-  }
-}
-
-// ===============================================
-// LOAD VOTING STATUS
-// ===============================================
-async function loadVotingStatus() {
-  try {
-    // This would connect to your smart contract to check voting status
-    // For now, we'll set a placeholder
-    const votingStatusElement = document.getElementById('votingStatus');
-    if (votingStatusElement) {
-      votingStatusElement.textContent = 'Not Set';
-      votingStatusElement.style.color = '#ffd700';
+    
+    // Fetch voting dates from MongoDB
+    const votingDatesResponse = await fetch(`${API_BASE_URL}/voting-dates`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (votingDatesResponse.ok) {
+      const votingDatesData = await votingDatesResponse.json();
+      const votingDates = votingDatesData.voting_dates;
+      
+      if (votingDates) {
+        console.log('[DASHBOARD] Voting dates configured:', votingDates);
+        // You can update UI elements to show voting status if needed
+      }
     }
+    
   } catch (error) {
-    console.error('Error loading voting status:', error);
-    document.getElementById('votingStatus').textContent = 'Unknown';
-  }
-}
-
-// ===============================================
-// LOAD TOTAL VOTES
-// ===============================================
-async function loadTotalVotes() {
-  try {
-    // This would connect to your smart contract to get total votes
-    // For now, we'll set to 0
-    const totalVotesElement = document.getElementById('totalVotes');
-    if (totalVotesElement) {
-      totalVotesElement.textContent = '0';
-    }
-  } catch (error) {
-    console.error('Error loading total votes:', error);
-    document.getElementById('totalVotes').textContent = '-';
+    console.error('[DASHBOARD] Error loading stats:', error);
+    // Don't show error to user, just log it
   }
 }
 
@@ -342,3 +320,10 @@ window.addEventListener('error', function(event) {
 window.addEventListener('beforeunload', function() {
   // Could add cleanup logic here if needed
 });
+
+// ===============================================
+// EXPOSE FUNCTIONS GLOBALLY FOR HTML onclick HANDLERS
+// ===============================================
+window.navigateToAddCandidate = navigateToAddCandidate;
+window.navigateToSetVote = navigateToSetVote;
+window.logout = logout;

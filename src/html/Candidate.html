@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:8081 http://localhost:8081;">
+  <title>EtherVox - Candidate Dashboard</title>
+  <link rel="stylesheet" type="text/css" href="/css/candidate.css">
+  <link rel="stylesheet" type="text/css" href="/css/video-background.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+  <!-- Animated Background -->
+  <div class="video-background">
+    <div class="video-overlay crystal"></div>
+    <div class="glow-effect"></div>
+    <div class="particle-layer"></div>
+    <div class="shimmer-effect"></div>
+  </div>
+
+  <div class="background-animation">
+    <div class="floating-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+      <div class="shape shape-5"></div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-section">
+          <i class="fas fa-vote-yea logo-icon"></i>
+          <h1 class="logo-text">EtherVox</h1>
+        </div>
+        <p class="subtitle">Candidate Portal</p>
+      </div>
+      <div class="header-right">
+        <div class="user-info">
+          <i class="fas fa-user-tie"></i>
+          <span id="candidate-name-header">Loading...</span>
+        </div>
+        <button id="logout-btn" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-container">
+      <!-- Welcome Section -->
+      <section class="welcome-section">
+        <div class="welcome-card">
+          <div class="welcome-icon">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="welcome-content">
+            <h2>Welcome Back, <span id="candidate-name-welcome">Candidate</span>!</h2>
+            <p>Here's your complete profile information as registered in the system</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Content Grid -->
+      <div class="content-grid">
+        <!-- Profile Information Card -->
+        <section class="card profile-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-id-card"></i>
+              <h3>Personal Information</h3>
+            </div>
+            <div class="card-badge">
+              <i class="fas fa-shield-alt"></i>
+              <span>Verified</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-user"></i>
+                  <span>Full Name</span>
+                </div>
+                <div class="info-value" id="candidate-name">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-id-badge"></i>
+                  <span>Candidate ID</span>
+                </div>
+                <div class="info-value" id="candidate-id">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-calendar-alt"></i>
+                  <span>Age</span>
+                </div>
+                <div class="info-value" id="candidate-age">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-birthday-cake"></i>
+                  <span>Date of Birth</span>
+                </div>
+                <div class="info-value" id="candidate-dob">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-envelope"></i>
+                  <span>Email Address</span>
+                </div>
+                <div class="info-value" id="candidate-email">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-phone"></i>
+                  <span>Phone Number</span>
+                </div>
+                <div class="info-value" id="candidate-phone">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-id-card-alt"></i>
+                  <span>PAN Number</span>
+                </div>
+                <div class="info-value" id="candidate-pan">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-fingerprint"></i>
+                  <span>Aadhar Number</span>
+                </div>
+                <div class="info-value" id="candidate-aadhar">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-vote-yea"></i>
+                  <span>Voter EPIC Number</span>
+                </div>
+                <div class="info-value" id="candidate-epic">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Election & Party Information Card -->
+        <section class="card election-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-flag"></i>
+              <h3>Election Details</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-users"></i>
+                  <span>Political Party</span>
+                </div>
+                <div class="info-value" id="candidate-party">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>Election Center</span>
+                </div>
+                <div class="info-value" id="candidate-center">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-home"></i>
+                  <span>Address</span>
+                </div>
+                <div class="info-value" id="candidate-address">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-calendar-check"></i>
+                  <span>Election Start Date</span>
+                </div>
+                <div class="info-value" id="election-start">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-calendar-times"></i>
+                  <span>Election End Date</span>
+                </div>
+                <div class="info-value" id="election-end">Loading...</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-toggle-on"></i>
+                  <span>Status</span>
+                </div>
+                <div class="info-value status-badge" id="candidate-status">
+                  <span class="status-indicator"></span>
+                  <span>Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Blockchain Information Card -->
+        <section class="card blockchain-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-link"></i>
+              <h3>Blockchain Information</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-item full-width">
+                <div class="info-label">
+                  <i class="fas fa-hashtag"></i>
+                  <span>Blockchain Address (Transaction Hash)</span>
+                </div>
+                <div class="info-value blockchain-hash" id="blockchain-address">
+                  <span>Not yet registered on blockchain</span>
+                </div>
+              </div>
+              <div class="info-item full-width">
+                <div class="info-label">
+                  <i class="fas fa-wallet"></i>
+                  <span>MetaMask Account</span>
+                </div>
+                <div class="info-value blockchain-hash" id="blockchain-account">
+                  <span>Not available</span>
+                </div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <i class="fas fa-clock"></i>
+                  <span>Registration Date</span>
+                </div>
+                <div class="info-value" id="created-at">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Password Reset Card -->
+        <section class="card password-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-key"></i>
+              <h3>Security Settings</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="password-description">
+              <i class="fas fa-info-circle"></i>
+              Update your password to keep your account secure
+            </p>
+            <form id="password-reset-form" class="password-form">
+              <div class="input-group">
+                <div class="input-wrapper">
+                  <i class="fas fa-lock input-icon"></i>
+                  <input type="password" id="current-password" placeholder="Current Password" required>
+                  <label for="current-password">Current Password</label>
+                  <button type="button" class="toggle-password" data-target="current-password" title="Toggle password visibility">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="input-group">
+                <div class="input-wrapper">
+                  <i class="fas fa-lock input-icon"></i>
+                  <input type="password" id="new-password" placeholder="New Password" required minlength="8">
+                  <label for="new-password">New Password</label>
+                  <button type="button" class="toggle-password" data-target="new-password" title="Toggle password visibility">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="input-group">
+                <div class="input-wrapper">
+                  <i class="fas fa-lock input-icon"></i>
+                  <input type="password" id="confirm-password" placeholder="Confirm New Password" required minlength="8">
+                  <label for="confirm-password">Confirm New Password</label>
+                  <button type="button" class="toggle-password" data-target="confirm-password" title="Toggle password visibility">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="password-requirements">
+                <p><i class="fas fa-shield-alt"></i> Password must be at least 8 characters long</p>
+              </div>
+              <button type="submit" class="reset-btn">
+                <i class="fas fa-check-circle"></i>
+                <span>Update Password</span>
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Message Container -->
+    <div id="message-container" class="message-container"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>🔗 Powered by Ethereum Blockchain • Secure • Transparent • Decentralized</p>
+    </footer>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="/js/video-background.js"></script>
+  <script src="/js/candidate.js" type="module"></script>
+</body>
+
+</html>

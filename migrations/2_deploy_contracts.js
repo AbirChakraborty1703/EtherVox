@@ -26,4 +26,15 @@ module.exports = async function (deployer, network, accounts) {
 
   console.log('Voting contract deployed from:', deployerAccount);
   console.log('Use this account for admin functions like adding candidates');
+
+  // Sync build artifact to public/contracts/ so the AddCandidate page
+  // uses the same contract address as the webpack-bundled voting app
+  const fs = require('fs');
+  const path = require('path');
+  const buildArtifact = path.join(__dirname, '..', 'build', 'contracts', 'Voting.json');
+  const publicArtifact = path.join(__dirname, '..', 'public', 'contracts', 'Voting.json');
+  if (fs.existsSync(buildArtifact)) {
+    fs.copyFileSync(buildArtifact, publicArtifact);
+    console.log('✅ Contract artifact synced to: public/contracts/Voting.json');
+  }
 }

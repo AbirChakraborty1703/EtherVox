@@ -26,11 +26,24 @@ const app = express();
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// Cache control middleware - disable caching for JavaScript files
+app.use((req, res, next) => {
+  if (req.path.endsWith('.js') || req.path.endsWith('.json')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
+
 // Serve static files from public directory (includes js/, favicon, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve CSS files from src directory
 app.use('/css', express.static(path.join(__dirname, 'src/css')));
+
+// Serve JavaScript files from src/js directory
+app.use('/js', express.static(path.join(__dirname, 'src/js')));
 
 // Serve assets (images) from src/assets directory
 app.use('/assets', express.static(path.join(__dirname, 'src/assets')));
@@ -181,9 +194,25 @@ app.get('/SetVote.html', authorizeUser, (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/SetVote.html'));
 });
 
+// Candidate Dashboard
+app.get('/Candidate.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/Candidate.html'));
+});
+
 // Voting interface
 app.get('/index.html', authorizeUser, (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/index.html'));
+});
+
+// Election Results Page (Public Access - no authentication required)
+app.get('/result.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/result.html'));
+});
+
+// Debug page for vote matching
+app.get('/debug-votes.html', (req, res) => {
+  console.log('[ROUTE] /debug-votes.html accessed');
+  res.sendFile(path.join(__dirname, 'src/html/debug-votes.html'));
 });
 
 // ===============================================
@@ -203,6 +232,13 @@ app.get('/css/add-candidate.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/add-candidate.css'));
 });
 
+app.get('/css/candidate.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/candidate.css'));
+});
+
+app.get('/css/result.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/css/result.css'));
+});
 
 app.get('/js/admin-dashboard.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/admin-dashboard.js'));
@@ -215,6 +251,15 @@ app.get('/js/add-candidate.js', (req, res) => {
 app.get('/js/set-vote.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/set-vote.js'));
 });
+
+app.get('/js/candidate.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/candidate.js'));
+});
+
+app.get('/js/result.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/result.js'));
+});
+
 app.get('/css/set-vote.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/css/set-vote.css'));
 });
@@ -250,8 +295,8 @@ app.get('/app.bundle.js', (req, res) => {
 });
 
 // Image assets
-app.get('/assets/eth5.jpg', (req, res) => {
-  res.sendFile(path.join(__dirname, 'src/assets/eth5.jpg'));
+app.get('/assets/eth5.jpeg', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/assets/eth5.jpeg'));
 });
 
 // Favicon
@@ -305,7 +350,8 @@ app.listen(PORT, () => {
    
 📍 Server running at: http://localhost:${PORT}
 🔐 Login page: http://localhost:${PORT}/
-👑 Admin Dashboard: http://localhost:${PORT}/AdminDashboard.html (requires admin login)
+� Results page: http://localhost:${PORT}/result.html (public access)
+�👑 Admin Dashboard: http://localhost:${PORT}/AdminDashboard.html (requires admin login)
    📝 Add Candidate: http://localhost:${PORT}/AddCandidate.html (requires admin login)
    📅 Set Voting Dates: http://localhost:${PORT}/SetVote.html (requires admin login)
 🗳️  Voting page: http://localhost:${PORT}/index.html (requires voter login)

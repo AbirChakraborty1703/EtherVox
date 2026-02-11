@@ -6,11 +6,12 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdnjs.cloudflare.com ws: wss:;">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; media-src 'self'; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:7545 http://localhost:7545 https://cdnjs.cloudflare.com ws: wss:;">
   <title>Set Voting Information - EtherVox Admin</title>
 
   <link rel="stylesheet" type="text/css" href="/css/set-vote.css">
   <link rel="stylesheet" type="text/css" href="/css/video-background.css">
+  <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -189,6 +190,10 @@
         <div class="quick-presets">
           <h4><i class="fas fa-magic"></i> Quick Presets</h4>
           <div class="preset-buttons">
+            <button type="button" class="preset-btn" onclick="setPreset('quicktest')" style="border: 2px solid #4CAF50;">
+              <i class="fas fa-bolt"></i>
+              Quick Test (3 min start, 30 min vote)
+            </button>
             <button type="button" class="preset-btn" onclick="setPreset('today')">
               <i class="fas fa-calendar-day"></i>
               Today (9 AM - 5 PM)
@@ -258,6 +263,7 @@
   <script src="/js/bulletproof-setup.js"></script>
   <script src="/app.bundle.js" type="module"></script>
   <script src="/js/set-vote.js"></script>
+  <script src="/js/chatbot.js"></script>
 </body>
 
 </html>

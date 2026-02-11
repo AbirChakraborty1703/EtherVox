@@ -1,8 +1,5 @@
-/**
- * EtherVox Frontend Application Logic
- * Author: Abir Chakraborty
- * Description: Handles Web3 interaction, voting functionality, and UI updates
- */
+
+const API_BASE_URL = 'http://127.0.0.1:8001';
 
 // Web3 and contract interaction imports
 // Web3.js v4 import syntax
@@ -17,8 +14,7 @@ window.App = {
   account: null,
   contracts: {},
 
-  // Sync Ganache blockchain time with current system time
-  // This is needed because Ganache's block.timestamp can drift from real time
+
   syncGanacheTime: async function () {
     try {
       // Get current blockchain timestamp
@@ -98,6 +94,8 @@ window.App = {
   initWeb3: async function () {
     // Modern dapp browsers...
     if (window.ethereum) {
+      // Note: MetaMask's SES (Secure EcmaScript) may show "Removing unpermitted intrinsics" warnings
+      // This is a normal security feature and does not affect functionality
       App.web3 = new Web3(window.ethereum);
       try {
         // Request account access if needed
@@ -146,21 +144,31 @@ window.App = {
     }
   },
 
-  // Initialize the smart contract
+ 
   initContract: async function () {
     try {
       // Get network ID and check deployment
       const networkId = await App.web3.eth.net.getId();
       console.log('Current network ID:', networkId);
 
-      // Check if contract is deployed on this network
-      const deployedNetwork = votingArtifacts.networks[networkId];
+      // Prefer network 5777 (latest deployment), fallback to detected networkId
+      let deployedNetwork = votingArtifacts.networks['5777'];
+      let selectedNetwork = '5777';
+      
+      if (!deployedNetwork) {
+        // Fallback to detected network ID
+        deployedNetwork = votingArtifacts.networks[networkId];
+        selectedNetwork = networkId.toString();
+      }
+      
       if (!deployedNetwork) {
         console.error('Contract not deployed on network:', networkId);
         console.log('Available networks:', Object.keys(votingArtifacts.networks));
         alert(`Contract not deployed on current network (ID: ${networkId}). Please deploy the contract or switch to the correct network.`);
         return;
       }
+
+      console.log(`Using contract from network ${selectedNetwork}: ${deployedNetwork.address}`);
 
       // Get the necessary contract artifact file and instantiate it with truffle-contract
       App.contracts.Voting = new App.web3.eth.Contract(
@@ -376,36 +384,61 @@ window.App = {
 
       console.log('Blockchain candidate count:', blockchainCount);
 
-      // Map MongoDB candidates and fetch vote counts from blockchain
+      // Fetch all blockchain candidates and aggregate duplicates by id/name
+      const blockchainAggregates = new Map();
+
+      const normalizeKey = (candidateId, name) => {
+        if (candidateId && candidateId.trim().length > 0) return candidateId.toLowerCase().trim();
+        return (name || '').toLowerCase().trim();
+      };
+
+      for (let i = 1; i <= blockchainCount; i++) {
+        try {
+          const bc = await instance.methods.getCandidate(i).call();
+          const name = bc.name || bc[1];
+          const candidateId = bc.candidateId || bc[12];
+          const voteCount = parseInt(bc[13] || bc.voteCount || 0);
+          const key = normalizeKey(candidateId, name);
+
+          if (!blockchainAggregates.has(key)) {
+            blockchainAggregates.set(key, { voteCount: 0, ids: [], name, candidateId });
+          }
+
+          const aggregate = blockchainAggregates.get(key);
+          aggregate.voteCount += voteCount;
+          aggregate.ids.push(i);
+          blockchainAggregates.set(key, aggregate);
+        } catch (e) {
+          console.warn(`Error fetching blockchain candidate ${i}:`, e);
+        }
+      }
+
+      // Map MongoDB candidates and match with blockchain by id (preferred) or name
       const candidates = [];
 
-      // Loop through ALL MongoDB candidates, not limited by blockchain count
-      for (let i = 0; i < data.candidates.length; i++) {
-        const candidate = data.candidates[i];
+      for (const candidate of data.candidates) {
+        const key = normalizeKey(candidate.candidateId, candidate.name);
+        const aggregate = blockchainAggregates.get(key);
+        const voteCount = aggregate ? aggregate.voteCount : 0;
+        const blockchainIds = aggregate ? aggregate.ids : [];
+        const onBlockchain = !!aggregate;
 
-        // Try to fetch blockchain data if this candidate exists on blockchain
-        let voteCount = 0;
-        if (i < blockchainCount) {
-          try {
-            const blockchainCandidate = await instance.methods.getCandidate(i + 1).call();
-            voteCount = parseInt(blockchainCandidate[10] || blockchainCandidate.voteCount || 0);
-          } catch (e) {
-            console.warn(`Could not fetch blockchain data for candidate ${i + 1}:`, e);
-          }
+        if (aggregate) {
+          console.log(`✓ Matched "${candidate.name}" (${candidate.candidateId || 'no id'}) → IDs ${blockchainIds.join(', ')} total ${voteCount} votes`);
+        } else {
+          console.warn(`⚠ No blockchain match for "${candidate.name}" (${candidate.candidateId || 'no id'}) - needs sync`);
         }
 
         candidates.push({
-          blockchainId: i < blockchainCount ? i + 1 : null,
+          blockchainId: blockchainIds[0] || null,
           name: candidate.name || 'Unknown',
           party: candidate.party || 'Independent',
           voteCount: voteCount,
           electionCenter: candidate.electionCenter,
           candidateAddress: candidate.candidateAddress,
           mongoId: candidate._id,
-          onBlockchain: i < blockchainCount
+          onBlockchain: onBlockchain
         });
-
-        console.log(`Candidate ${i + 1}: ${candidate.name} - ${voteCount} votes (${i < blockchainCount ? 'on blockchain' : 'pending blockchain sync'})`);
       }
 
       console.log('Displaying candidates with vote counts:', candidates);
@@ -463,7 +496,7 @@ window.App = {
             blockchainId: i, // Store the blockchain ID for voting
             name: candidate[1] || candidate.name || `Candidate ${i}`,
             party: candidate[5] || candidate.party || 'Independent',
-            voteCount: candidate[10] || candidate.voteCount || 0
+            voteCount: candidate[13] || candidate.voteCount || 0
           });
         } catch (e) {
           console.error('Error getting candidate', i, e);
@@ -540,10 +573,6 @@ window.App = {
                 <i class="fas fa-flag"></i> ${partyName}
               </span>
             </div>
-          </div>
-          <div class="candidate-votes">
-            <div class="vote-count">${voteCount}</div>
-            <div class="vote-label">Votes</div>
           </div>
           <div class="candidate-select">
             <input type="radio" name="candidate" value="${candidateId}" id="candidate${index}" style="display:none;">
@@ -797,7 +826,7 @@ window.App = {
       }
 
       // Then save to MongoDB database
-      const response = await fetch('http://127.0.0.1:8001/candidates', {
+      const response = await fetch(`${API_BASE_URL}/candidates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

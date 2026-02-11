@@ -29,6 +29,9 @@ contract Voting {
         string name;
         uint256 age;
         string dateOfBirth;       // Format: DD-MM-YYYY
+        string panNumber;         // PAN Number
+        string aadharNumber;      // Aadhar Number
+        string voterEpicNumber;   // Voter EPIC Number
         string electionCenter;    // Election center address
         string party; 
         string candidateAddress;  // Candidate's personal address
@@ -91,6 +94,9 @@ contract Voting {
         string memory name,
         uint256 age,
         string memory dateOfBirth,
+        string memory panNumber,
+        string memory aadharNumber,
+        string memory voterEpicNumber,
         string memory electionCenter,
         string memory party,
         string memory candidateAddress,
@@ -103,6 +109,9 @@ contract Voting {
         if (bytes(name).length == 0) revert EmptyString("name");
         if (age == 0 || age < 18) revert InvalidAge(age);
         if (bytes(dateOfBirth).length == 0) revert EmptyString("dateOfBirth");
+        if (bytes(panNumber).length == 0) revert EmptyString("panNumber");
+        if (bytes(aadharNumber).length == 0) revert EmptyString("aadharNumber");
+        if (bytes(voterEpicNumber).length == 0) revert EmptyString("voterEpicNumber");
         if (bytes(electionCenter).length == 0) revert EmptyString("electionCenter");
         if (bytes(party).length == 0) revert EmptyString("party");
         if (bytes(candidateAddress).length == 0) revert EmptyString("candidateAddress");
@@ -117,6 +126,9 @@ contract Voting {
             name,
             age,
             dateOfBirth,
+            panNumber,
+            aadharNumber,
+            voterEpicNumber,
             electionCenter,
             party,
             candidateAddress,
@@ -169,6 +181,9 @@ contract Voting {
         string memory name,
         uint256 age,
         string memory dateOfBirth,
+        string memory panNumber,
+        string memory aadharNumber,
+        string memory voterEpicNumber,
         string memory electionCenter,
         string memory party,
         string memory candidateAddress,
@@ -186,6 +201,9 @@ contract Voting {
             candidate.name,
             candidate.age,
             candidate.dateOfBirth,
+            candidate.panNumber,
+            candidate.aadharNumber,
+            candidate.voterEpicNumber,
             candidate.electionCenter,
             candidate.party,
             candidate.candidateAddress,

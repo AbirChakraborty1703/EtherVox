@@ -9,6 +9,7 @@
 
   <link rel="stylesheet" type="text/css" href="/css/add-candidate.css">
   <link rel="stylesheet" type="text/css" href="/css/video-background.css">
+  <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -66,6 +67,27 @@
               <label for="dateOfBirth">Date of Birth *</label>
               <input id="dateOfBirth" type="date" name="dateOfBirth" required>
               <span class="field-hint">Format: YYYY-MM-DD</span>
+            </div>
+
+            <div class="form-group">
+              <label for="panNumber">PAN Number *</label>
+              <input id="panNumber" type="text" name="panNumber" placeholder="ABCDE1234F" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" 
+                maxlength="10" class="uppercase-input" required>
+              <span class="field-hint">Format: ABCDE1234F (10 characters)</span>
+            </div>
+
+            <div class="form-group">
+              <label for="aadharNumber">Aadhar Number *</label>
+              <input id="aadharNumber" type="text" name="aadharNumber" placeholder="1234 5678 9012" 
+                pattern="[0-9]{4}\s[0-9]{4}\s[0-9]{4}" maxlength="14" required>
+              <span class="field-hint">Format: XXXX XXXX XXXX (12 digits)</span>
+            </div>
+
+            <div class="form-group">
+              <label for="voterEpicNumber">Voter EPIC Number *</label>
+              <input id="voterEpicNumber" type="text" name="voterEpicNumber" placeholder="ABC1234567" 
+                pattern="[A-Z]{3}[0-9]{7}" maxlength="10" class="uppercase-input" required>
+              <span class="field-hint">Format: ABC1234567 (3 letters + 7 digits)</span>
             </div>
           </div>
 
@@ -170,6 +192,7 @@
   </script>
   <script src="/js/video-background.js"></script>
   <script src="/js/add-candidate.js"></script>
+  <script src="/js/chatbot.js"></script>
 </body>
 
 </html>

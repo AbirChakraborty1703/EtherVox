@@ -33,6 +33,9 @@ function initializeLoginInterface() {
   
   // Initialize form animations
   setupFormAnimations();
+  
+  // Initialize project info modal
+  setupProjectInfoModal();
 }
 
 // ===============================================
@@ -129,6 +132,12 @@ function setupEventListeners() {
   if (userForm) {
     userForm.addEventListener('submit', handleUserLogin);
   }
+  
+  // Candidate login form
+  const candidateForm = document.getElementById('candidateLoginForm');
+  if (candidateForm) {
+    candidateForm.addEventListener('submit', handleCandidateLogin);
+  }
 }
 
 // ===============================================
@@ -160,7 +169,7 @@ async function handleAdminLogin(event) {
       
       // Redirect to admin dashboard
       setTimeout(() => {
-        window.location.replace(`http://localhost:8081/AdminDashboard.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`AdminDashboard.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {
@@ -203,7 +212,7 @@ async function handleUserLogin(event) {
       
       // Redirect to voting interface
       setTimeout(() => {
-        window.location.replace(`http://localhost:8081/index.html?Authorization=Bearer ${response.data.token}`);
+        window.location.replace(`index.html?Authorization=Bearer ${response.data.token}`);
       }, 1500);
       
     } else {
@@ -214,6 +223,49 @@ async function handleUserLogin(event) {
     console.error('User login failed:', error);
     showMessage(`❌ Voter Login Failed: ${error.message}`, 'error');
     setLoadingState(submitButton, false);
+  }
+}
+
+// ===============================================
+// Candidate Login Handler
+// ===============================================
+async function handleCandidateLogin(event) {
+  event.preventDefault();
+  
+  const candidateId = document.getElementById('candidate-id').value.trim();
+  const password = document.getElementById('candidate-password').value;
+  const submitButton = event.target.querySelector('.login-btn');
+  
+  // Input validation
+  if (!validateCandidateInputs(candidateId, password)) {
+    return;
+  }
+  
+  // Show loading state
+  setLoadingState(submitButton, true, 'Authenticating...', 'candidate');
+  
+  try {
+    const response = await authenticateCandidate(candidateId, password);
+    
+    if (response.success) {
+      showMessage('🎉 Candidate authentication successful! Loading your dashboard...', 'success');
+      
+      // Store candidate token
+      localStorage.setItem('jwtTokenCandidate', response.data.token);
+      
+      // Redirect to candidate dashboard
+      setTimeout(() => {
+        window.location.replace(`Candidate.html?Authorization=Bearer ${response.data.token}`);
+      }, 1500);
+      
+    } else {
+      throw new Error('Invalid candidate credentials');
+    }
+    
+  } catch (error) {
+    console.error('Candidate login failed:', error);
+    showMessage(`❌ Candidate Login Failed: ${error.message}`, 'error');
+    setLoadingState(submitButton, false, '', 'candidate');
   }
 }
 
@@ -268,6 +320,57 @@ async function authenticateUser(userId, password, expectedRole) {
 }
 
 // ===============================================
+// Candidate Authentication API Function
+// ===============================================
+async function authenticateCandidate(candidateId, password) {
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8001/api/candidate/login`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          candidateId: candidateId,
+          password: password
+        })
+      }
+    );
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Invalid candidate ID or password');
+      } else if (response.status === 403) {
+        throw new Error('Candidate account is inactive');
+      } else if (response.status >= 500) {
+        throw new Error('Server error. Please try again later.');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Authentication failed (${response.status})`);
+      }
+    }
+    
+    const data = await response.json();
+    
+    return {
+      success: true,
+      data: {
+        token: data.token,
+        candidateId: data.candidateId,
+        name: data.name
+      }
+    };
+    
+  } catch (fetchError) {
+    if (fetchError.name === 'TypeError' && fetchError.message === 'Failed to fetch') {
+      throw new Error('🚨 Database API server is not running. Please start the Database API service.');
+    }
+    throw fetchError;
+  }
+}
+
+// ===============================================
 // Input Validation Functions
 // ===============================================
 function validateAdminInputs(adminId, password) {
@@ -308,6 +411,25 @@ function validateUserInputs(voterId, password) {
   return true;
 }
 
+function validateCandidateInputs(candidateId, password) {
+  if (!candidateId || !password) {
+    showMessage('❌ Please enter both Candidate ID and Password', 'error');
+    return false;
+  }
+  
+  if (candidateId.length < 3) {
+    showMessage('❌ Candidate ID must be at least 3 characters long', 'error');
+    return false;
+  }
+  
+  if (password.length < 6) {
+    showMessage('❌ Password must be at least 6 characters long', 'error');
+    return false;
+  }
+  
+  return true;
+}
+
 function validateField(input) {
   const value = input.value.trim();
   const inputWrapper = input.parentElement;
@@ -329,7 +451,7 @@ function validateField(input) {
 // ===============================================
 // UI Helper Functions
 // ===============================================
-function setLoadingState(button, isLoading, loadingText = 'Loading...') {
+function setLoadingState(button, isLoading, loadingText = 'Loading...', buttonType = 'user') {
   if (isLoading) {
     button.disabled = true;
     button.innerHTML = `
@@ -340,9 +462,23 @@ function setLoadingState(button, isLoading, loadingText = 'Loading...') {
   } else {
     button.disabled = false;
     const isAdmin = button.classList.contains('admin-btn');
+    const isCandidate = button.classList.contains('candidate-btn');
+    
+    let icon, text;
+    if (isAdmin) {
+      icon = 'fa-sign-in-alt';
+      text = 'Access Admin Panel';
+    } else if (isCandidate) {
+      icon = 'fa-sign-in-alt';
+      text = 'Access Candidate Portal';
+    } else {
+      icon = 'fa-vote-yea';
+      text = 'Enter Voting Portal';
+    }
+    
     button.innerHTML = `
-      <i class="fas ${isAdmin ? 'fa-sign-in-alt' : 'fa-vote-yea'}"></i>
-      <span>${isAdmin ? 'Access Admin Panel' : 'Enter Voting Portal'}</span>
+      <i class="fas ${icon}"></i>
+      <span>${text}</span>
       <div class="btn-glow"></div>
     `;
     button.style.opacity = '1';
@@ -386,6 +522,60 @@ function createRippleEffect(element) {
   setTimeout(() => {
     ripple.remove();
   }, 600);
+}
+
+// ===============================================
+// Project Info Modal Functionality
+// ===============================================
+function setupProjectInfoModal() {
+  const projectInfoBtn = document.getElementById('projectInfoBtn');
+  const projectModal = document.getElementById('projectModal');
+  const modalClose = document.getElementById('modalClose');
+  
+  if (projectInfoBtn && projectModal && modalClose) {
+    // Open modal on eye icon click
+    projectInfoBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      projectModal.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+      
+      // Add click sound effect (optional)
+      playClickSound();
+    });
+    
+    // Close modal on close button click
+    modalClose.addEventListener('click', function() {
+      closeModal();
+    });
+    
+    // Close modal when clicking outside the modal content
+    projectModal.addEventListener('click', function(e) {
+      if (e.target === projectModal) {
+        closeModal();
+      }
+    });
+    
+    // Close modal on ESC key press
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && projectModal.classList.contains('active')) {
+        closeModal();
+      }
+    });
+  }
+}
+
+function closeModal() {
+  const projectModal = document.getElementById('projectModal');
+  if (projectModal) {
+    projectModal.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+  }
+}
+
+function playClickSound() {
+  // Optional: Add a subtle click sound effect
+  // You can implement this if you have audio assets
+  console.log('Project info modal opened');
 }
 
 // ===============================================

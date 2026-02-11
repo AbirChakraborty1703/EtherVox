@@ -1,7 +1,3 @@
-/**
- * EtherVox Add Candidate Page Styles
- * Modern form design with validation feedback
- */
 
 /* ===============================================
    GLOBAL STYLES
@@ -23,6 +19,7 @@ body {
    =============================================== */
 .page-header {
   background: rgba(10, 10, 30, 0.25);
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border-bottom: 1px solid rgba(255, 215, 0, 0.3);
   padding: 20px 0;
@@ -121,6 +118,7 @@ body {
 
 .form-container {
   background: rgba(10, 10, 30, 0.25);
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border: 1px solid rgba(76, 175, 80, 0.4);
   border-radius: 20px;
@@ -540,4 +538,8 @@ body {
   100% {
     transform: rotate(360deg);
   }
-}
+}  
+/* Uppercase Input Helper */  
+.uppercase-input {  
+  text-transform: uppercase;  
+} 

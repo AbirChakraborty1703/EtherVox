@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vote Debug - EtherVox</title>
+  <style>
+    body { font-family: monospace; background: #1a1a1a; color: #0f0; padding: 20px; }
+    h1 { color: #0ff; }
+    .section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-left: 3px solid #0ff; }
+    .blockchain { border-left-color: #f0f; }
+    .mongodb { border-left-color: #ff0; }
+    .matched { border-left-color: #0f0; }
+    pre { background: #000; padding: 10px; overflow-x: auto; }
+    .debug-button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>EtherVox Vote Debugging Tool</h1>
+  <button type="button" class="debug-button" onclick="runDebug()">🔍 Run Debug Check</button>
+  <div id="output"></div>
+
+  <script src="/js/web3.min.js"></script>
+  <script>
+    async function runDebug() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="section"><h2>⏳ Running debug...</h2></div>';
+      
+      try {
+        // Initialize Web3
+        const { Web3 } = window;
+        const web3 = new Web3('http://localhost:7545');
+        
+        // Load contract
+        const response = await fetch('/contracts/Voting.json');
+        const contractData = await response.json();
+        const networkId = await web3.eth.net.getId();
+        const deployedNetwork = contractData.networks[networkId];
+        const contract = new web3.eth.Contract(contractData.abi, deployedNetwork.address);
+        
+        // Get blockchain candidates
+        const count = await contract.methods.getCountCandidates().call();
+        output.innerHTML += `<div class="section blockchain"><h2>📦 Blockchain Candidates (${count})</h2><pre>`;
+        
+        const blockchainCandidates = [];
+        for (let i = 1; i <= parseInt(count); i++) {
+          const bc = await contract.methods.getCandidate(i).call();
+          const name = bc.name || bc[1];
+          const voteCount = parseInt(bc[13] || bc.voteCount || 0);
+          blockchainCandidates.push({ id: i, name, voteCount });
+          output.innerHTML += `ID ${i}: "${name}" - ${voteCount} votes\n`;
+        }
+        output.innerHTML += '</pre></div>';
+        
+        // Get MongoDB candidates
+        const mongoResponse = await fetch('http://127.0.0.1:8001/candidates');
+        const mongoData = await mongoResponse.json();
+        
+        output.innerHTML += `<div class="section mongodb"><h2>🗄️ MongoDB Candidates (${mongoData.count})</h2><pre>`;
+        mongoData.candidates.forEach((c, i) => {
+          output.innerHTML += `Index ${i}: "${c.name}"\n`;
+        });
+        output.innerHTML += '</pre></div>';
+        
+        // Match candidates
+        output.innerHTML += `<div class="section matched"><h2>✅ Name-Based Matching Results</h2><pre>`;
+        
+        for (const mongoCandidate of mongoData.candidates) {
+          let matched = false;
+          let voteCount = 0;
+          
+          for (const bcCandidate of blockchainCandidates) {
+            if (bcCandidate.name.toLowerCase().trim() === mongoCandidate.name.toLowerCase().trim()) {
+              voteCount = bcCandidate.voteCount;
+              matched = true;
+              output.innerHTML += `✓ "${mongoCandidate.name}" → Blockchain ID ${bcCandidate.id}, ${voteCount} votes\n`;
+              break;
+            }
+          }
+          
+          if (!matched) {
+            output.innerHTML += `✗ "${mongoCandidate.name}" → NO MATCH (0 votes)\n`;
+          }
+        }
+        
+        output.innerHTML += '</pre></div>';
+        
+        output.innerHTML += `<div class="section"><h2>✅ Debug Complete</h2><p>Check the results above. If matching is correct but result.html shows wrong data, it's a browser cache issue.</p></div>`;
+        
+      } catch (error) {
+        output.innerHTML += `<div class="section" style="border-left-color: #f00;"><h2>❌ Error</h2><pre>${error.message}\n${error.stack}</pre></div>`;
+      }
+    }
+  </script>
+</body>
+</html>
