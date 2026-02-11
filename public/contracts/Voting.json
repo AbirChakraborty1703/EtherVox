@@ -12423,12 +12423,12 @@
         }
       },
       "links": {},
-      "address": "0x23443d94D31acdA6F8564187ABd331D75647a2Ba",
-      "transactionHash": "0x3241cbdf8068f7c6c7550314be43d19a0eb2752328bde2a783cbc8273a4c58b2"
+      "address": "0xEf2A80b2634914218A06d1787e05DbfE23F9bF88",
+      "transactionHash": "0x7bd0b2439a2b9daec91601f222d50a868b9df8a61920bf3b70e6a69f83f9411e"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2026-02-11T13:50:11.450Z",
+  "updatedAt": "2026-02-11T14:24:36.028Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

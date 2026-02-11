@@ -574,10 +574,6 @@ window.App = {
               </span>
             </div>
           </div>
-          <div class="candidate-votes">
-            <div class="vote-count">${voteCount}</div>
-            <div class="vote-label">Votes</div>
-          </div>
           <div class="candidate-select">
             <input type="radio" name="candidate" value="${candidateId}" id="candidate${index}" style="display:none;">
           </div>
