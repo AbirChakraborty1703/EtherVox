@@ -6,10 +6,6 @@
  * @version 2.0.0
  */
 
-// Web3 and contract imports
-const { Web3 } = require('web3');
-const votingArtifacts = require('../../build/contracts/Voting.json');
-
 // ===============================================
 // API CONFIGURATION
 // ===============================================
@@ -21,6 +17,7 @@ const API_BASE_URL = 'http://127.0.0.1:8001';
 let web3 = null;
 let account = null;
 let votingContract = null;
+let votingArtifacts = null;
 
 // ===============================================
 // INITIALIZATION
@@ -38,6 +35,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function initWeb3() {
   showStatusMessage('🔄 Connecting to MetaMask...', 'info');
   
+  if (typeof Web3 === 'undefined') {
+    showStatusMessage('❌ Web3 not loaded. Please refresh the page.', 'error');
+    document.getElementById('addCandidate').disabled = true;
+    return false;
+  }
+  
   if (typeof window.ethereum === 'undefined') {
     showStatusMessage('❌ MetaMask not detected. Please install MetaMask to add candidates.', 'error');
     document.getElementById('addCandidate').disabled = true;
@@ -45,7 +48,9 @@ async function initWeb3() {
   }
   
   try {
-    // Initialize Web3
+    // Initialize Web3 using the globally available Web3
+    // Note: MetaMask's SES (Secure EcmaScript) may show "Removing unpermitted intrinsics" warnings
+    // This is a normal security feature and does not affect functionality
     web3 = new Web3(window.ethereum);
     
     // Request account access
@@ -64,6 +69,17 @@ async function initWeb3() {
     // Check network - should be Ganache (chain ID 1337 or 5777)
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
     console.log('Connected to chain ID:', chainId);
+    
+    // Load contract artifacts
+    if (!votingArtifacts) {
+      console.log('Loading contract artifacts...');
+      const response = await fetch('/contracts/Voting.json');
+      if (!response.ok) {
+        throw new Error('Failed to load contract artifacts');
+      }
+      votingArtifacts = await response.json();
+      console.log('Contract artifacts loaded');
+    }
     
     // Initialize contract
     const networkId = await web3.eth.net.getId();
@@ -582,6 +598,187 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// ===============================================
+// SYNC ALL CANDIDATES TO BLOCKCHAIN
+// ===============================================
+async function syncCandidatesToBlockchain() {
+  const syncButton = document.getElementById('syncCandidates');
+  const adminToken = localStorage.getItem('jwtTokenAdmin');
+  
+  // Confirm before syncing
+  if (!confirm('🔗 Sync all MongoDB candidates to blockchain?\n\nThis may take a few minutes and require multiple MetaMask confirmations.')) {
+    return;
+  }
+  
+  try {
+    // Disable button and show loading
+    syncButton.disabled = true;
+    syncButton.innerHTML = '<div class="spinner"></div> Syncing...';
+    showStatusMessage('🔄 Starting sync process...', 'info');
+    
+    // Step 1: Ensure Web3 is connected
+    if (!web3 || !votingContract || !account) {
+      showStatusMessage('🔄 Connecting to MetaMask...', 'info');
+      const connected = await initWeb3();
+      if (!connected) {
+        throw new Error('MetaMask connection failed. Please connect MetaMask.');
+      }
+    }
+    
+    // Verify admin is contract owner
+    const contractOwner = await votingContract.methods.owner().call();
+    if (contractOwner.toLowerCase() !== account.toLowerCase()) {
+      throw new Error('Only the contract owner can sync candidates to blockchain.');
+    }
+    
+    // Step 2: Fetch all candidates from MongoDB
+    showStatusMessage('📥 Fetching candidates from database...', 'info');
+    const response = await fetch(`${API_BASE_URL}/candidates`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch candidates: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const candidates = data.candidates || [];
+    
+    if (candidates.length === 0) {
+      showStatusMessage('⚠️ No candidates found in database.', 'warning');
+      return;
+    }
+    
+    console.log(`Found ${candidates.length} candidates in MongoDB`);
+    
+    // Step 3: Get current blockchain candidate count
+    const blockchainCount = await votingContract.methods.getCountCandidates().call();
+    console.log(`Current blockchain candidates: ${blockchainCount}`);
+    
+    // Step 4: Determine which candidates need syncing
+    const candidatesToSync = candidates.filter((candidate, index) => {
+      // Sync if: not marked as synced OR index >= blockchain count
+      return !candidate.syncedToBlockchain || index >= parseInt(blockchainCount);
+    });
+    
+    if (candidatesToSync.length === 0) {
+      showStatusMessage('✅ All candidates are already synced to blockchain!', 'success');
+      return;
+    }
+    
+    console.log(`Need to sync ${candidatesToSync.length} candidates`);
+    showStatusMessage(`⏳ Syncing ${candidatesToSync.length} candidates... Please confirm in MetaMask.`, 'info');
+    
+    // Step 5: Sync each candidate
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    for (let i = 0; i < candidatesToSync.length; i++) {
+      const candidate = candidatesToSync[i];
+      const progress = `[${i + 1}/${candidatesToSync.length}]`;
+      
+      try {
+        console.log(`${progress} Syncing candidate: ${candidate.name}`);
+        showStatusMessage(`${progress} Syncing ${candidate.name}... Please confirm in MetaMask.`, 'info');
+        
+        // Add candidate to blockchain
+        const tx = await votingContract.methods.addCandidate(
+          candidate.name || 'Unknown',
+          parseInt(candidate.age) || 18,
+          candidate.dateOfBirth || '01-01-2000',
+          candidate.panNumber || 'XXXXX0000X',
+          candidate.aadharNumber || '000000000000',
+          candidate.voterEpicNumber || 'XXX0000000',
+          candidate.electionCenter || 'Default Center',
+          candidate.party || 'Independent',
+          candidate.candidateAddress || 'Not Provided',
+          candidate.email || 'not@provided.com',
+          candidate.phoneNumber || '0000000000',
+          candidate.candidateId || `CAND${i + 1}`,
+          candidate.candidatePassword || 'default_password'
+        ).send({ 
+          from: account, 
+          gas: 3000000 
+        });
+        
+        console.log(`✅ ${progress} Blockchain TX: ${tx.transactionHash}`);
+        
+        // Update MongoDB record
+        const updateResponse = await fetch(`${API_BASE_URL}/candidates/${candidate._id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({
+            blockchainAddress: tx.transactionHash,
+            blockchainAccount: account,
+            syncedToBlockchain: true,
+            syncedAt: new Date().toISOString()
+          })
+        });
+        
+        if (updateResponse.ok) {
+          console.log(`✅ ${progress} MongoDB updated for ${candidate.name}`);
+        } else {
+          console.warn(`⚠️ ${progress} MongoDB update failed for ${candidate.name}`);
+        }
+        
+        successCount++;
+        showStatusMessage(`✅ ${progress} ${candidate.name} synced successfully!`, 'success');
+        
+      } catch (error) {
+        errorCount++;
+        const errorMsg = `${candidate.name}: ${error.message}`;
+        errors.push(errorMsg);
+        console.error(`❌ ${progress} Error syncing ${candidate.name}:`, error);
+        showStatusMessage(`❌ ${progress} Failed: ${candidate.name}`, 'error');
+      }
+    }
+    
+    // Step 6: Show final results
+    const finalBlockchainCount = await votingContract.methods.getCountCandidates().call();
+    let finalMessage = `\n📊 Sync Complete!\n\n`;
+    finalMessage += `✅ Successfully synced: ${successCount}\n`;
+    if (errorCount > 0) {
+      finalMessage += `❌ Failed: ${errorCount}\n\n`;
+      finalMessage += `Errors:\n${errors.join('\n')}`;
+    }
+    finalMessage += `\n\n📦 Total on blockchain: ${finalBlockchainCount}`;
+    
+    if (errorCount === 0) {
+      showStatusMessage(finalMessage, 'success');
+      alert(finalMessage);
+    } else {
+      showStatusMessage(finalMessage, 'warning');
+      alert(finalMessage);
+    }
+    
+    console.log('='.repeat(60));
+    console.log('Sync Summary:');
+    console.log(`Success: ${successCount}`);
+    console.log(`Errors: ${errorCount}`);
+    console.log(`Blockchain Count: ${finalBlockchainCount}`);
+    console.log('='.repeat(60));
+    
+  } catch (error) {
+    console.error('❌ Sync process failed:', error);
+    showStatusMessage(`❌ Sync failed: ${error.message}`, 'error');
+    alert(`❌ Sync failed:\n\n${error.message}`);
+    
+  } finally {
+    // Restore button
+    syncButton.disabled = false;
+    syncButton.innerHTML = '<i class="fas fa-sync-alt"></i> Sync All to Blockchain';
+  }
+}
+
 // Make functions globally available
 window.goBackToDashboard = goBackToDashboard;
 window.logout = logout;
+window.syncCandidatesToBlockchain = syncCandidatesToBlockchain;

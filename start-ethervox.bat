@@ -86,7 +86,7 @@ if exist "Database_API\mongodb_data" (
     timeout /t 5 /nobreak >nul
     
     REM Verify MongoDB is running
-    python -c "from pymongo import MongoClient; client = MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=3000); client.admin.command('ping'); print('[OK] MongoDB connection verified')" 2>nul
+    .venv\Scripts\python.exe -c "from pymongo import MongoClient; client = MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=3000); client.admin.command('ping'); print('[OK] MongoDB connection verified')" 2>nul
     if errorlevel 1 (
         echo [WARNING] MongoDB verification failed, but continuing...
         timeout /t 3 /nobreak >nul
@@ -105,7 +105,7 @@ echo [4/10] Checking MySQL database setup...
 cd Database_API
 if exist insert_test_users.py (
     echo [INFO] Setting up MySQL test users...
-    python insert_test_users.py >nul 2>&1
+    ..\.venv\Scripts\python.exe insert_test_users.py >nul 2>&1
     if errorlevel 1 (
         echo [WARNING] MySQL setup script failed - database might not be configured
         echo [TIP] Check your MySQL credentials in .env file
@@ -156,7 +156,7 @@ echo [INFO] Database API handles all authentication:
 echo        - Admin Login (MySQL)
 echo        - User/Voter Login (MySQL)
 echo        - Candidate Login (MongoDB)
-start "Database API - Port 8001" cmd /k "cd Database_API && python main.py || (echo [ERROR] Database API failed to start! Check Python installation. && pause)"
+start "Database API - Port 8001" cmd /k "cd Database_API && ..\.venv\Scripts\python.exe main.py || (echo [ERROR] Database API failed to start! Check Python installation. && pause)"
 echo [INFO] Waiting for Database API to initialize...
 timeout /t 8 /nobreak >nul
 

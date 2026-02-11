@@ -26,6 +26,16 @@ const app = express();
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// Cache control middleware - disable caching for JavaScript files
+app.use((req, res, next) => {
+  if (req.path.endsWith('.js') || req.path.endsWith('.json')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
+
 // Serve static files from public directory (includes js/, favicon, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -197,6 +207,12 @@ app.get('/index.html', authorizeUser, (req, res) => {
 // Election Results Page (Public Access - no authentication required)
 app.get('/result.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/result.html'));
+});
+
+// Debug page for vote matching
+app.get('/debug-votes.html', (req, res) => {
+  console.log('[ROUTE] /debug-votes.html accessed');
+  res.sendFile(path.join(__dirname, 'src/html/debug-votes.html'));
 });
 
 // ===============================================

@@ -30,6 +30,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
+import bcrypt
 
 # ===============================================
 # CONSTANTS
@@ -271,10 +272,10 @@ async def login(voter_id: str, password: str):
         dict: Contains JWT token and user role
     """
     try:
-        # Check if user exists and credentials are valid
+        # First, fetch user from database
         cursor.execute(
-            "SELECT voter_id FROM voters WHERE voter_id = %s AND password = %s", 
-            (voter_id, password)
+            "SELECT voter_id, password FROM voters WHERE voter_id = %s", 
+            (voter_id,)
         )
         user = cursor.fetchone()
         
@@ -284,11 +285,31 @@ async def login(voter_id: str, password: str):
                 detail="Invalid voter ID or password"
             )
         
+        # Verify password - check if it's bcrypt hashed or plain text
+        stored_password = user['password']
+        password_valid = False
+        
+        if stored_password and stored_password.startswith('$2b$'):
+            # Bcrypt hashed password
+            password_valid = bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8'))
+        else:
+            # Plain text password (for backwards compatibility)
+            password_valid = (password == stored_password)
+        
+        if not password_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid voter ID or password"
+            )
+        
         # Try to get role if column exists, otherwise default to 'user'
         try:
             cursor.execute("SELECT role FROM voters WHERE voter_id = %s", (voter_id,))
             role_result = cursor.fetchone()
-            user_role = role_result['role'] if role_result and 'role' in role_result else ('admin' if voter_id.startswith('A') else 'user')
+            if role_result and 'role' in role_result:
+                user_role = role_result['role']
+            else:
+                user_role = 'admin' if voter_id.startswith('A') else 'user'
         except mysql.connector.Error:
             # Role column doesn't exist, default to 'user' for regular users, 'admin' for A-prefixed IDs
             user_role = 'admin' if voter_id.startswith('A') else 'user'
@@ -560,6 +581,66 @@ async def update_candidate(candidate_id: str, candidate: CandidateModel):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update candidate: {str(e)}"
+        )
+
+@app.patch("/candidates/{candidate_id}")
+async def patch_candidate(candidate_id: str, update_data: Dict[str, Any]):
+    """
+    Partially update a candidate's information (for blockchain sync, etc.)
+    
+    Args:
+        candidate_id (str): MongoDB ObjectId of the candidate
+        update_data (dict): Fields to update
+    
+    Returns:
+        dict: Updated candidate information
+    """
+    try:
+        # Remove any fields that shouldn't be updated via PATCH
+        protected_fields = ["_id", "candidateId"]
+        for field in protected_fields:
+            update_data.pop(field, None)
+        
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid fields to update"
+            )
+        
+        # Update the document
+        result = await candidates_collection.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=CANDIDATE_NOT_FOUND
+            )
+        
+        # Get updated candidate
+        updated_candidate = await candidates_collection.find_one(
+            {"_id": ObjectId(candidate_id)}
+        )
+        
+        # Convert ObjectId to string and remove password
+        updated_candidate["_id"] = str(updated_candidate["_id"])
+        updated_candidate.pop("candidatePassword", None)
+        
+        return {
+            "message": "Candidate updated successfully",
+            "candidate": updated_candidate,
+            "updated_fields": list(update_data.keys())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error patching candidate: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to patch candidate: {str(e)}"
         )
 
 @app.delete("/candidates/{candidate_id}")

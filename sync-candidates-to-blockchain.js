@@ -5,8 +5,7 @@
  * by calling the smart contract's addCandidate function for each candidate.
  */
 
-const Web3 = require('web3');
-const contract = require('@truffle/contract');
+const { Web3 } = require('web3');
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
@@ -16,10 +15,8 @@ const MONGODB_DB = process.env.MONGODB_DB || 'ethervox_candidates';
 const MONGODB_COLLECTION = process.env.MONGODB_COLLECTION || 'candidates';
 
 // Web3 and contract setup
-const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));
+const web3 = new Web3('http://localhost:7545');
 const VotingJSON = require('./build/contracts/Voting.json');
-const VotingContract = contract(VotingJSON);
-VotingContract.setProvider(web3.currentProvider);
 
 /**
  * Sync candidates from MongoDB to blockchain
@@ -34,10 +31,7 @@ async function syncCandidatesToBlockchain() {
 
     // Connect to MongoDB
     console.log('[1/5] Connecting to MongoDB...');
-    mongoClient = await MongoClient.connect(MONGODB_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    mongoClient = await MongoClient.connect(MONGODB_URL);
     const db = mongoClient.db(MONGODB_DB);
     const candidatesCollection = db.collection(MONGODB_COLLECTION);
     console.log('✅ Connected to MongoDB\n');
@@ -59,8 +53,22 @@ async function syncCandidatesToBlockchain() {
 
     // Deploy or get voting contract instance
     console.log('[4/5] Getting voting contract instance...');
-    const votingInstance = await VotingContract.deployed();
-    console.log(`✅ Voting contract at: ${votingInstance.address}\n`);
+    const networkId = await web3.eth.net.getId();
+    console.log(`Network ID: ${networkId}`);
+    
+    const deployedNetwork = VotingJSON.networks[networkId] || VotingJSON.networks['5777'];
+    
+    if (!deployedNetwork) {
+      console.error(`❌ Contract not deployed on network ${networkId}`);
+      console.log('Available networks:', Object.keys(VotingJSON.networks));
+      process.exit(1);
+    }
+    
+    const votingInstance = new web3.eth.Contract(
+      VotingJSON.abi,
+      deployedNetwork.address
+    );
+    console.log(`✅ Voting contract at: ${deployedNetwork.address}\n`);
 
     // Sync each candidate to blockchain
     console.log('[5/5] Syncing candidates to blockchain...');
@@ -78,23 +86,34 @@ async function syncCandidatesToBlockchain() {
         console.log(`   Name: ${candidate.name}`);
         console.log(`   Party: ${candidate.party}`);
 
-        // Add candidate to blockchain
-        const result = await votingInstance.addCandidate(
-          candidate.candidateId,
-          candidate.name,
-          candidate.party,
+        // Add candidate to blockchain with all required parameters
+        const receipt = await votingInstance.methods.addCandidate(
+          candidate.name || 'Unknown',
+          parseInt(candidate.age) || 18,
+          candidate.dateOfBirth || '01-01-2000',
+          candidate.panNumber || 'XXXXX0000X',
+          candidate.aadharNumber || '000000000000',
+          candidate.voterEpicNumber || 'XXX0000000',
           candidate.electionCenter || 'Default Center',
-          { from: accounts[0], gas: 3000000 }
-        );
+          candidate.party || 'Independent',
+          candidate.candidateAddress || 'Not Provided',
+          candidate.email || 'not@provided.com',
+          candidate.phoneNumber || '0000000000',
+          candidate.candidateId || `CAND${i + 1}`,
+          candidate.candidatePassword || 'hashed_password'
+        ).send({ 
+          from: accounts[0], 
+          gas: 3000000 
+        });
 
-        console.log(`   ✅ Transaction hash: ${result.tx}`);
+        console.log(`   ✅ Transaction hash: ${receipt.transactionHash}`);
         
         // Update MongoDB with blockchain info
         await candidatesCollection.updateOne(
           { _id: candidate._id },
           {
             $set: {
-              blockchainAddress: result.tx,
+              blockchainAddress: receipt.transactionHash,
               blockchainAccount: accounts[0],
               syncedToBlockchain: true,
               syncedAt: new Date().toISOString()
