@@ -3,7 +3,7 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 python-jose[cryptography]==3.3.0
-python-multipart==0.0.12
+python-multipart==0.0.22
 
 # Database connectivity (ULTRA-SECURE VERSIONS)
 mysql-connector-python==9.0.0
@@ -13,7 +13,7 @@ motor==3.5.1
 # Security and authentication (ULTRA-CRITICAL SECURITY PATCHES)
 PyJWT==2.9.0
 passlib[bcrypt]==1.7.4
-cryptography==43.0.1
+cryptography==46.0.5
 
 # Environment and configuration (PATCHED)
 python-dotenv==1.0.1
@@ -21,7 +21,7 @@ python-dotenv==1.0.1
 # HTTP requests and additional utilities (ULTRA-CRITICAL SECURITY PATCHES)
 requests==2.32.3
 pydantic==2.9.1
-urllib3==2.2.2
+urllib3==2.6.3
 
 # Development and testing dependencies (SECURITY PATCHED VERSIONS)
 pytest==8.3.2
