@@ -27,8 +27,7 @@ urllib3==2.2.2
 pytest==8.3.2
 pytest-asyncio==0.24.0
 
-# CORS support (ULTRA-PATCHED VERSION)
-python-cors==1.7.0
+# CORS support is provided by FastAPI/Starlette built-in middleware
 
 # Additional security packages
 secure==0.3.0
