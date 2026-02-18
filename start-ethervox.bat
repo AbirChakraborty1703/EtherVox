@@ -78,6 +78,33 @@ echo       - Windows Services
 :mysql_started
 timeout /t 2 /nobreak >nul
 
+REM Step 2.5: Setup Python Virtual Environment
+echo [INFO] Setting up Python virtual environment...
+if not exist "Database_API\venv\Scripts\python.exe" (
+    echo [INFO] Virtual environment not found - creating...
+    cd Database_API
+    python -m venv venv
+    if errorlevel 1 (
+        echo [ERROR] Failed to create virtual environment! Check Python installation.
+        echo [TIP] Make sure Python is installed and in your PATH
+        cd ..
+        goto skip_venv
+    )
+    echo [OK] Virtual environment created
+    echo [INFO] Installing dependencies from requirements.txt...
+    venv\Scripts\pip.exe install -r requirements.txt
+    if errorlevel 1 (
+        echo [WARNING] Some dependencies may have failed to install
+    ) else (
+        echo [OK] Dependencies installed successfully
+    )
+    cd ..
+) else (
+    echo [OK] Virtual environment already exists
+)
+:skip_venv
+timeout /t 1 /nobreak >nul
+
 REM Step 3: Start MongoDB (Required for Candidate Login)
 echo [3/10] Starting MongoDB (for candidate data)...
 if exist "Database_API\mongodb_data" (
@@ -176,7 +203,6 @@ if errorlevel 1 (
     echo [WARNING] Candidate login endpoint not yet ready
 ) else (
     echo [OK] Candidate login endpoint active
-)ues, trying to continue...
 )
 
 REM Step 10: Start Express Frontend Server
@@ -214,7 +240,18 @@ if errorlevel 1 (
 )
 
 netstat -ano | findstr ":27017" >nul 2>&1
-if erDatabase Services:
+if errorlevel 1 (
+    echo [WARNING] MongoDB (port 27017) - Not detected yet
+) else (
+    echo [OK] MongoDB (port 27017) - Running
+)
+
+echo.
+echo ========================================
+echo    Service Summary
+echo ========================================
+echo.
+echo Database Services:
 echo  - MongoDB:       localhost:27017 (Candidate Data)
 echo  - MySQL:         localhost:3306  (Admin/User Data)
 echo.

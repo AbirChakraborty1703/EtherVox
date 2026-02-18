@@ -37,7 +37,6 @@ window.App = {
         console.log('Advancing Ganache time by', timeDiff, 'seconds...');
 
         // Make direct HTTP request to Ganache (bypassing MetaMask)
-        // Ganache typically runs on port 7545 or 8545
         const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
 
         for (const ganacheUrl of ganacheUrls) {
@@ -76,6 +75,52 @@ window.App = {
         }
 
         console.warn('Could not sync Ganache time - no Ganache endpoint responded');
+        return false;
+      } else if (timeDiff < -60) {
+        // Blockchain is AHEAD of system time - use evm_setTime to reset it
+        console.log('Blockchain is ahead by', -timeDiff, 'seconds. Resetting Ganache clock...');
+
+        const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
+
+        for (const ganacheUrl of ganacheUrls) {
+          try {
+            // Use evm_setTime to set blockchain clock to current system time
+            const setTimeResponse = await fetch(ganacheUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'evm_setTime',
+                params: [currentTime],
+                id: Date.now()
+              })
+            });
+
+            if (setTimeResponse.ok) {
+              // Mine a new block to apply the time change
+              const mineResponse = await fetch(ganacheUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  jsonrpc: '2.0',
+                  method: 'evm_mine',
+                  params: [],
+                  id: Date.now() + 1
+                })
+              });
+
+              if (mineResponse.ok) {
+                const newBlock = await App.web3.eth.getBlock('latest');
+                console.log('✅ Ganache time reset successfully. New blockchain time:', new Date(Number(newBlock.timestamp) * 1000).toLocaleString());
+                return true;
+              }
+            }
+          } catch (fetchError) {
+            console.log('Could not connect to', ganacheUrl);
+          }
+        }
+
+        console.warn('Could not reset Ganache time - no Ganache endpoint responded');
         return false;
       }
       return true; // No sync needed
@@ -388,9 +433,9 @@ window.App = {
           blockchainCandidates = allCandidates;
           console.log('\nFetched all blockchain candidates:');
           blockchainCandidates.forEach((bc, idx) => {
-            // CRITICAL: Extract vote count from correct index [11]
-            const rawVotes = bc.voteCount || bc[11] || 0;
-            const votes = typeof rawVotes === 'bigint' ? Number(rawVotes) : parseInt(rawVotes || 0);
+            // Use nullish check: 0 and 0n are valid vote counts (falsy but not null/undefined)
+            const rawVotes = (bc.voteCount != null) ? bc.voteCount : 0;
+            const votes = typeof rawVotes === 'bigint' ? Number(rawVotes) : (parseInt(rawVotes) || 0);
             const name = bc.name || bc[1] || 'Unknown';
             console.log(`  [Blockchain ID: ${idx + 1}] ${name} - ${votes} votes (raw: ${rawVotes})`);
           });
@@ -410,6 +455,7 @@ window.App = {
 
       // Map MongoDB candidates and match with blockchain by candidateId or name
       const candidates = [];
+      const usedBlockchainIds = new Set(); // Track already-matched blockchain candidates
 
       for (let i = 0; i < data.candidates.length; i++) {
         const dbCandidate = data.candidates[i];
@@ -419,35 +465,65 @@ window.App = {
         let blockchainId = null;
         
         for (let j = 0; j < blockchainCandidates.length; j++) {
+          // Skip blockchain candidates already matched to a previous MongoDB candidate
+          if (usedBlockchainIds.has(j)) continue;
+          
           const bc = blockchainCandidates[j];
-          const bcCandidateId = bc.candidateId || bc[9]; // index 9 is candidateId in the struct
+          const bcCandidateId = bc.candidateId || bc[12]; // index 12 is candidateId in the Candidate struct
           const bcName = bc.name || bc[1]; // index 1 is name
           
-          // Match by candidateId (most reliable)
-          if (bcCandidateId && dbCandidate.candidateId && bcCandidateId === dbCandidate.candidateId) {
+          // Match by BOTH candidateId AND name for uniqueness
+          if (bcCandidateId && dbCandidate.candidateId && bcCandidateId === dbCandidate.candidateId
+              && bcName && dbCandidate.name && bcName.toLowerCase() === dbCandidate.name.toLowerCase()) {
             matchedBlockchainCandidate = bc;
             blockchainId = j + 1; // Blockchain IDs are 1-indexed
-            console.log(`Matched by candidateId: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
+            usedBlockchainIds.add(j);
+            console.log(`Matched by candidateId+name: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
             break;
           }
-          
-          // Fallback: match by name (case-insensitive)
-          if (bcName && dbCandidate.name && bcName.toLowerCase() === dbCandidate.name.toLowerCase()) {
-            matchedBlockchainCandidate = bc;
-            blockchainId = j + 1; // Blockchain IDs are 1-indexed
-            console.log(`Matched by name: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
-            break;
+        }
+        
+        // Fallback: match by candidateId only (if not yet matched)
+        if (!matchedBlockchainCandidate) {
+          for (let j = 0; j < blockchainCandidates.length; j++) {
+            if (usedBlockchainIds.has(j)) continue;
+            const bc = blockchainCandidates[j];
+            const bcCandidateId = bc.candidateId || bc[12];
+            
+            if (bcCandidateId && dbCandidate.candidateId && bcCandidateId === dbCandidate.candidateId) {
+              matchedBlockchainCandidate = bc;
+              blockchainId = j + 1;
+              usedBlockchainIds.add(j);
+              console.log(`Matched by candidateId: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
+              break;
+            }
+          }
+        }
+        
+        // Fallback: match by name only (if not yet matched)
+        if (!matchedBlockchainCandidate) {
+          for (let j = 0; j < blockchainCandidates.length; j++) {
+            if (usedBlockchainIds.has(j)) continue;
+            const bc = blockchainCandidates[j];
+            const bcName = bc.name || bc[1];
+            
+            if (bcName && dbCandidate.name && bcName.toLowerCase() === dbCandidate.name.toLowerCase()) {
+              matchedBlockchainCandidate = bc;
+              blockchainId = j + 1;
+              usedBlockchainIds.add(j);
+              console.log(`Matched by name: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
+              break;
+            }
           }
         }
 
         // Get vote count from matched blockchain candidate
         let voteCount = 0;
         if (matchedBlockchainCandidate) {
-          // voteCount is at index 11 in the struct (not 10!)
-          // Try property name first, then correct index, default to 0
-          const rawVoteCount = matchedBlockchainCandidate.voteCount || matchedBlockchainCandidate[11] || 0;
+          // Use nullish check: 0 and 0n are valid vote counts, don't skip them with ||
+          const rawVoteCount = (matchedBlockchainCandidate.voteCount != null) ? matchedBlockchainCandidate.voteCount : 0;
           // Handle BigInt conversion properly
-          voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : parseInt(rawVoteCount || 0);
+          voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : (parseInt(rawVoteCount) || 0);
           console.log(`  ✓ Vote count for ${dbCandidate.name}: ${voteCount} (type: ${typeof rawVoteCount})`);
         } else {
           console.log(`  ✗ No blockchain match for ${dbCandidate.name}`);
@@ -510,11 +586,11 @@ window.App = {
         try {
           const candidate = await instance.methods.getCandidate(i).call();
           console.log(`\nLoading blockchain candidate ${i}:`);
-          // voteCount is at index 11, not 10!
-          const rawVoteCount = candidate.voteCount || candidate[11] || 0;
-          const voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : parseInt(rawVoteCount || 0);
+          // Use nullish check: 0 is a valid vote count
+          const rawVoteCount = (candidate.voteCount != null) ? candidate.voteCount : 0;
+          const voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : (parseInt(rawVoteCount) || 0);
           const name = candidate[1] || candidate.name || `Candidate ${i}`;
-          const party = candidate[5] || candidate.party || 'Independent';
+          const party = candidate[8] || candidate.party || 'Independent';
           
           console.log(`  Name: ${name}`);
           console.log(`  Party: ${party}`);
@@ -526,7 +602,7 @@ window.App = {
             party: party,
             voteCount: voteCount,
             onBlockchain: true, // Mark as synced with blockchain
-            candidateId: candidate.candidateId || candidate[9] || `BC-${i}` // Include candidateId
+            candidateId: candidate.candidateId || candidate[12] || `BC-${i}` // candidateId is at index 12 in getCandidate return
           });
         } catch (e) {
           console.error('Error getting candidate', i, e);
@@ -607,7 +683,8 @@ window.App = {
       const avatarColor = colors[index % colors.length];
 
       const partyName = candidate.party || 'Independent';
-      const voteCount = candidate.voteCount || candidate.votes || 0;
+      // Use nullish check: 0 is a valid vote count, don't treat it as falsy
+      const voteCount = (candidate.voteCount != null) ? candidate.voteCount : ((candidate.votes != null) ? candidate.votes : 0);
 
       // CRITICAL: Use the matched blockchainId from our matching logic
       const candidateId = candidate.blockchainId;

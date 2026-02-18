@@ -18,6 +18,8 @@
     "migrate": "truffle migrate --reset",
     "build": "webpack --mode production || echo \"Build completed with warnings\"",
     "build:dev": "webpack --mode development --watch",
+    "postmigrate": "node -e \"const fs=require('fs');const src='build/contracts/Voting.json';const dest='public/contracts/Voting.json';if(fs.existsSync(src)){fs.mkdirSync('public/contracts',{recursive:true});fs.copyFileSync(src,dest);console.log('Synced contract artifact to public/contracts/')}\"",
+    "prebuild": "node -e \"const fs=require('fs');const pub='public/contracts/Voting.json';const build='build/contracts/Voting.json';if(fs.existsSync(pub)&&fs.existsSync(build)){const p=JSON.parse(fs.readFileSync(pub));const b=JSON.parse(fs.readFileSync(build));if(JSON.stringify(p.networks)!==JSON.stringify(b.networks)){b.networks=p.networks;fs.writeFileSync(build,JSON.stringify(b,null,2));console.log('Synced contract networks from public/ to build/')}}\"",
     "serve": "npm run build && npm run start",
     "security": "npm audit --audit-level moderate || echo \"Security audit completed\"",
     "clean": "rm -rf build/ public/app.bundle.js* node_modules/.cache/ || echo \"Cleanup completed\"",

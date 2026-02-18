@@ -234,8 +234,8 @@ async function submitVotingDates() {
     showStatusMessage('❌ Voting period must be at least 30 minutes', 'error');
     return;
   }  // Convert to Unix timestamps (seconds)
-  const startTimestamp = Math.floor(startDateTime.getTime() / 1000);
-  const endTimestamp = Math.floor(endDateTime.getTime() / 1000);
+  let startTimestamp = Math.floor(startDateTime.getTime() / 1000);
+  let endTimestamp = Math.floor(endDateTime.getTime() / 1000);
 
   const submitButton = document.getElementById('submitDates');
   submitButton.disabled = true;
@@ -276,29 +276,8 @@ async function submitVotingDates() {
       blockchainTimestamp = Math.floor(Date.now() / 1000);
     }
 
-    // Validate timestamps are in the future relative to BLOCKCHAIN time with sufficient buffer
-    // Using 180 second (3 minute) buffer to account for transaction processing time
-    const requiredBuffer = 180; // seconds (3 minutes)
-    if (startTimestamp <= blockchainTimestamp + requiredBuffer) {
-      // Auto-correct: Adjust start time to be 3 minutes from current blockchain time
-      const correctedStartTimestamp = blockchainTimestamp + requiredBuffer + 30; // Extra 30s margin
-      const correctedStartDateTime = new Date(correctedStartTimestamp * 1000);
-      
-      // Update form with corrected time
-      const correctedDateStr = correctedStartDateTime.toISOString().split('T')[0];
-      const correctedTimeStr = correctedStartDateTime.toTimeString().slice(0, 5);
-      
-      document.getElementById('startDate').value = correctedDateStr;
-      document.getElementById('startTime').value = correctedTimeStr;
-      
-      // Update preview
-      updateStartPreview();
-      
-      showStatusMessage(`⚠️ Start time was too close! Auto-corrected to ${correctedStartDateTime.toLocaleTimeString()}. Please review and submit again.`, 'warning');
-      submitButton.disabled = false;
-      submitButton.innerHTML = '<i class="fas fa-save"></i> Save Voting Dates';
-      return;
-    }
+    // Log blockchain vs browser time for debugging
+    console.log('Blockchain timestamp:', blockchainTimestamp, 'Start timestamp:', startTimestamp);
 
     // Check if voting is already initialized
     let votingInitialized = false;
@@ -359,29 +338,11 @@ async function submitVotingDates() {
       }
     } else {
       // STEP 1: Call setDates on smart contract with gas estimation
-      // Convert timestamps to strings to avoid BigInt issues in some Web3.js versions
-      const startStr = String(startTimestamp);
-      const endStr = String(endTimestamp);
-      
-      // Final blockchain timestamp check right before transaction
-      try {
-        const finalBlock = await window.App.web3.eth.getBlock('latest');
-        const finalBlockchainTime = Number(finalBlock.timestamp);
-        console.log('Final blockchain check - Time:', finalBlockchainTime, 'Start:', startTimestamp);
-        
-        // Ensure start time is still at least 150 seconds in future (allow 30s margin from original 180s buffer)
-        if (startTimestamp <= finalBlockchainTime + 150) {
-          throw new Error(`Start time is too close to current blockchain time. Please select a time at least 3-4 minutes in the future.`);
-        }
-      } catch (timeCheckError) {
-        if (timeCheckError.message.includes('too close')) {
-          throw timeCheckError;
-        }
-        console.warn('Could not perform final time check:', timeCheckError);
-      }
+      // Use numeric timestamps (Web3.js handles uint256 conversion)
+      // The smart contract itself validates that startDate > block.timestamp
       
       try {
-        gasEstimate = await instance.methods.setDates(startStr, endStr).estimateGas({ from: account });
+        gasEstimate = await instance.methods.setDates(startTimestamp, endTimestamp).estimateGas({ from: account });
         console.log('Estimated gas:', gasEstimate);
       } catch (estimateError) {
         console.error('Gas estimation failed:', estimateError);
@@ -389,7 +350,7 @@ async function submitVotingDates() {
         // Try to get more specific error info
         try {
           // Attempt a static call to get the revert reason
-          await instance.methods.setDates(startStr, endStr).call({ from: account });
+          await instance.methods.setDates(startTimestamp, endTimestamp).call({ from: account });
         } catch (callError) {
           console.error('Call error details:', callError);
           if (callError.message.includes('InvalidTimeRange')) {
@@ -405,7 +366,7 @@ async function submitVotingDates() {
       // Convert BigInt to Number and add 50% buffer
       const gasLimit = Math.floor(Number(gasEstimate) * 1.5);
 
-      tx = await instance.methods.setDates(startStr, endStr).send({
+      tx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
         from: account,
         gas: gasLimit
       });
@@ -457,8 +418,6 @@ async function submitVotingDates() {
 
     if (error.message.includes('User denied') || error.message.includes('rejected')) {
       showStatusMessage('❌ Transaction rejected by user', 'error');
-    } else if (error.message.includes('too close to current blockchain time')) {
-      showStatusMessage('❌ ' + error.message, 'error');
     } else if (error.message.includes('VotingAlreadyInitialized') || error.message.includes('already been set')) {
       showStatusMessage('❌ Voting dates have already been set. Use "Update Dates" to modify them.', 'error');
     } else if (error.message.includes('InvalidTimeRange')) {
@@ -492,6 +451,14 @@ function setPreset(presetType) {
   let startDateTime, endDateTime;
 
   switch (presetType) {
+    case 'quicktest':
+      // Quick test: start 4 minutes from now, end 34 minutes from now (30 min voting)
+      startDateTime = new Date(now.getTime() + 4 * 60 * 1000);
+      startDateTime.setSeconds(0, 0);
+      endDateTime = new Date(startDateTime.getTime() + 30 * 60 * 1000);
+      endDateTime.setSeconds(0, 0);
+      break;
+
     case 'today':
       startDateTime = new Date(now);
       // If 9 AM has already passed, use current time + 4 minutes (to account for blockchain sync)

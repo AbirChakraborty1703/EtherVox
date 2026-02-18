@@ -188,29 +188,66 @@ async function fetchVoteCounts(candidates) {
     console.log('Blockchain candidates:', blockchainCandidates);
     
     // Match MongoDB candidates with blockchain vote counts
+    // Track used blockchain indices to prevent duplicate matching (e.g. when candidateId is shared)
+    const usedBlockchainIndices = new Set();
+    
     const candidatesWithVotes = candidates.map(dbCandidate => {
-      // Find matching blockchain candidate by candidateId (most reliable)
-      const blockchainCandidate = blockchainCandidates.find(bc => {
-        // Primary match: by candidateId (exact match)
-        if (bc.candidateId && dbCandidate.candidateId && bc.candidateId === dbCandidate.candidateId) {
-          console.log(`✓ Matched by candidateId: ${dbCandidate.name} (${dbCandidate.candidateId})`);
-          return true;
-        }
-        // Fallback: try to match by name (case-insensitive, trimmed)
+      // Find matching blockchain candidate - try candidateId+name first, then candidateId, then name
+      let blockchainCandidate = null;
+      
+      // Pass 1: Match by BOTH candidateId AND name (most precise)
+      for (let i = 0; i < blockchainCandidates.length; i++) {
+        if (usedBlockchainIndices.has(i)) continue;
+        const bc = blockchainCandidates[i];
+        const bcCandidateId = bc.candidateId || '';
         const bcName = (bc.name || '').toLowerCase().trim();
         const dbName = (dbCandidate.name || '').toLowerCase().trim();
-        if (bcName && dbName && bcName === dbName) {
-          console.log(`✓ Matched by name: ${dbCandidate.name}`);
-          return true;
+        
+        if (bcCandidateId && dbCandidate.candidateId && bcCandidateId === dbCandidate.candidateId
+            && bcName && dbName && bcName === dbName) {
+          blockchainCandidate = bc;
+          usedBlockchainIndices.add(i);
+          console.log(`✓ Matched by candidateId+name: ${dbCandidate.name}`);
+          break;
         }
-        return false;
-      });
+      }
+      
+      // Pass 2: Match by candidateId only
+      if (!blockchainCandidate) {
+        for (let i = 0; i < blockchainCandidates.length; i++) {
+          if (usedBlockchainIndices.has(i)) continue;
+          const bc = blockchainCandidates[i];
+          if (bc.candidateId && dbCandidate.candidateId && bc.candidateId === dbCandidate.candidateId) {
+            blockchainCandidate = bc;
+            usedBlockchainIndices.add(i);
+            console.log(`✓ Matched by candidateId: ${dbCandidate.name}`);
+            break;
+          }
+        }
+      }
+      
+      // Pass 3: Match by name only
+      if (!blockchainCandidate) {
+        for (let i = 0; i < blockchainCandidates.length; i++) {
+          if (usedBlockchainIndices.has(i)) continue;
+          const bc = blockchainCandidates[i];
+          const bcName = (bc.name || '').toLowerCase().trim();
+          const dbName = (dbCandidate.name || '').toLowerCase().trim();
+          if (bcName && dbName && bcName === dbName) {
+            blockchainCandidate = bc;
+            usedBlockchainIndices.add(i);
+            console.log(`✓ Matched by name: ${dbCandidate.name}`);
+            break;
+          }
+        }
+      }
       
       // voteCount is at index 11 in the struct (not 10!)
       let voteCount = 0;
       if (blockchainCandidate) {
-        const rawVoteCount = blockchainCandidate.voteCount || blockchainCandidate[11] || 0;
-        voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : parseInt(rawVoteCount || 0);
+        // Use nullish check: 0 and 0n are valid vote counts, don't skip them with ||
+        const rawVoteCount = (blockchainCandidate.voteCount != null) ? blockchainCandidate.voteCount : 0;
+        voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : (parseInt(rawVoteCount) || 0);
       }
       
       console.log(`Candidate: ${dbCandidate.name} (ID: ${dbCandidate.candidateId}) - Votes: ${voteCount}${blockchainCandidate ? ' [Matched]' : ' [No Match]'}`);
@@ -279,37 +316,77 @@ async function displayResults(results, totalVotes) {
   htmlContent += `
     <div class="live-indicator">
       <span class="live-dot"></span>
-      <span class="live-text">LIVE RESULTS - Auto-refreshing every 5 seconds</span>
+      <span class="live-text">Live Results - Auto-refreshing</span>
     </div>
   `;
   
-  // Add total votes summary
+  // Stats row
+  const highestVotes = results.length > 0 ? results[0].votes : 0;
+  const winnersCount = results.filter(c => c.votes === highestVotes && c.votes > 0).length;
+  const winnerName = winnersCount === 1 ? results[0].name : (winnersCount > 1 ? 'Tie' : 'N/A');
+  
   htmlContent += `
-    <div class="total-votes-summary">
-      <i class="fas fa-users"></i>
-      <span class="total-votes-text">Total Votes Cast: <strong>${totalVotes}</strong></span>
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value">${totalVotes}</span>
+        <span class="stat-label">Total Votes</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">${results.length}</span>
+        <span class="stat-label">Candidates</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">${highestVotes > 0 ? escapeHtml(winnerName) : '---'}</span>
+        <span class="stat-label">${winnersCount > 1 ? 'Leading (Tied)' : 'Leading'}</span>
+      </div>
     </div>
   `;
+  
+  // Avatar colors for candidates
+  const avatarColors = [
+    'linear-gradient(135deg, #00c8ff, #0080ff)',
+    'linear-gradient(135deg, #ff0080, #ff4060)',
+    'linear-gradient(135deg, #7b2ff7, #b24bf3)',
+    'linear-gradient(135deg, #00ff88, #00cc6a)',
+    'linear-gradient(135deg, #ff8c00, #ffb300)',
+    'linear-gradient(135deg, #e91e63, #9c27b0)',
+    'linear-gradient(135deg, #00bcd4, #009688)',
+    'linear-gradient(135deg, #ff5722, #f44336)'
+  ];
   
   // Build all candidate cards
   results.forEach((candidate, index) => {
-    // Winner detection: first place with votes > 0, handles ties
-    const isWinner = candidate.votes > 0 && candidate.votes === results[0].votes;
+    const isWinner = candidate.votes > 0 && candidate.votes === highestVotes && winnersCount === 1;
+    const isTied = candidate.votes > 0 && candidate.votes === highestVotes && winnersCount > 1;
+    const hasNoVotes = candidate.votes === 0;
     const position = index + 1;
+    const initial = (candidate.name || '?').charAt(0).toUpperCase();
+    const avatarColor = avatarColors[index % avatarColors.length];
+    
+    let cardClass = 'candidate-card';
+    if (isWinner) cardClass += ' winner-card';
+    if (isTied) cardClass += ' tied-card';
+    if (hasNoVotes) cardClass += ' no-votes';
     
     htmlContent += `
-      <div class="candidate-card ${isWinner ? 'winner-card' : ''}">
+      <div class="${cardClass}">
         <div class="position-badge">#${position}</div>
         <div class="candidate-info">
           <div>
-            <span class="candidate-name">${escapeHtml(candidate.name)}</span>
+            <div class="candidate-avatar" style="background: ${avatarColor}">${initial}</div>
+            <span class="candidate-name">
+              ${isWinner ? '<span class="crown-icon">&#x1F451;</span>' : ''}
+              ${escapeHtml(candidate.name)}
+            </span>
             ${isWinner ? '<span class="winner-badge"><i class="fas fa-trophy"></i> Winner</span>' : ''}
+            ${isTied ? '<span class="tied-badge"><i class="fas fa-handshake"></i> Tied</span>' : ''}
             <div class="candidate-details">
               <span class="party-name"><i class="fas fa-flag"></i> ${escapeHtml(candidate.party)}</span>
               <span class="election-center"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(candidate.electionCenter)}</span>
             </div>
+            ${candidate.candidateId ? `<div class="candidate-id-tag"><i class="fas fa-id-badge"></i> ${escapeHtml(candidate.candidateId)}</div>` : ''}
           </div>
-          <div>
+          <div class="vote-count-wrapper">
             <span class="vote-count">${candidate.votes}</span>
             <span class="vote-label">votes</span>
           </div>
@@ -325,13 +402,16 @@ async function displayResults(results, totalVotes) {
   // Set innerHTML once with complete content (atomic operation)
   resultsDisplay.innerHTML = htmlContent;
   
-  // Animate progress bars
-  setTimeout(() => {
-    document.querySelectorAll('.progress-fill').forEach((bar) => {
-      const targetWidth = bar.getAttribute('data-width');
-      bar.style.width = targetWidth + '%';
-    });
-  }, 100);
+  // Animate progress bars with staggered delay
+  results.forEach((candidate, index) => {
+    setTimeout(() => {
+      const bars = document.querySelectorAll('.progress-fill');
+      if (bars[index]) {
+        const targetWidth = bars[index].getAttribute('data-width');
+        bars[index].style.width = targetWidth + '%';
+      }
+    }, 150 + index * 100);
+  });
 }
 
 function displayError(message) {

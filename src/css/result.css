@@ -1,6 +1,9 @@
 /* ===============================================
    EtherVox - Results Page Styling
+   Vibrant, Colorful, Modern Design
    =============================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
 * {
   margin: 0;
@@ -13,10 +16,10 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0a0a1a;
 }
 
-/* Background Effects */
+/* ===== Animated Background ===== */
 .video-background {
   position: fixed;
   top: 0;
@@ -24,7 +27,29 @@ body {
   width: 100%;
   height: 100%;
   z-index: -1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 25%, #0d0d2b 50%, #1a0a2e 75%, #0a0a1a 100%);
+  overflow: hidden;
+}
+
+.video-background::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(255, 0, 128, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(0, 200, 255, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(138, 43, 226, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 10% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 90% 70%, rgba(255, 200, 0, 0.1) 0%, transparent 40%);
+  animation: bgRotate 30s linear infinite;
+}
+
+@keyframes bgRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .video-overlay.crystal {
@@ -33,8 +58,9 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent),
-              radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent);
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.2), transparent),
+    radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.2), transparent);
 }
 
 .glow-effect {
@@ -43,7 +69,9 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1), transparent);
+  background: 
+    radial-gradient(600px circle at 30% 40%, rgba(255, 0, 128, 0.06), transparent),
+    radial-gradient(600px circle at 70% 60%, rgba(0, 200, 255, 0.06), transparent);
   animation: pulse 4s ease-in-out infinite;
 }
 
@@ -52,21 +80,50 @@ body {
   50% { opacity: 1; }
 }
 
-/* Main Container */
+/* ===== Floating Particles ===== */
+.results-container::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(2px 2px at 10% 20%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(2px 2px at 30% 60%, rgba(0, 200, 255, 0.3), transparent),
+    radial-gradient(2px 2px at 50% 30%, rgba(255, 0, 128, 0.3), transparent),
+    radial-gradient(2px 2px at 70% 70%, rgba(138, 43, 226, 0.3), transparent),
+    radial-gradient(2px 2px at 90% 40%, rgba(0, 255, 136, 0.3), transparent),
+    radial-gradient(1px 1px at 15% 80%, rgba(255, 200, 0, 0.4), transparent),
+    radial-gradient(1px 1px at 85% 15%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 45% 90%, rgba(0, 200, 255, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 65% 10%, rgba(255, 0, 128, 0.3), transparent);
+  animation: sparkle 8s linear infinite;
+  z-index: 0;
+}
+
+@keyframes sparkle {
+  0% { opacity: 0.6; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-10px); }
+  100% { opacity: 0.6; transform: translateY(0); }
+}
+
+/* ===== Main Container ===== */
 .main-container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
+  position: relative;
+  z-index: 1;
 }
 
-/* Header */
+/* ===== Header ===== */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 0;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
 
 .logo-section {
@@ -81,16 +138,33 @@ body {
 
 .logo-icon {
   font-size: 48px;
-  color: #fff;
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5));
+  background: linear-gradient(135deg, #00c8ff, #ff0080, #7b2ff7, #00ff88);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease infinite;
+  filter: drop-shadow(0 0 20px rgba(0, 200, 255, 0.5));
 }
 
 .logo-text {
+  font-family: 'Orbitron', sans-serif;
   font-size: 42px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-  letter-spacing: 2px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #00c8ff, #ff0080, #7b2ff7);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease infinite;
+  text-shadow: none;
+  letter-spacing: 3px;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .header-nav {
@@ -103,8 +177,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(0, 200, 255, 0.3);
   border-radius: 12px;
   color: #fff;
   text-decoration: none;
@@ -114,32 +188,58 @@ body {
 }
 
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 200, 255, 0.15);
+  border-color: #00c8ff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 25px rgba(0, 200, 255, 0.3);
+  color: #00c8ff;
 }
 
-/* Results Container */
+/* ===== Results Container ===== */
 .results-container {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(15, 15, 40, 0.85);
   border-radius: 24px;
   padding: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 0 40px rgba(0, 200, 255, 0.1),
+    0 0 80px rgba(138, 43, 226, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.results-container::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -50%;
+  width: 200%; height: 2px;
+  background: linear-gradient(90deg, transparent, #00c8ff, #ff0080, #7b2ff7, #00ff88, transparent);
+  animation: borderGlow 4s linear infinite;
+}
+
+@keyframes borderGlow {
+  0% { transform: translateX(-25%); }
+  100% { transform: translateX(25%); }
 }
 
 .results-header {
   text-align: center;
-  margin-bottom: 40px;
-  padding-bottom: 30px;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+  margin-bottom: 35px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
 }
 
 .results-header h2 {
-  font-size: 36px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 32px;
   font-weight: 700;
-  color: #667eea;
+  background: linear-gradient(135deg, #00c8ff, #7b2ff7, #ff0080);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -148,16 +248,21 @@ body {
 }
 
 .results-header h2 i {
-  font-size: 40px;
+  font-size: 36px;
+  background: linear-gradient(135deg, #00c8ff, #ff0080);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
-  font-size: 16px;
-  color: #666;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 400;
+  letter-spacing: 1px;
 }
 
-/* Results Content */
+/* ===== Results Content ===== */
 .results-content {
   min-height: 400px;
 }
@@ -167,19 +272,20 @@ body {
   align-items: center;
   gap: 15px;
   padding: 25px;
-  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
+  background: rgba(0, 200, 255, 0.05);
+  border-radius: 16px;
+  border-left: 4px solid #00c8ff;
   margin-bottom: 30px;
+  border: 1px solid rgba(0, 200, 255, 0.15);
 }
 
 .info-message i {
   font-size: 24px;
-  color: #667eea;
+  color: #00c8ff;
 }
 
 .info-message p {
-  color: #555;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 15px;
   line-height: 1.6;
 }
@@ -189,38 +295,44 @@ body {
   gap: 20px;
 }
 
-/* Total Votes Summary */
-.total-votes-summary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  padding: 20px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-  border-radius: 12px;
-  margin-bottom: 25px;
-}
-
-/* Live Indicator */
+/* ===== Live Indicator ===== */
 .live-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, rgba(255, 0, 0, 0.1) 0%, rgba(255, 87, 34, 0.1) 100%);
-  border-radius: 8px;
+  gap: 12px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, rgba(255, 0, 80, 0.1), rgba(255, 60, 0, 0.08));
+  border-radius: 16px;
   margin-bottom: 20px;
-  border: 2px solid rgba(255, 0, 0, 0.2);
+  border: 1px solid rgba(255, 0, 80, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.live-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 0, 80, 0.1), transparent);
+  animation: liveSweep 3s ease-in-out infinite;
+}
+
+@keyframes liveSweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 .live-dot {
   width: 12px;
   height: 12px;
-  background: #ff0000;
+  background: #ff0050;
   border-radius: 50%;
   animation: livePulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  box-shadow: 0 0 12px rgba(255, 0, 80, 0.6), 0 0 24px rgba(255, 0, 80, 0.3);
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes livePulse {
@@ -229,164 +341,398 @@ body {
     opacity: 1;
   }
   50% {
-    transform: scale(1.3);
-    opacity: 0.7;
+    transform: scale(1.4);
+    opacity: 0.6;
   }
 }
 
 .live-text {
-  font-size: 14px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
   font-weight: 600;
-  color: #d32f2f;
+  color: #ff4060;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== Total Votes Summary ===== */
+.total-votes-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px 30px;
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.08), rgba(138, 43, 226, 0.08), rgba(255, 0, 128, 0.05));
+  border-radius: 20px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(0, 200, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.total-votes-summary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.3), rgba(138, 43, 226, 0.3), rgba(255, 0, 128, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .total-votes-summary i {
-  font-size: 32px;
-  color: #667eea;
+  font-size: 36px;
+  background: linear-gradient(135deg, #00c8ff, #7b2ff7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .total-votes-text {
   font-size: 18px;
-  color: #333;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.5px;
 }
 
 .total-votes-text strong {
-  font-size: 24px;
-  color: #667eea;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 28px;
+  background: linear-gradient(135deg, #00c8ff, #00ff88);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-weight: 700;
 }
 
-/* Candidate Result Card */
+/* ===== Candidate Result Cards ===== */
 .candidate-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 25px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  padding: 28px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
+  overflow: hidden;
 }
+
+.candidate-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 100%;
+  border-radius: 4px 0 0 4px;
+}
+
+/* Different color accents for each position */
+.candidate-card:nth-child(3)::before { background: linear-gradient(180deg, #00c8ff, #0080ff); }
+.candidate-card:nth-child(4)::before { background: linear-gradient(180deg, #ff0080, #ff4060); }
+.candidate-card:nth-child(5)::before { background: linear-gradient(180deg, #7b2ff7, #b24bf3); }
+.candidate-card:nth-child(6)::before { background: linear-gradient(180deg, #00ff88, #00cc6a); }
+.candidate-card:nth-child(7)::before { background: linear-gradient(180deg, #ff8c00, #ffb300); }
+.candidate-card:nth-child(8)::before { background: linear-gradient(180deg, #ff006e, #ff4da6); }
 
 .candidate-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  border-color: #667eea;
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(0, 200, 255, 0.3);
+  box-shadow: 
+    0 10px 40px rgba(0, 200, 255, 0.15),
+    0 0 60px rgba(138, 43, 226, 0.08);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-/* Winner Card Styling */
+/* ===== Winner Card - Golden Glow ===== */
 .winner-card {
-  background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
-  border: 3px solid #ffd700;
-  box-shadow: 0 8px 30px rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 140, 0, 0.05), rgba(255, 215, 0, 0.03));
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.15),
+    0 0 60px rgba(255, 215, 0, 0.05),
+    inset 0 0 30px rgba(255, 215, 0, 0.03);
+  animation: winnerGlow 3s ease-in-out infinite;
+}
+
+.winner-card::before {
+  background: linear-gradient(180deg, #ffd700, #ffaa00, #ffd700) !important;
+  width: 5px;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.winner-card::after {
+  content: '';
+  position: absolute;
+  top: -50%; right: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.03) 0%, transparent 60%);
+  animation: winnerShine 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes winnerGlow {
+  0%, 100% { 
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.15), 0 0 60px rgba(255, 215, 0, 0.05);
+  }
+  50% { 
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.25), 0 0 80px rgba(255, 215, 0, 0.1);
+  }
+}
+
+@keyframes winnerShine {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .winner-card:hover {
-  border-color: #ffd700;
-  box-shadow: 0 12px 40px rgba(255, 215, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.6);
+  box-shadow: 
+    0 10px 50px rgba(255, 215, 0, 0.25),
+    0 0 80px rgba(255, 215, 0, 0.1);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(255, 140, 0, 0.08), rgba(255, 215, 0, 0.05));
 }
 
-/* Position Badge */
+/* ===== Tied Card ===== */
+.tied-card {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.08), rgba(255, 87, 34, 0.05));
+  border: 2px solid rgba(255, 152, 0, 0.35);
+  box-shadow: 0 0 25px rgba(255, 152, 0, 0.1);
+}
+
+.tied-card::before {
+  background: linear-gradient(180deg, #ff9800, #ff5722) !important;
+  width: 5px;
+}
+
+/* ===== Position Badge ===== */
 .position-badge {
   position: absolute;
-  top: 15px;
-  right: 15px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  font-size: 16px;
+  top: 18px;
+  right: 18px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
   font-weight: 700;
-  padding: 8px 15px;
-  border-radius: 20px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  padding: 8px 16px;
+  border-radius: 25px;
+  letter-spacing: 1px;
+}
+
+.candidate-card:nth-child(3) .position-badge {
+  background: linear-gradient(135deg, #00c8ff, #0080ff);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 200, 255, 0.4);
+}
+
+.candidate-card:nth-child(4) .position-badge {
+  background: linear-gradient(135deg, #ff0080, #ff4060);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(255, 0, 128, 0.4);
+}
+
+.candidate-card:nth-child(5) .position-badge {
+  background: linear-gradient(135deg, #7b2ff7, #b24bf3);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+}
+
+.candidate-card:nth-child(6) .position-badge {
+  background: linear-gradient(135deg, #00ff88, #00cc6a);
+  color: #0a0a1a;
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+}
+
+.candidate-card:nth-child(7) .position-badge {
+  background: linear-gradient(135deg, #ff8c00, #ffb300);
+  color: #0a0a1a;
+  box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
+}
+
+.candidate-card:nth-child(n+8) .position-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .winner-card .position-badge {
-  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-  color: #333;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  color: #1a0a00;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+  font-size: 15px;
 }
 
+.tied-card .position-badge {
+  background: linear-gradient(135deg, #ff9800, #ff5722);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+}
+
+/* ===== Candidate Info ===== */
 .candidate-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 18px;
+}
+
+.candidate-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.candidate-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+  z-index: -1;
 }
 
 .candidate-name {
-  font-size: 22px;
-  font-weight: 600;
-  color: #333;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
 }
 
-/* Candidate Details */
+/* ===== Candidate Details ===== */
 .candidate-details {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.party-name,
-.election-center {
-  font-size: 13px;
-  color: #666;
+.party-name {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(255, 0, 128, 0.1);
+  border-radius: 8px;
+  width: fit-content;
+  border: 1px solid rgba(255, 0, 128, 0.15);
 }
 
-.party-name i,
+.party-name i {
+  color: #ff0080;
+  font-size: 11px;
+}
+
+.election-center {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(0, 200, 255, 0.08);
+  border-radius: 8px;
+  width: fit-content;
+  border: 1px solid rgba(0, 200, 255, 0.12);
+}
+
 .election-center i {
-  color: #667eea;
-  font-size: 12px;
+  color: #00c8ff;
+  font-size: 11px;
+}
+
+/* ===== Vote Count ===== */
+.vote-count-wrapper {
+  text-align: center;
+  min-width: 100px;
 }
 
 .vote-count {
-  font-size: 28px;
-  font-weight: 700;
-  color: #667eea;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #00c8ff, #7b2ff7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  display: block;
+}
+
+.winner-card .vote-count {
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 48px;
 }
 
 .vote-label {
-  font-size: 14px;
-  color: #888;
-  margin-left: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+  display: block;
+  margin-top: 4px;
 }
 
+/* ===== Progress Bar ===== */
 .progress-bar {
   width: 100%;
-  height: 12px;
-  background: #e0e0e0;
-  border-radius: 6px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
   overflow: hidden;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 6px;
-  transition: width 1s ease;
+  border-radius: 10px;
+  transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
+}
+
+/* Different gradient for each card */
+.candidate-card:nth-child(3) .progress-fill { background: linear-gradient(90deg, #00c8ff, #0080ff); }
+.candidate-card:nth-child(4) .progress-fill { background: linear-gradient(90deg, #ff0080, #ff4060); }
+.candidate-card:nth-child(5) .progress-fill { background: linear-gradient(90deg, #7b2ff7, #b24bf3); }
+.candidate-card:nth-child(6) .progress-fill { background: linear-gradient(90deg, #00ff88, #00cc6a); }
+.candidate-card:nth-child(7) .progress-fill { background: linear-gradient(90deg, #ff8c00, #ffb300); }
+.candidate-card:nth-child(n+8) .progress-fill { background: linear-gradient(90deg, #667eea, #764ba2); }
+
+.winner-card .progress-fill {
+  background: linear-gradient(90deg, #ffd700, #ffaa00, #ffd700) !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.tied-card .progress-fill {
+  background: linear-gradient(90deg, #ff9800, #ff5722) !important;
 }
 
 .progress-fill::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.3), 
-    transparent
-  );
-  animation: shimmer 2s infinite;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: shimmer 2.5s infinite;
 }
 
 @keyframes shimmer {
@@ -396,32 +742,163 @@ body {
 
 .percentage {
   text-align: right;
-  margin-top: 8px;
+  margin-top: 10px;
+  font-family: 'Orbitron', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: #667eea;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
 }
 
-/* Winner Badge */
+.winner-card .percentage {
+  color: #ffd700;
+}
+
+/* ===== Winner Badge ===== */
 .winner-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-left: 15px;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a0a00;
+  margin-left: 12px;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4); }
+  50% { box-shadow: 0 4px 30px rgba(255, 215, 0, 0.6); }
 }
 
 .winner-badge i {
-  font-size: 16px;
+  font-size: 14px;
 }
 
-/* Responsive Design */
+/* ===== Tied Badge ===== */
+.tied-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #ff9800, #ff5722);
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-left: 12px;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ===== Candidate ID Tag ===== */
+.candidate-id-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: rgba(138, 43, 226, 0.1);
+  border-radius: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(138, 43, 226, 0.15);
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+
+/* ===== Crown Icon ===== */
+.crown-icon {
+  font-size: 28px;
+  margin-right: 10px;
+  display: inline-block;
+  vertical-align: middle;
+  animation: crownFloat 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 16px rgba(255, 180, 0, 0.5));
+  position: relative;
+  top: -3px;
+}
+
+@keyframes crownFloat {
+  0%, 100% { transform: translateY(0) rotate(-5deg); filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 16px rgba(255, 180, 0, 0.5)); }
+  50% { transform: translateY(-5px) rotate(5deg); filter: drop-shadow(0 0 14px rgba(255, 215, 0, 1)) drop-shadow(0 0 28px rgba(255, 180, 0, 0.7)); }
+}
+
+/* ===== No Votes State ===== */
+.no-votes {
+  opacity: 0.5;
+}
+
+.no-votes .candidate-name {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.no-votes .vote-count {
+  background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.15));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Stats Row ===== */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  padding: 20px;
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+}
+
+.stat-card:nth-child(1) { background: rgba(0, 200, 255, 0.06); }
+.stat-card:nth-child(1)::before { background: linear-gradient(90deg, #00c8ff, #0080ff); }
+.stat-card:nth-child(2) { background: rgba(255, 0, 128, 0.06); }
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #ff0080, #ff4060); }
+.stat-card:nth-child(3) { background: rgba(0, 255, 136, 0.06); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #00ff88, #00cc6a); }
+
+.stat-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.stat-card:nth-child(1) .stat-value { color: #00c8ff; }
+.stat-card:nth-child(2) .stat-value { color: #ff0080; }
+.stat-card:nth-child(3) .stat-value { color: #00ff88; }
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+}
+
+/* ===== Responsive Design ===== */
 @media (max-width: 768px) {
   .header {
     flex-direction: column;
@@ -434,7 +911,7 @@ body {
   }
 
   .logo-text {
-    font-size: 32px;
+    font-size: 28px;
   }
 
   .logo-icon {
@@ -442,17 +919,74 @@ body {
   }
 
   .results-container {
-    padding: 25px;
+    padding: 20px;
+    border-radius: 16px;
   }
 
   .results-header h2 {
-    font-size: 28px;
+    font-size: 24px;
     flex-direction: column;
   }
 
   .candidate-info {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 15px;
+  }
+
+  .vote-count-wrapper {
+    align-self: flex-end;
+  }
+
+  .candidate-name {
+    font-size: 20px;
+  }
+
+  .vote-count {
+    font-size: 32px;
+  }
+
+  .winner-card .vote-count {
+    font-size: 36px;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 15px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .winner-badge, .tied-badge {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .position-badge {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-container {
+    padding: 10px;
+  }
+
+  .results-container {
+    padding: 15px;
+  }
+
+  .candidate-card {
+    padding: 18px;
+  }
+
+  .logo-text {
+    font-size: 24px;
   }
 }
