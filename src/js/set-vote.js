@@ -7,11 +7,6 @@
  */
 
 // ===============================================
-// API CONFIGURATION
-// ===============================================
-const API_BASE_URL = 'http://127.0.0.1:8001';
-
-// ===============================================
 // INITIALIZATION
 // ===============================================
 document.addEventListener('DOMContentLoaded', function () {
@@ -212,42 +207,7 @@ function calculateAndDisplayDuration() {
 }
 
 // ===============================================
-// EXTRACT REVERT REASON FROM RPC ERROR
-// ===============================================
-function extractRevertReason(error) {
-  try {
-    // MetaMask wraps errors: error.data.data or error.data.message
-    if (error && error.data) {
-      if (typeof error.data === 'object') {
-        if (error.data.message) return error.data.message;
-        if (error.data.reason) return error.data.reason;
-        // Ganache format: error.data.data might contain the revert reason
-        if (error.data.data && typeof error.data.data === 'string') return error.data.data;
-        // Some Ganache versions nest deeper
-        const keys = Object.keys(error.data);
-        for (const key of keys) {
-          const val = error.data[key];
-          if (val && typeof val === 'object' && val.reason) return val.reason;
-          if (val && typeof val === 'object' && val.error) return val.error;
-        }
-      }
-      if (typeof error.data === 'string') return error.data;
-    }
-    // Check inner error
-    if (error && error.innerError) return extractRevertReason(error.innerError);
-    if (error && error.cause) return extractRevertReason(error.cause);
-  } catch (e) {
-    // ignore extraction errors
-  }
-  return null;
-}
-
-// ===============================================
 // SUBMIT VOTING DATES TO BLOCKCHAIN
-// Uses intelligent method selection:
-//   - setDates() when votingInitialized is false
-//   - updateDates() when votingInitialized is true but voting hasn't started
-//   - resetVotes() + setDates() as last resort
 // ===============================================
 async function submitVotingDates() {
   const startDate = document.getElementById('startDate').value;
@@ -268,9 +228,14 @@ async function submitVotingDates() {
     return;
   }
 
-  // Convert to Unix timestamps (seconds)
-  let startTimestamp = Math.floor(startDateTime.getTime() / 1000);
-  let endTimestamp = Math.floor(endDateTime.getTime() / 1000);
+  // Minimum duration check (30 minutes)
+  const durationMs = endDateTime.getTime() - startDateTime.getTime();
+  if (durationMs < 30 * 60 * 1000) {
+    showStatusMessage('❌ Voting period must be at least 30 minutes', 'error');
+    return;
+  }  // Convert to Unix timestamps (seconds)
+  const startTimestamp = Math.floor(startDateTime.getTime() / 1000);
+  const endTimestamp = Math.floor(endDateTime.getTime() / 1000);
 
   const submitButton = document.getElementById('submitDates');
   submitButton.disabled = true;
@@ -287,230 +252,167 @@ async function submitVotingDates() {
     const instance = window.App.contracts.Voting;
     const account = window.App.account;
 
-    // -----------------------------------------------
-    // DIAGNOSTIC: Read ACTUAL blockchain time (Ganache's block.timestamp)
-    // This detects clock drift between browser and blockchain
-    // -----------------------------------------------
-    let blockTimestamp;
+    // Sync Ganache time if needed (App.syncGanacheTime should exist)
+    if (typeof window.App.syncGanacheTime === 'function') {
+      try {
+        await window.App.syncGanacheTime();
+        console.log('Ganache time synchronized');
+        // Wait a bit for blockchain to stabilize after sync
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (syncError) {
+        console.warn('Could not sync Ganache time:', syncError);
+      }
+    }
+
+    // Get the BLOCKCHAIN's current timestamp (not browser time)
+    // Fetch this right before validation to ensure accuracy
+    let blockchainTimestamp;
     try {
       const latestBlock = await window.App.web3.eth.getBlock('latest');
-      blockTimestamp = Number(latestBlock.timestamp);
+      blockchainTimestamp = Number(latestBlock.timestamp);
+      console.log('Blockchain timestamp:', blockchainTimestamp, 'Browser timestamp:', Math.floor(Date.now() / 1000));
     } catch (e) {
-      console.warn('Could not read block timestamp, using JS time:', e.message);
-      blockTimestamp = Math.floor(Date.now() / 1000);
+      console.warn('Could not get blockchain time, using browser time:', e);
+      blockchainTimestamp = Math.floor(Date.now() / 1000);
     }
 
-    const jsTimestamp = Math.floor(Date.now() / 1000);
-    const timeDrift = blockTimestamp - jsTimestamp;
-
-    console.log('[SET-VOTE] Time comparison:', {
-      blockchainTime: blockTimestamp,
-      browserTime: jsTimestamp,
-      drift: timeDrift + 's (' + (timeDrift > 0 ? 'blockchain AHEAD' : 'blockchain BEHIND') + ')',
-      startTimestamp: startTimestamp,
-      endTimestamp: endTimestamp,
-      startMinusBlockchain: (startTimestamp - blockTimestamp) + 's ahead of blockchain'
-    });
-
-    // Validate: start must be AFTER blockchain time (not just browser time)
-    // The smart contract checks: _startDate > block.timestamp
-    // AUTO-ADJUST: If clock drift detected, shift timestamps to be relative to blockchain time
-    if (startTimestamp <= blockTimestamp) {
-      const votingDuration = endTimestamp - startTimestamp; // preserve user's intended duration
-      const newStart = blockTimestamp + 180; // 3 minutes ahead of blockchain time
-      const newEnd = newStart + votingDuration;
-
-      console.warn('[SET-VOTE] Start time is NOT in the future relative to BLOCKCHAIN time!');
-      console.warn('[SET-VOTE] Blockchain time:', new Date(blockTimestamp * 1000).toLocaleString());
-      console.warn('[SET-VOTE] Your start time:', new Date(startTimestamp * 1000).toLocaleString());
-      console.warn('[SET-VOTE] AUTO-ADJUSTING: start=' + newStart + ' (' + new Date(newStart * 1000).toLocaleString() + '), end=' + newEnd + ' (' + new Date(newEnd * 1000).toLocaleString() + ')');
-
-      startTimestamp = newStart;
-      endTimestamp = newEnd;
-
-      showStatusMessage(
-        '⏳ Clock drift detected (' + Math.abs(timeDrift) + 's). ' +
-        'Auto-adjusted: start → ' + new Date(newStart * 1000).toLocaleTimeString() +
-        ', end → ' + new Date(newEnd * 1000).toLocaleTimeString() +
-        ' (blockchain time). Submitting...',
-        'info'
-      );
-    }
-
-    // Validate: minimum 30 minute duration (contract requires _endDate >= _startDate + 1800)
-    if (endTimestamp < startTimestamp + 1800) {
-      const minEnd = new Date((startTimestamp + 1800) * 1000);
-      showStatusMessage(
-        '❌ Voting duration must be at least 30 minutes. End time must be after ' +
-        minEnd.toLocaleTimeString(),
-        'error'
-      );
+    // Validate timestamps are in the future relative to BLOCKCHAIN time with sufficient buffer
+    // Using 180 second (3 minute) buffer to account for transaction processing time
+    const requiredBuffer = 180; // seconds (3 minutes)
+    if (startTimestamp <= blockchainTimestamp + requiredBuffer) {
+      // Auto-correct: Adjust start time to be 3 minutes from current blockchain time
+      const correctedStartTimestamp = blockchainTimestamp + requiredBuffer + 30; // Extra 30s margin
+      const correctedStartDateTime = new Date(correctedStartTimestamp * 1000);
+      
+      // Update form with corrected time
+      const correctedDateStr = correctedStartDateTime.toISOString().split('T')[0];
+      const correctedTimeStr = correctedStartDateTime.toTimeString().slice(0, 5);
+      
+      document.getElementById('startDate').value = correctedDateStr;
+      document.getElementById('startTime').value = correctedTimeStr;
+      
+      // Update preview
+      updateStartPreview();
+      
+      showStatusMessage(`⚠️ Start time was too close! Auto-corrected to ${correctedStartDateTime.toLocaleTimeString()}. Please review and submit again.`, 'warning');
       submitButton.disabled = false;
       submitButton.innerHTML = '<i class="fas fa-save"></i> Save Voting Dates';
       return;
     }
 
-    // -----------------------------------------------
-    // CHECK votingInitialized STATE
-    // -----------------------------------------------
-    let isInitialized = false;
-    let currentVotingStart = 0;
-    let currentVotingEnd = 0;
-
+    // Check if voting is already initialized
+    let votingInitialized = false;
+    let isOwner = false;
     try {
-      isInitialized = await instance.methods.votingInitialized().call();
-      // Handle Web3 v4 BigInt return: convert to boolean
-      if (typeof isInitialized !== 'boolean') {
-        isInitialized = Boolean(isInitialized);
-      }
-      console.log('[SET-VOTE] votingInitialized:', isInitialized);
+      votingInitialized = await instance.methods.votingInitialized().call();
+      const contractOwner = await instance.methods.owner().call();
+      isOwner = contractOwner.toLowerCase() === account.toLowerCase();
+      console.log('Voting initialized:', votingInitialized, 'Is owner:', isOwner);
     } catch (e) {
-      console.warn('[SET-VOTE] Could not check votingInitialized:', e.message);
+      console.warn('Could not check votingInitialized or owner:', e);
     }
 
-    if (isInitialized) {
-      try {
-        const dates = await instance.methods.getDates().call();
-        currentVotingStart = Number(dates[0]);
-        currentVotingEnd = Number(dates[1]);
-        console.log('[SET-VOTE] Current voting dates:', {
-          start: new Date(currentVotingStart * 1000).toLocaleString(),
-          end: new Date(currentVotingEnd * 1000).toLocaleString()
-        });
-      } catch (e) {
-        console.warn('[SET-VOTE] Could not get current dates:', e.message);
-      }
-    }
+    console.log('Setting dates - Start:', startTimestamp, 'End:', endTimestamp, 'Blockchain time:', blockchainTimestamp);
 
-    console.log('[SET-VOTE] Setting dates - Start:', startTimestamp, 'End:', endTimestamp,
-      'BlockchainTime:', blockTimestamp, 'Initialized:', isInitialized);
-
-    // -----------------------------------------------
-    // INTELLIGENT METHOD SELECTION
-    // 1. Not initialized → setDates()
-    // 2. Initialized but voting not started → updateDates()
-    // 3. Initialized and started/ended → resetVotes() then setDates()
-    // -----------------------------------------------
     let tx;
-    let methodUsed = '';
+    let gasEstimate;
 
-    if (!isInitialized) {
-      // Normal path: first time setting dates
-      console.log('[SET-VOTE] Using setDates() (first time)');
-      methodUsed = 'setDates';
-
-      try {
-        const gasEstimate = await instance.methods.setDates(startTimestamp, endTimestamp)
-          .estimateGas({ from: account });
-        const gasLimit = Math.floor(Number(gasEstimate) * 1.5);
-        console.log('[SET-VOTE] Gas estimate:', Number(gasEstimate), '→ limit:', gasLimit);
-
-        tx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
-          from: account,
-          gas: gasLimit
-        });
-      } catch (setError) {
-        const revertReason = extractRevertReason(setError);
-        console.error('[SET-VOTE] setDates() failed:', setError);
-        console.error('[SET-VOTE] Revert reason:', revertReason);
-
-        // If setDates fails with VotingAlreadyInitialized, try updateDates automatically
-        const errorStr = (setError.message || '') + ' ' + (revertReason || '');
-        if (errorStr.includes('VotingAlreadyInitialized') || errorStr.includes('already')) {
-          console.log('[SET-VOTE] votingInitialized was true on-chain, falling back to updateDates()');
-          isInitialized = true; // Force the update path below
-        } else {
-          throw setError; // Re-throw other errors
-        }
-      }
-    }
-
-    if (isInitialized && !tx) {
-      // Voting dates were already set - try updateDates or reset+setDates
-      const votingHasStarted = blockTimestamp >= currentVotingStart && currentVotingStart > 0;
-
-      if (!votingHasStarted) {
-        // Voting hasn't started yet → use updateDates()
-        console.log('[SET-VOTE] Using updateDates() (dates already set, voting not started)');
-        showStatusMessage('⏳ Updating existing voting dates...', 'info');
-        methodUsed = 'updateDates';
-
+    if (votingInitialized) {
+      // Try to reset votes first if owner, then set new dates
+      if (isOwner) {
+        showStatusMessage('⏳ Voting already initialized. Resetting votes as owner...', 'info');
+        
         try {
-          const gasEstimate = await instance.methods.updateDates(startTimestamp, endTimestamp)
-            .estimateGas({ from: account });
-          const gasLimit = Math.floor(Number(gasEstimate) * 1.5);
-
-          tx = await instance.methods.updateDates(startTimestamp, endTimestamp).send({
+          // First reset the voting period
+          const resetGas = await instance.methods.resetVotes().estimateGas({ from: account });
+          await instance.methods.resetVotes().send({
             from: account,
-            gas: gasLimit
+            gas: Math.floor(Number(resetGas) * 1.5)
           });
-        } catch (updateError) {
-          const revertReason = extractRevertReason(updateError);
-          console.error('[SET-VOTE] updateDates() failed:', updateError);
-          console.error('[SET-VOTE] Revert reason:', revertReason);
-
-          // If updateDates also fails, try reset + set
-          console.log('[SET-VOTE] Attempting resetVotes() + setDates()...');
-          showStatusMessage('⏳ Resetting and re-setting voting dates...', 'info');
-          methodUsed = 'resetVotes+setDates';
-
-          try {
-            await instance.methods.resetVotes().send({ from: account, gas: 500000 });
-            console.log('[SET-VOTE] resetVotes() succeeded');
-
-            const gasEstimate2 = await instance.methods.setDates(startTimestamp, endTimestamp)
-              .estimateGas({ from: account });
-            const gasLimit2 = Math.floor(Number(gasEstimate2) * 1.5);
-
-            tx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
-              from: account,
-              gas: gasLimit2
-            });
-          } catch (resetError) {
-            const resetReason = extractRevertReason(resetError);
-            console.error('[SET-VOTE] resetVotes+setDates failed:', resetError);
-            console.error('[SET-VOTE] Revert reason:', resetReason);
-            throw new Error(
-              'Could not set voting dates. ' +
-              (resetReason || resetError.message || 'Only the contract owner can reset dates.')
-            );
-          }
-        }
-      } else {
-        // Voting has already started - need full reset
-        console.log('[SET-VOTE] Voting already started, attempting resetVotes() + setDates()');
-        showStatusMessage('⏳ Voting was active - resetting and setting new dates...', 'info');
-        methodUsed = 'resetVotes+setDates';
-
-        try {
-          await instance.methods.resetVotes().send({ from: account, gas: 500000 });
-          console.log('[SET-VOTE] resetVotes() succeeded');
-
-          const gasEstimate = await instance.methods.setDates(startTimestamp, endTimestamp)
-            .estimateGas({ from: account });
-          const gasLimit = Math.floor(Number(gasEstimate) * 1.5);
-
+          console.log('Votes reset successfully');
+          
+          // Now set new dates
+          gasEstimate = await instance.methods.setDates(startTimestamp, endTimestamp).estimateGas({ from: account });
+          console.log('Estimated gas for setDates:', gasEstimate);
+          
           tx = await instance.methods.setDates(startTimestamp, endTimestamp).send({
             from: account,
-            gas: gasLimit
+            gas: Math.floor(Number(gasEstimate) * 1.5)
           });
         } catch (resetError) {
-          const resetReason = extractRevertReason(resetError);
-          console.error('[SET-VOTE] resetVotes+setDates failed:', resetError);
-          throw new Error(
-            'Could not reset and set dates. Only the contract owner can perform this action. ' +
-            (resetReason || '')
-          );
+          console.error('Reset failed, trying updateDates:', resetError);
+          
+          // Try updateDates instead
+          gasEstimate = await instance.methods.updateDates(startTimestamp, endTimestamp).estimateGas({ from: account });
+          console.log('Estimated gas for updateDates:', gasEstimate);
+          
+          tx = await instance.methods.updateDates(startTimestamp, endTimestamp).send({
+            from: account,
+            gas: Math.floor(Number(gasEstimate) * 1.5)
+          });
         }
+      } else {
+        showStatusMessage('❌ Voting dates have already been set. Only the contract owner can update or reset them.', 'error');
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save"></i> Save Voting Dates';
+        return;
       }
-    }
+    } else {
+      // STEP 1: Call setDates on smart contract with gas estimation
+      // Convert timestamps to strings to avoid BigInt issues in some Web3.js versions
+      const startStr = String(startTimestamp);
+      const endStr = String(endTimestamp);
+      
+      // Final blockchain timestamp check right before transaction
+      try {
+        const finalBlock = await window.App.web3.eth.getBlock('latest');
+        const finalBlockchainTime = Number(finalBlock.timestamp);
+        console.log('Final blockchain check - Time:', finalBlockchainTime, 'Start:', startTimestamp);
+        
+        // Ensure start time is still at least 150 seconds in future (allow 30s margin from original 180s buffer)
+        if (startTimestamp <= finalBlockchainTime + 150) {
+          throw new Error(`Start time is too close to current blockchain time. Please select a time at least 3-4 minutes in the future.`);
+        }
+      } catch (timeCheckError) {
+        if (timeCheckError.message.includes('too close')) {
+          throw timeCheckError;
+        }
+        console.warn('Could not perform final time check:', timeCheckError);
+      }
+      
+      try {
+        gasEstimate = await instance.methods.setDates(startStr, endStr).estimateGas({ from: account });
+        console.log('Estimated gas:', gasEstimate);
+      } catch (estimateError) {
+        console.error('Gas estimation failed:', estimateError);
+        
+        // Try to get more specific error info
+        try {
+          // Attempt a static call to get the revert reason
+          await instance.methods.setDates(startStr, endStr).call({ from: account });
+        } catch (callError) {
+          console.error('Call error details:', callError);
+          if (callError.message.includes('InvalidTimeRange')) {
+            throw new Error('Invalid time range. Start must be in future and at least 30 min before end.');
+          } else if (callError.message.includes('VotingAlreadyInitialized')) {
+            throw new Error('Voting dates have already been initialized.');
+          }
+        }
+        
+        throw new Error('Transaction will fail. Please check your dates and try again.');
+      }
 
-    if (!tx) {
-      throw new Error('No transaction was executed. Please try again.');
+      // Convert BigInt to Number and add 50% buffer
+      const gasLimit = Math.floor(Number(gasEstimate) * 1.5);
+
+      tx = await instance.methods.setDates(startStr, endStr).send({
+        from: account,
+        gas: gasLimit
+      });
     }
 
     const blockchainTxHash = tx.transactionHash || tx.hash || 'N/A';
-    console.log('[SET-VOTE] Success! Method:', methodUsed, 'TxHash:', blockchainTxHash);
+    console.log('Blockchain transaction hash:', blockchainTxHash);
 
     showStatusMessage('⏳ Blockchain OK! Saving to database...', 'info');
 
@@ -525,62 +427,48 @@ async function submitVotingDates() {
       blockchainAccount: account
     };
 
-    console.log('[SET-VOTE] Saving voting dates to MongoDB:', mongoData);
+    console.log('Saving voting dates to MongoDB:', mongoData);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/voting-dates`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`
-        },
-        body: JSON.stringify(mongoData)
-      });
+    const response = await fetch('http://127.0.0.1:8001/voting-dates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
+      },
+      body: JSON.stringify(mongoData)
+    });
 
-      const data = await response.json();
-      console.log('[SET-VOTE] MongoDB response:', response.status, data);
+    const data = await response.json();
+    console.log('MongoDB response:', response.status, data);
 
-      if (response.ok) {
-        showStatusMessage('✅ Voting dates saved successfully! (method: ' + methodUsed + ')', 'success');
-      } else {
-        showStatusMessage('⚠️ Blockchain OK but database save failed: ' + (data.detail || 'Unknown error'), 'warning');
-      }
-    } catch (mongoErr) {
-      console.warn('[SET-VOTE] MongoDB save failed:', mongoErr.message);
-      showStatusMessage('⚠️ Blockchain OK but could not save to database: ' + mongoErr.message, 'warning');
+    if (response.ok) {
+      showStatusMessage('✅ Voting dates saved successfully to blockchain and database!', 'success');
+    } else {
+      showStatusMessage(`⚠️ Blockchain OK but database save failed: ${data.detail || 'Unknown error'}`, 'warning');
     }
 
     // Reload current dates
-    setTimeout(function () {
+    setTimeout(() => {
       loadCurrentVotingDates();
     }, 2000);
 
   } catch (error) {
-    console.error('[SET-VOTE] Error setting voting dates:', error);
-    const revertReason = extractRevertReason(error);
-    if (revertReason) {
-      console.error('[SET-VOTE] Contract revert reason:', revertReason);
-    }
+    console.error('Error setting voting dates:', error);
 
-    const fullMsg = (error.message || '') + ' ' + (revertReason || '');
-
-    if (fullMsg.includes('User denied') || fullMsg.includes('rejected')) {
+    if (error.message.includes('User denied') || error.message.includes('rejected')) {
       showStatusMessage('❌ Transaction rejected by user', 'error');
-    } else if (fullMsg.includes('VotingAlreadyInitialized')) {
-      showStatusMessage('❌ Voting dates already set and could not be automatically updated. Please use "Reset Election" first.', 'error');
-    } else if (fullMsg.includes('NotOwner')) {
-      showStatusMessage('❌ Only the contract owner can update/reset voting dates. Please use the owner account.', 'error');
-    } else if (fullMsg.includes('InvalidTimeRange')) {
-      showStatusMessage('❌ Invalid date range. Start must be in the future, end must be at least 30 minutes after start.', 'error');
-    } else if (fullMsg.includes('Internal JSON-RPC')) {
-      showStatusMessage(
-        '❌ Blockchain transaction failed. Revert reason: ' +
-        (revertReason || 'Unknown - check Ganache console for details.') +
-        ' Try: Reset Election → then set new dates.',
-        'error'
-      );
+    } else if (error.message.includes('too close to current blockchain time')) {
+      showStatusMessage('❌ ' + error.message, 'error');
+    } else if (error.message.includes('VotingAlreadyInitialized') || error.message.includes('already been set')) {
+      showStatusMessage('❌ Voting dates have already been set. Use "Update Dates" to modify them.', 'error');
+    } else if (error.message.includes('InvalidTimeRange')) {
+      showStatusMessage('❌ Invalid date range. Start date must be at least 3-4 minutes in the future and end date must be at least 30 minutes after start.', 'error');
+    } else if (error.message.includes('Transaction will fail')) {
+      showStatusMessage('❌ Transaction validation failed. Please ensure start date is at least 3-4 minutes in the future.', 'error');
+    } else if (error.message.includes('Internal JSON-RPC error') || error.message.includes('revert')) {
+      showStatusMessage('❌ Transaction failed. Make sure the start date is at least 3-4 minutes in the future and voting dates haven\'t been set yet.', 'error');
     } else {
-      showStatusMessage('❌ Error: ' + error.message, 'error');
+      showStatusMessage(`❌ Error: ${error.message}`, 'error');
     }
   } finally {
     submitButton.disabled = false;
@@ -604,17 +492,21 @@ function setPreset(presetType) {
   let startDateTime, endDateTime;
 
   switch (presetType) {
-    case 'quicktest':
-      // Quick test: start in 3 minutes, end in 33 minutes (30 min minimum duration)
-      startDateTime = new Date(now.getTime() + 3 * 60 * 1000);
-      endDateTime = new Date(now.getTime() + 33 * 60 * 1000);
-      break;
-
     case 'today':
       startDateTime = new Date(now);
-      startDateTime.setHours(9, 0, 0, 0);
+      // If 9 AM has already passed, use current time + 4 minutes (to account for blockchain sync)
+      const nineAM = new Date(now);
+      nineAM.setHours(9, 0, 0, 0);
+      if (now > nineAM) {
+        // Start voting 4 minutes from now (240 seconds buffer for blockchain)
+        startDateTime.setTime(now.getTime() + 4 * 60 * 1000);
+        // Round to nearest minute
+        startDateTime.setSeconds(0, 0);
+      } else {
+        startDateTime.setHours(9, 0, 0, 0);
+      }
       endDateTime = new Date(now);
-      endDateTime.setHours(17, 0, 0, 0);
+      endDateTime.setHours(23, 59, 0, 0); // End at 11:59 PM today
       break;
 
     case 'tomorrow':
@@ -838,7 +730,7 @@ async function searchCandidate() {
   showCandidateStatus('🔍 Searching for candidate...', 'info');
 
   try {
-    const response = await fetch(`${API_BASE_URL}/candidates/search/${candidateId}`);
+    const response = await fetch(`${CANDIDATE_API_URL}/candidates/search/${candidateId}`);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -933,7 +825,7 @@ function clearCandidateStatus() {
  */
 async function getCandidatesByArea(electionArea) {
   try {
-    const response = await fetch(`${API_BASE_URL}/candidates`);
+    const response = await fetch(`${CANDIDATE_API_URL}/candidates`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

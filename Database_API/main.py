@@ -1093,6 +1093,46 @@ async def reset_candidate_password(request: Request, reset_data: PasswordResetRe
         )
 
 # ===============================================
+# VOTING RESULTS ENDPOINT
+# ===============================================
+
+@app.get("/api/voting-results")
+async def get_voting_results():
+    """
+    Get all candidates with their current vote counts from MongoDB
+    This endpoint returns candidates information stored in MongoDB
+    Note: Vote counts should be fetched from blockchain by the frontend
+    
+    Returns:
+        dict: List of all active candidates with their information
+    """
+    try:
+        candidates = []
+        async for candidate in candidates_collection.find({"isActive": True}):
+            candidate["_id"] = str(candidate["_id"])
+            # Remove password from response
+            candidate.pop("candidatePassword", None)
+            candidates.append(candidate)
+        
+        # Sort by name alphabetically
+        candidates.sort(key=lambda x: x.get('name', ''))
+        
+        return {
+            "success": True,
+            "message": "Candidates retrieved successfully",
+            "count": len(candidates),
+            "candidates": candidates,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error retrieving voting results: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve voting results: {str(e)}"
+        )
+
+# ===============================================
 # HEALTH CHECK ENDPOINT
 # ===============================================
 

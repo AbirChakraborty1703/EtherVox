@@ -1,5 +1,8 @@
-
-const API_BASE_URL = 'http://127.0.0.1:8001';
+/**
+ * EtherVox Frontend Application Logic
+ * Author: Abir Chakraborty
+ * Description: Handles Web3 interaction, voting functionality, and UI updates
+ */
 
 // Web3 and contract interaction imports
 // Web3.js v4 import syntax
@@ -13,8 +16,10 @@ window.App = {
   web3: null,
   account: null,
   contracts: {},
+  isLoading: false,
 
-
+  // Sync Ganache blockchain time with current system time
+  // This is needed because Ganache's block.timestamp can drift from real time
   syncGanacheTime: async function () {
     try {
       // Get current blockchain timestamp
@@ -94,8 +99,6 @@ window.App = {
   initWeb3: async function () {
     // Modern dapp browsers...
     if (window.ethereum) {
-      // Note: MetaMask's SES (Secure EcmaScript) may show "Removing unpermitted intrinsics" warnings
-      // This is a normal security feature and does not affect functionality
       App.web3 = new Web3(window.ethereum);
       try {
         // Request account access if needed
@@ -144,31 +147,21 @@ window.App = {
     }
   },
 
- 
+  // Initialize the smart contract
   initContract: async function () {
     try {
       // Get network ID and check deployment
       const networkId = await App.web3.eth.net.getId();
       console.log('Current network ID:', networkId);
 
-      // Prefer network 5777 (latest deployment), fallback to detected networkId
-      let deployedNetwork = votingArtifacts.networks['5777'];
-      let selectedNetwork = '5777';
-      
-      if (!deployedNetwork) {
-        // Fallback to detected network ID
-        deployedNetwork = votingArtifacts.networks[networkId];
-        selectedNetwork = networkId.toString();
-      }
-      
+      // Check if contract is deployed on this network
+      const deployedNetwork = votingArtifacts.networks[networkId];
       if (!deployedNetwork) {
         console.error('Contract not deployed on network:', networkId);
         console.log('Available networks:', Object.keys(votingArtifacts.networks));
         alert(`Contract not deployed on current network (ID: ${networkId}). Please deploy the contract or switch to the correct network.`);
         return;
       }
-
-      console.log(`Using contract from network ${selectedNetwork}: ${deployedNetwork.address}`);
 
       // Get the necessary contract artifact file and instantiate it with truffle-contract
       App.contracts.Voting = new App.web3.eth.Contract(
@@ -345,6 +338,7 @@ window.App = {
   // Load candidates from MongoDB API
   loadCandidatesFromMongoDB: async function () {
     const candidateContainer = $("#boxCandidate");
+    
     try {
       console.log('Fetching candidates from MongoDB API...');
       const apiUrl = 'http://127.0.0.1:8001/candidates';
@@ -355,7 +349,8 @@ window.App = {
         headers: {
           'Content-Type': 'application/json',
         },
-        mode: 'cors'
+        mode: 'cors',
+        timeout: 5000 // 5 second timeout
       });
 
       if (!response.ok) {
@@ -377,68 +372,100 @@ window.App = {
         return;
       }
 
-      // Get vote counts from blockchain for each candidate
+      // Get ALL candidates from blockchain for matching
       const instance = App.contracts.Voting;
       const count = await instance.methods.getCountCandidates().call();
       const blockchainCount = parseInt(count);
 
+      console.log('\n=== LOADING CANDIDATES FROM BLOCKCHAIN ===');
       console.log('Blockchain candidate count:', blockchainCount);
 
-      // Fetch all blockchain candidates and aggregate duplicates by id/name
-      const blockchainAggregates = new Map();
-
-      const normalizeKey = (candidateId, name) => {
-        if (candidateId && candidateId.trim().length > 0) return candidateId.toLowerCase().trim();
-        return (name || '').toLowerCase().trim();
-      };
-
-      for (let i = 1; i <= blockchainCount; i++) {
+      // Fetch all blockchain candidates at once
+      let blockchainCandidates = [];
+      if (blockchainCount > 0) {
         try {
-          const bc = await instance.methods.getCandidate(i).call();
-          const name = bc.name || bc[1];
-          const candidateId = bc.candidateId || bc[12];
-          const voteCount = parseInt(bc[13] || bc.voteCount || 0);
-          const key = normalizeKey(candidateId, name);
-
-          if (!blockchainAggregates.has(key)) {
-            blockchainAggregates.set(key, { voteCount: 0, ids: [], name, candidateId });
-          }
-
-          const aggregate = blockchainAggregates.get(key);
-          aggregate.voteCount += voteCount;
-          aggregate.ids.push(i);
-          blockchainAggregates.set(key, aggregate);
+          const allCandidates = await instance.methods.getAllCandidates().call();
+          blockchainCandidates = allCandidates;
+          console.log('\nFetched all blockchain candidates:');
+          blockchainCandidates.forEach((bc, idx) => {
+            // CRITICAL: Extract vote count from correct index [11]
+            const rawVotes = bc.voteCount || bc[11] || 0;
+            const votes = typeof rawVotes === 'bigint' ? Number(rawVotes) : parseInt(rawVotes || 0);
+            const name = bc.name || bc[1] || 'Unknown';
+            console.log(`  [Blockchain ID: ${idx + 1}] ${name} - ${votes} votes (raw: ${rawVotes})`);
+          });
         } catch (e) {
-          console.warn(`Error fetching blockchain candidate ${i}:`, e);
+          console.warn('Could not fetch all candidates, falling back to individual fetch:', e);
+          // Fallback: fetch individually
+          for (let i = 1; i <= blockchainCount; i++) {
+            try {
+              const bc = await instance.methods.getCandidate(i).call();
+              blockchainCandidates.push(bc);
+            } catch (err) {
+              console.warn(`Error fetching candidate ${i}:`, err);
+            }
+          }
         }
       }
 
-      // Map MongoDB candidates and match with blockchain by id (preferred) or name
+      // Map MongoDB candidates and match with blockchain by candidateId or name
       const candidates = [];
 
-      for (const candidate of data.candidates) {
-        const key = normalizeKey(candidate.candidateId, candidate.name);
-        const aggregate = blockchainAggregates.get(key);
-        const voteCount = aggregate ? aggregate.voteCount : 0;
-        const blockchainIds = aggregate ? aggregate.ids : [];
-        const onBlockchain = !!aggregate;
+      for (let i = 0; i < data.candidates.length; i++) {
+        const dbCandidate = data.candidates[i];
 
-        if (aggregate) {
-          console.log(`✓ Matched "${candidate.name}" (${candidate.candidateId || 'no id'}) → IDs ${blockchainIds.join(', ')} total ${voteCount} votes`);
+        // Find matching blockchain candidate by candidateId or name
+        let matchedBlockchainCandidate = null;
+        let blockchainId = null;
+        
+        for (let j = 0; j < blockchainCandidates.length; j++) {
+          const bc = blockchainCandidates[j];
+          const bcCandidateId = bc.candidateId || bc[9]; // index 9 is candidateId in the struct
+          const bcName = bc.name || bc[1]; // index 1 is name
+          
+          // Match by candidateId (most reliable)
+          if (bcCandidateId && dbCandidate.candidateId && bcCandidateId === dbCandidate.candidateId) {
+            matchedBlockchainCandidate = bc;
+            blockchainId = j + 1; // Blockchain IDs are 1-indexed
+            console.log(`Matched by candidateId: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
+            break;
+          }
+          
+          // Fallback: match by name (case-insensitive)
+          if (bcName && dbCandidate.name && bcName.toLowerCase() === dbCandidate.name.toLowerCase()) {
+            matchedBlockchainCandidate = bc;
+            blockchainId = j + 1; // Blockchain IDs are 1-indexed
+            console.log(`Matched by name: ${dbCandidate.name} -> Blockchain ID ${blockchainId}`);
+            break;
+          }
+        }
+
+        // Get vote count from matched blockchain candidate
+        let voteCount = 0;
+        if (matchedBlockchainCandidate) {
+          // voteCount is at index 11 in the struct (not 10!)
+          // Try property name first, then correct index, default to 0
+          const rawVoteCount = matchedBlockchainCandidate.voteCount || matchedBlockchainCandidate[11] || 0;
+          // Handle BigInt conversion properly
+          voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : parseInt(rawVoteCount || 0);
+          console.log(`  ✓ Vote count for ${dbCandidate.name}: ${voteCount} (type: ${typeof rawVoteCount})`);
         } else {
-          console.warn(`⚠ No blockchain match for "${candidate.name}" (${candidate.candidateId || 'no id'}) - needs sync`);
+          console.log(`  ✗ No blockchain match for ${dbCandidate.name}`);
         }
 
         candidates.push({
-          blockchainId: blockchainIds[0] || null,
-          name: candidate.name || 'Unknown',
-          party: candidate.party || 'Independent',
+          blockchainId: blockchainId, // This is the CORRECT blockchain ID for voting
+          name: dbCandidate.name || 'Unknown',
+          party: dbCandidate.party || 'Independent',
           voteCount: voteCount,
-          electionCenter: candidate.electionCenter,
-          candidateAddress: candidate.candidateAddress,
-          mongoId: candidate._id,
-          onBlockchain: onBlockchain
+          electionCenter: dbCandidate.electionCenter,
+          candidateAddress: dbCandidate.candidateAddress,
+          candidateId: dbCandidate.candidateId,
+          mongoId: dbCandidate._id,
+          onBlockchain: matchedBlockchainCandidate !== null
         });
+
+        console.log(`Candidate: ${dbCandidate.name} - Blockchain ID: ${blockchainId} - ${voteCount} votes - On Blockchain: ${matchedBlockchainCandidate !== null}`);
       }
 
       console.log('Displaying candidates with vote counts:', candidates);
@@ -446,25 +473,15 @@ window.App = {
 
     } catch (error) {
       console.error('Error loading candidates from MongoDB:', error);
+      console.log('Falling back to blockchain...');
 
       // Show specific error message for connection issues
       if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
         console.error('MongoDB API connection failed - Backend may not be running');
-        candidateContainer.html(`
-          <div class="error-state">
-            <i class="fas fa-exclamation-triangle"></i>
-            <p>Cannot connect to backend API</p>
-            <p style="font-size: 14px; color: rgba(255,255,255,0.6);">
-              Please ensure the Database API is running on port 8001<br>
-              Start it with: <code>cd Database_API && python main.py</code>
-            </p>
-          </div>
-        `);
-      } else {
-        // Fallback to blockchain for other errors
-        console.log('Falling back to blockchain...');
-        await App.loadCandidatesFromBlockchain();
       }
+      
+      // Always fallback to blockchain if MongoDB fails
+      await App.loadCandidatesFromBlockchain();
     }
   },
 
@@ -487,16 +504,29 @@ window.App = {
       }
 
       const candidates = [];
+      console.log('\n=== LOADING FROM BLOCKCHAIN (Fallback Mode) ===');
       // Blockchain candidate IDs are 1-indexed (1 to candidateCount)
       for (let i = 1; i <= candidateCount; i++) {
         try {
           const candidate = await instance.methods.getCandidate(i).call();
-          console.log('Loaded blockchain candidate', i, ':', candidate);
+          console.log(`\nLoading blockchain candidate ${i}:`);
+          // voteCount is at index 11, not 10!
+          const rawVoteCount = candidate.voteCount || candidate[11] || 0;
+          const voteCount = typeof rawVoteCount === 'bigint' ? Number(rawVoteCount) : parseInt(rawVoteCount || 0);
+          const name = candidate[1] || candidate.name || `Candidate ${i}`;
+          const party = candidate[5] || candidate.party || 'Independent';
+          
+          console.log(`  Name: ${name}`);
+          console.log(`  Party: ${party}`);
+          console.log(`  Vote Count: ${voteCount} (raw: ${rawVoteCount}, type: ${typeof rawVoteCount})`);
+          
           candidates.push({
             blockchainId: i, // Store the blockchain ID for voting
-            name: candidate[1] || candidate.name || `Candidate ${i}`,
-            party: candidate[5] || candidate.party || 'Independent',
-            voteCount: candidate[13] || candidate.voteCount || 0
+            name: name,
+            party: party,
+            voteCount: voteCount,
+            onBlockchain: true, // Mark as synced with blockchain
+            candidateId: candidate.candidateId || candidate[9] || `BC-${i}` // Include candidateId
           });
         } catch (e) {
           console.error('Error getting candidate', i, e);
@@ -537,8 +567,30 @@ window.App = {
     }
 
     console.log('Rendering', candidates.length, 'candidates');
+    
+    // Debug: Log each candidate's blockchain status
+    candidates.forEach((c, idx) => {
+      console.log(`Candidate ${idx}: ${c.name}, blockchainId: ${c.blockchainId}, onBlockchain: ${c.onBlockchain}`);
+    });
 
-    candidates.forEach((candidate, index) => {
+    // Filter out candidates not on blockchain (can't vote for them)
+    const votableCandidates = candidates.filter(c => c.blockchainId !== null && c.onBlockchain);
+    
+    console.log(`Filtered to ${votableCandidates.length} votable candidates out of ${candidates.length} total`);
+    
+    if (votableCandidates.length === 0) {
+      console.warn('No votable candidates found!');
+      candidateContainer.html(`
+        <div class="empty-state">
+          <i class="fas fa-user-slash"></i>
+          <p>No candidates available for voting</p>
+          <p style="font-size: 14px; color: rgba(255,255,255,0.6);">Candidates need to be synced with blockchain</p>
+        </div>
+      `);
+      return;
+    }
+
+    votableCandidates.forEach((candidate, index) => {
       // Get first letter for avatar
       const candidateName = candidate.name || 'Unknown';
       const initial = candidateName.charAt(0).toUpperCase();
@@ -557,9 +609,9 @@ window.App = {
       const partyName = candidate.party || 'Independent';
       const voteCount = candidate.voteCount || candidate.votes || 0;
 
-      // Use blockchainId if available (from blockchain), otherwise use index + 1
-      const candidateId = candidate.blockchainId || (index + 1);
-      console.log('Candidate', candidateName, 'has blockchain ID:', candidateId);
+      // CRITICAL: Use the matched blockchainId from our matching logic
+      const candidateId = candidate.blockchainId;
+      console.log('Displaying candidate:', candidateName, '- Blockchain ID:', candidateId, '- Votes:', voteCount);
 
       const card = `
         <div class="candidate-card" data-index="${index}" data-blockchain-id="${candidateId}" onclick="App.selectCandidate(${index}, ${candidateId})">
@@ -574,12 +626,16 @@ window.App = {
               </span>
             </div>
           </div>
+          <div class="candidate-votes">
+            <div class="vote-count">${voteCount}</div>
+            <div class="vote-label">Votes</div>
+          </div>
           <div class="candidate-select">
             <input type="radio" name="candidate" value="${candidateId}" id="candidate${index}" style="display:none;">
           </div>
         </div>
       `;
-      console.log('Appending card for:', candidateName);
+      console.log('Appending card for:', candidateName, 'with blockchain ID:', candidateId);
       candidateContainer.append(card);
     });
 
@@ -590,14 +646,31 @@ window.App = {
   // Select a candidate
   // index: 0-based display index, candidateId: 1-based blockchain ID (optional for backward compatibility)
   selectCandidate: function (index, candidateId) {
+    console.log('Selecting candidate:', { index, candidateId });
+    
+    // First, uncheck ALL radio buttons to ensure only one is selected
+    $('input[name="candidate"]').prop('checked', false);
+    
     // Remove selected class from all cards
     $('.candidate-card').removeClass('selected');
 
     // Add selected class to clicked card
     $(`.candidate-card[data-index="${index}"]`).addClass('selected');
 
-    // Check the radio button (value is already set to candidateId which is 1-indexed)
-    $(`#candidate${index}`).prop('checked', true);
+    // Check ONLY the specific radio button for this candidate
+    const radioButton = $(`#candidate${index}`);
+    radioButton.prop('checked', true);
+    
+    // Verify the selection
+    const selectedValue = $('input[name="candidate"]:checked').val();
+    console.log('Radio button checked. Selected value:', selectedValue);
+    
+    // Ensure only one radio button is checked
+    const checkedCount = $('input[name="candidate"]:checked').length;
+    if (checkedCount !== 1) {
+      console.error('ERROR: Multiple or no radio buttons checked!', checkedCount);
+      return;
+    }
 
     // Enable vote button
     $('#voteButton').attr('disabled', false);
@@ -605,14 +678,14 @@ window.App = {
 
   // Set up event handlers
   setupEventHandlers: function () {
-    // Enhanced Add Candidate Handler
-    $('#candidateForm').on('submit', async function (e) {
+    // Enhanced Add Candidate Handler - use .off().on() to prevent duplicate bindings
+    $('#candidateForm').off('submit').on('submit', async function (e) {
       e.preventDefault();
       await App.addCandidate();
     });
 
-    // Vote Handler
-    $('#voteButton').click(async function () {
+    // Vote Handler - use .off().on() to ensure only ONE handler is bound
+    $('#voteButton').off('click').on('click', async function () {
       await App.vote();
     });
   },
@@ -826,7 +899,7 @@ window.App = {
       }
 
       // Then save to MongoDB database
-      const response = await fetch(`${API_BASE_URL}/candidates`, {
+      const response = await fetch('http://127.0.0.1:8001/candidates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -850,12 +923,31 @@ window.App = {
 
   // Vote for a candidate
   vote: async function () {
+    // Prevent double-clicking/multiple submissions - set flag IMMEDIATELY
+    if (App.isLoading) {
+      console.log('Vote already in progress, ignoring...');
+      return;
+    }
+    App.isLoading = true; // Set immediately to block any duplicate calls
+    
     const candidateID = $("input[name='candidate']:checked").val();
 
     if (!candidateID) {
       $("#msg").html("<p>Please select a candidate to vote for.</p>");
+      App.isLoading = false;
       return;
     }
+    
+    // Verify only ONE candidate is selected
+    const checkedCount = $('input[name="candidate"]:checked').length;
+    if (checkedCount !== 1) {
+      $("#msg").html("<p style='color: red;'>❌ Error: Please select exactly one candidate.</p>");
+      console.error('Multiple candidates selected:', checkedCount);
+      App.isLoading = false;
+      return;
+    }
+    
+    console.log('Voting for candidate ID:', candidateID, '(Type:', typeof candidateID, ')');
 
     try {
       const instance = App.contracts.Voting;
@@ -903,14 +995,19 @@ window.App = {
 
       if (totalCandidates === 0) {
         $("#msg").html("<p style='color: red;'>❌ No candidates registered on blockchain. Please contact admin.</p>");
+        App.isLoading = false;
         return;
       }
 
       if (candidateIdNum < 1 || candidateIdNum > totalCandidates) {
         $("#msg").html(`<p style='color: red;'>❌ Invalid candidate selection. Valid range: 1-${totalCandidates}, got: ${candidateIdNum}</p>`);
+        App.isLoading = false;
         return;
       }
 
+      // Disable button immediately to prevent any further clicks
+      $("#voteButton").attr("disabled", true);
+      
       // Show processing message
       $("#msg").html("<p style='color: blue;'>⏳ Syncing blockchain time and processing your vote...</p>");
       $("#voteButton").attr("disabled", true);
@@ -928,6 +1025,7 @@ window.App = {
         const votingStatus = await instance.methods.getVotingStatus().call();
         console.log('Voting status after sync:', votingStatus);
 
+        App.isLoading = false;
         $("#voteButton").attr("disabled", false);
 
         if (votingStatus === "Not Started") {
@@ -951,7 +1049,10 @@ window.App = {
 
         $("#msg").html("<p style='color: green;'>✅ Your vote has been recorded successfully!</p>");
         App.hasVoted = true;
+        App.isLoading = false;
         $("#voteButton").attr("disabled", true);
+        // Disable all candidate card click handlers to prevent further selection
+        $('.candidate-card').css('pointer-events', 'none').css('opacity', '0.7');
       } catch (txError) {
         console.log('Transaction error (checking if vote went through):', txError);
 
@@ -961,13 +1062,21 @@ window.App = {
           // Vote actually succeeded!
           $("#msg").html("<p style='color: green;'>✅ Your vote has been recorded successfully!</p>");
           App.hasVoted = true;
+          App.isLoading = false;
           $("#voteButton").attr("disabled", true);
+          // Disable all candidate card click handlers to prevent further selection
+          $('.candidate-card').css('pointer-events', 'none').css('opacity', '0.7');
         } else {
           throw txError; // Re-throw if vote really failed
         }
       }
 
       // Refresh candidate list to show updated vote counts
+      console.log('\n=== VOTE SUCCESSFUL - REFRESHING CANDIDATE LIST ===');
+      
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       await App.loadCandidates();
 
     } catch (error) {
@@ -979,6 +1088,7 @@ window.App = {
         if (hasVotedFinal) {
           $("#msg").html("<p style='color: green;'>✅ Your vote has been recorded successfully!</p>");
           App.hasVoted = true;
+          App.isLoading = false;
           $("#voteButton").attr("disabled", true);
           await App.loadCandidates();
           return;
@@ -987,6 +1097,8 @@ window.App = {
         // Ignore check error
       }
 
+      // Reset loading state on error
+      App.isLoading = false;
       $("#voteButton").attr("disabled", false);
 
       // Parse specific error messages
