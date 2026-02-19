@@ -19,10 +19,11 @@ Version: 1.0.0
 import cv2
 import mediapipe as mp
 import numpy as np
-from typing import Dict, Tuple, Optional
+from typing import Any, Dict, Tuple, Optional
 import time
 from collections import deque
 import base64
+import os
 
 
 class LivenessDetector:
@@ -47,15 +48,22 @@ class LivenessDetector:
     RIGHT_EYE_INDICES = [362, 385, 387, 263, 373, 380]
     
     def __init__(self):
-        """Initialize MediaPipe Face Mesh and detection parameters."""
-        # Initialize MediaPipe Face Mesh
-        self.mp_face_mesh = mp.solutions.face_mesh
-        self.face_mesh = self.mp_face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+        """Initialize MediaPipe Face Landmarker (Tasks API) and detection parameters."""
+        # Initialize MediaPipe Face Landmarker (new Tasks API for mediapipe >= 0.10.30)
+        model_path = os.path.join(os.path.dirname(__file__), 'face_landmarker.task')
+        
+        base_options = mp.tasks.BaseOptions(model_asset_path=model_path)
+        options = mp.tasks.vision.FaceLandmarkerOptions(
+            base_options=base_options,
+            running_mode=mp.tasks.vision.RunningMode.IMAGE,
+            num_faces=1,
+            min_face_detection_confidence=0.5,
+            min_face_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False
         )
+        self.face_landmarker = mp.tasks.vision.FaceLandmarker.create_from_options(options)
         
         # Detection state variables
         self.blink_counter = 0
@@ -100,10 +108,10 @@ class LivenessDetector:
     def extract_eye_landmarks(self, face_landmarks, indices: list, 
                             image_width: int, image_height: int) -> np.ndarray:
         """
-        Extract eye landmark coordinates from face mesh.
+        Extract eye landmark coordinates from face landmark list.
         
         Args:
-            face_landmarks: MediaPipe face landmarks
+            face_landmarks: List of NormalizedLandmark objects (Tasks API)
             indices: List of landmark indices for the eye
             image_width: Image width in pixels
             image_height: Image height in pixels
@@ -113,7 +121,7 @@ class LivenessDetector:
         """
         landmarks = []
         for idx in indices:
-            landmark = face_landmarks.landmark[idx]
+            landmark = face_landmarks[idx]
             x = int(landmark.x * image_width)
             y = int(landmark.y * image_height)
             landmarks.append([x, y])
@@ -125,7 +133,7 @@ class LivenessDetector:
         Calculate head rotation angles (yaw, pitch, roll) using 3D face landmarks.
         
         Args:
-            face_landmarks: MediaPipe face landmarks
+            face_landmarks: List of NormalizedLandmark objects (Tasks API)
             image_width: Image width
             image_height: Image height
             
@@ -139,7 +147,7 @@ class LivenessDetector:
         # Extract 2D coordinates
         image_points = []
         for idx in landmark_indices:
-            landmark = face_landmarks.landmark[idx]
+            landmark = face_landmarks[idx]
             x = landmark.x * image_width
             y = landmark.y * image_height
             image_points.append([x, y])
@@ -195,7 +203,7 @@ class LivenessDetector:
         
         return yaw, pitch, roll
     
-    def process_frame(self, frame: np.ndarray) -> Dict[str, any]:
+    def process_frame(self, frame: np.ndarray) -> Dict[str, Any]:
         """
         Process a single frame for liveness detection.
         
@@ -227,18 +235,19 @@ class LivenessDetector:
                 "timeout": True
             }
         
-        # Convert BGR to RGB for MediaPipe
+        # Convert BGR to RGB and create MediaPipe Image for Tasks API
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.face_mesh.process(rgb_frame)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+        results = self.face_landmarker.detect(mp_image)
         
+        h, w, _ = frame.shape
         status = "No face detected"
         blink_detected = False
         head_movement = False
         confidence = 0.0
         
-        if results.multi_face_landmarks:
-            face_landmarks = results.multi_face_landmarks[0]
-            h, w, _ = frame.shape
+        if results.face_landmarks and len(results.face_landmarks) > 0:
+            face_landmarks = results.face_landmarks[0]  # List of NormalizedLandmark
             
             # ===== EYE BLINK DETECTION =====
             # Extract eye landmarks
@@ -304,7 +313,7 @@ class LivenessDetector:
                     cv2.circle(frame, tuple(point), 2, (0, 255, 0), -1)
             
             # Draw head rotation indicator
-            nose_tip = face_landmarks.landmark[1]
+            nose_tip = face_landmarks[1]
             nose_x = int(nose_tip.x * w)
             nose_y = int(nose_tip.y * h)
             
@@ -348,8 +357,8 @@ class LivenessDetector:
             "status": status,
             "confidence": round(confidence, 2),
             "visualization_frame": frame,
-            "ear": round(avg_ear, 3) if results.multi_face_landmarks else 0,
-            "yaw": round(yaw, 2) if results.multi_face_landmarks else 0,
+            "ear": round(avg_ear, 3) if results.face_landmarks else 0,
+            "yaw": round(yaw, 2) if results.face_landmarks else 0,
             "timeout": False
         }
     
@@ -363,7 +372,7 @@ class LivenessDetector:
         self.detected_right_turn = False
         self.start_time = None
     
-    def process_base64_frame(self, base64_image: str) -> Dict[str, any]:
+    def process_base64_frame(self, base64_image: str) -> Dict[str, Any]:
         """
         Process a base64 encoded image for liveness detection.
         
@@ -406,8 +415,11 @@ class LivenessDetector:
     
     def __del__(self):
         """Cleanup resources."""
-        if hasattr(self, 'face_mesh'):
-            self.face_mesh.close()
+        try:
+            if hasattr(self, 'face_landmarker') and self.face_landmarker is not None:
+                self.face_landmarker.close()
+        except Exception:
+            pass  # Suppress cleanup errors during interpreter shutdown
 
 
 # Singleton instance for reuse across API calls

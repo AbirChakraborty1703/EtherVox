@@ -312,9 +312,74 @@ async function submitVotingDates() {
       startMinusBlockchain: (startTimestamp - blockTimestamp) + 's ahead of blockchain'
     });
 
+    // -----------------------------------------------
+    // SYNC BLOCKCHAIN TIME TO SYSTEM TIME (fix drift)
+    // This ensures blockchain time matches the admin's real clock,
+    // so timestamps entered by the user work as expected.
+    // -----------------------------------------------
+    if (Math.abs(timeDrift) > 5) {
+      console.log('[SET-VOTE] Blockchain clock is off by', timeDrift, 's — syncing to system time...');
+      showStatusMessage('⏳ Syncing blockchain clock to system time...', 'info');
+
+      const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
+      let synced = false;
+      for (const url of ganacheUrls) {
+        try {
+          // PRIMARY: evm_setTime with MILLISECONDS (works both forward and backward)
+          // Ganache expects milliseconds (like Date.now()), NOT seconds
+          const nowMs = Date.now();
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_setTime', params: [nowMs], id: 1 })
+          });
+          if (r.ok) {
+            // Mine a block so the new timestamp takes effect
+            await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_mine', params: [], id: 2 })
+            });
+            // Re-read blockchain time after sync
+            const freshBlock = await window.App.web3.eth.getBlock('latest');
+            blockTimestamp = Number(freshBlock.timestamp);
+            const remainingDrift = Math.abs(Math.floor(Date.now() / 1000) - blockTimestamp);
+            console.log('[SET-VOTE] After evm_setTime: blockchain =', new Date(blockTimestamp * 1000).toLocaleString(), '| Drift:', remainingDrift + 's');
+
+            // If evm_setTime worked well enough, fine-tune with evm_increaseTime if needed
+            if (remainingDrift <= 30 && remainingDrift > 5) {
+              const fineDrift = Math.floor(Date.now() / 1000) - blockTimestamp;
+              if (fineDrift > 0) {
+                await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [fineDrift], id: 3 })
+                });
+                await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_mine', params: [], id: 4 })
+                });
+                const fineBlock = await window.App.web3.eth.getBlock('latest');
+                blockTimestamp = Number(fineBlock.timestamp);
+              }
+            }
+
+            const finalDrift = Math.abs(Math.floor(Date.now() / 1000) - blockTimestamp);
+            console.log('[SET-VOTE] ✅ Blockchain time synced to:', new Date(blockTimestamp * 1000).toLocaleString(), '| Final drift:', finalDrift + 's');
+            synced = true;
+            break;
+          }
+        } catch (e) { /* try next */ }
+      }
+      if (!synced) {
+        console.warn('[SET-VOTE] Could not sync blockchain time — will auto-adjust timestamps instead');
+      }
+    }
+
     // Validate: start must be AFTER blockchain time (not just browser time)
     // The smart contract checks: _startDate > block.timestamp
-    // AUTO-ADJUST: If clock drift detected, shift timestamps to be relative to blockchain time
+    // If still behind after sync attempt, auto-adjust as last resort
     if (startTimestamp <= blockTimestamp) {
       const votingDuration = endTimestamp - startTimestamp; // preserve user's intended duration
       const newStart = blockTimestamp + 180; // 3 minutes ahead of blockchain time

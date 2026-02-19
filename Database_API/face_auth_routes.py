@@ -5,13 +5,16 @@ from pydantic import BaseModel
 from typing import List
 import numpy as np
 import json
+import os
 from pymongo import MongoClient
 
 router = APIRouter()
 
-# MongoDB connection
-mongo_client = MongoClient('mongodb://localhost:27017/')
-mongo_db = mongo_client['voter_db']
+# MongoDB connection - use same database as main.py
+MONGODB_URL = os.environ.get('MONGODB_URL', 'mongodb://localhost:27017')
+MONGODB_DB = os.environ.get('MONGODB_DB', 'ethervox_candidates')
+mongo_client = MongoClient(MONGODB_URL)
+mongo_db = mongo_client[MONGODB_DB]
 voters_collection = mongo_db['voters']
 
 class FaceRegisterRequest(BaseModel):
@@ -25,10 +28,11 @@ def euclidean_distance(desc1, desc2):
     """Calculate euclidean distance between two descriptors"""
     return np.linalg.norm(np.array(desc1) - np.array(desc2))
 
-def find_match(descriptor, threshold=0.3):
+def find_match(descriptor, threshold=0.5):
     """
     Find matching face in database (checks MongoDB)
-    threshold: 0.3 is strict for face-api.js (high security)
+    threshold: 0.5 for face-api.js (balanced security/usability)
+    Typical ranges: 0.4 = strict, 0.5 = balanced, 0.6 = lenient
     Lower = stricter matching
     """
     best_match = None
@@ -111,32 +115,35 @@ async def login_face(request: FaceLoginRequest):
         
         # Get voter role from MySQL
         import mysql.connector
-        mysql_conn = mysql.connector.connect(
-            host='localhost',
-            user='root',
-            password='Abhinava@12',
-            database='voter_db'
-        )
-        cursor = mysql_conn.cursor(dictionary=True)
-        cursor.execute("SELECT role FROM voters WHERE voter_id = %s", (matched_voter,))
-        voter_data = cursor.fetchone()
-        role = voter_data['role'] if voter_data else 'user'
-        cursor.close()
-        mysql_conn.close()
+        mysql_conn = None
+        try:
+            mysql_conn = mysql.connector.connect(
+                host=os.environ.get('MYSQL_HOST', 'localhost'),
+                user=os.environ.get('MYSQL_USER', 'root'),
+                password=os.environ.get('MYSQL_PASSWORD', ''),
+                database=os.environ.get('MYSQL_DB', 'ethervox_voting')
+            )
+            cursor = mysql_conn.cursor(dictionary=True)
+            cursor.execute("SELECT role FROM voters WHERE voter_id = %s", (matched_voter,))
+            voter_data = cursor.fetchone()
+            role = voter_data['role'] if voter_data else 'user'
+            cursor.close()
+        finally:
+            if mysql_conn:
+                mysql_conn.close()
         
         # Generate JWT token
-        from datetime import datetime, timedelta
-        from jose import jwt
-        import os
+        from datetime import datetime, timedelta, timezone
+        from jose import jwt as jose_jwt
         
-        SECRET_KEY = os.environ.get('SECRET_KEY', 'your_secret_key')
+        SECRET_KEY = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
         
         token_data = {
             "voter_id": matched_voter,
             "role": role,
-            "exp": datetime.utcnow() + timedelta(hours=24)
+            "exp": datetime.now(timezone.utc) + timedelta(hours=24)
         }
-        token = jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
+        token = jose_jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
         
         return {
             "success": True,

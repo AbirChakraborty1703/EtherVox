@@ -61,7 +61,11 @@ app.use((req, res, next) => {
 
 // Authorization middleware with enhanced security
 const authorizeUser = (req, res, next) => {
-  const authHeader = req.query.Authorization;
+  // Accept token from ?Authorization=Bearer <token> OR ?token=<token>
+  let authHeader = req.query.Authorization;
+  if (!authHeader && req.query.token) {
+    authHeader = 'Bearer ' + req.query.token;
+  }
   
   console.log(`[AUTH] Checking authorization for: ${req.path}`);
   console.log(`[AUTH] Authorization header present: ${!!authHeader}`);
@@ -215,6 +219,16 @@ app.get('/debug-votes.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/html/debug-votes.html'));
 });
 
+// Face Registration (requires login)
+app.get('/face-register.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/html/face-register.html'));
+});
+
+// Liveness Check (requires login)
+app.get('/liveness-check.html', authorizeUser, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/liveness-check.html'));
+});
+
 // ===============================================
 // ROUTES - Static Assets (CSS, JS, Images)
 // ===============================================
@@ -258,6 +272,10 @@ app.get('/js/candidate.js', (req, res) => {
 
 app.get('/js/result.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/js/result.js'));
+});
+
+app.get('/js/face-auth.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src/js/face-auth.js'));
 });
 
 app.get('/css/set-vote.css', (req, res) => {

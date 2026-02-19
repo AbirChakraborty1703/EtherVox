@@ -238,11 +238,7 @@ class PermanentMetaMaskConnection {
   handleConnectionError(error) {
     if (error.code === 4001) {
       console.log('🚫 User rejected connection');
-      // Show friendly message and retry
-      setTimeout(() => {
-        console.log('🔄 Retrying connection in 5 seconds...');
-        this.connect();
-      }, 5000);
+      // Don't auto-retry on explicit user rejection
     } else {
       console.error('❌ Connection error:', error);
     }

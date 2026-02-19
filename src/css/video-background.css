@@ -136,22 +136,17 @@
 .particle-layer {
   position: absolute;
   top: 0;
+  display: none;
+}
 
-  /* ===============================================
-   PARTICLE LAYER - Disabled for cleaner background
-   =============================================== */
-  .particle-layer {
-    display: none;
-  }
-
-  /* ===============================================
+/* ===============================================
    SHIMMER EFFECT - Disabled for cleaner background
    =============================================== */
-  .shimmer-effect {
-    display: none;
-  }
+.shimmer-effect {
+  display: none;
+}
 
-  /* Alternative overlay styles - can be switched */
+/* Alternative overlay styles - can be switched */
   .video-overlay.dark {
     background: rgba(0, 0, 0, 0.4);
     animation: none;

@@ -18,15 +18,15 @@ Features:
 import dotenv
 import os
 import sys
+import json
 import mysql.connector
 from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.encoders import jsonable_encoder
 from mysql.connector import errorcode
 import jwt
-from datetime import datetime, timedelta
-from pymongo import MongoClient
+from datetime import datetime, timedelta, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
+import hashlib
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
@@ -50,11 +50,16 @@ if sys.platform.startswith('win'):
         print(f"[WARNING] UTF-8 encoding setup failed: {e}")
 
 # Loading the environment variables for database configuration
-# Load from parent directory's .env file
+# Load from parent directory's .env file (override=True ensures .env wins over existing env vars)
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
-dotenv.load_dotenv(env_path)
+dotenv.load_dotenv(env_path, override=True)
 print(f"[INFO] Loading environment from: {env_path}")
-print(f"[INFO] SECRET_KEY loaded: {'Yes' if os.environ.get('SECRET_KEY') else 'No'}")
+print(f"[INFO] .env file exists: {os.path.isfile(env_path)}")
+print(f"[INFO] SECRET_KEY loaded: {'Yes' if os.environ.get('SECRET_KEY') else 'No (using fallback)'}")
+
+# Load SECRET_KEY AFTER dotenv so we get the real value from .env
+SECRET_KEY_FALLBACK = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
+print(f"[INFO] SECRET_KEY in use (first 20 chars): {SECRET_KEY_FALLBACK[:20]}...")
 
 # Initialize the FastAPI application instance
 app = FastAPI()
@@ -82,6 +87,30 @@ app.add_middleware(
 # ===============================================
 # DATABASE CONNECTIONS
 # ===============================================
+
+# ===============================================
+# REGISTER AI/ML FEATURE ROUTERS
+# ===============================================
+try:
+    from anomaly_routes import router as anomaly_router
+    app.include_router(anomaly_router, prefix="/anomaly", tags=["Anomaly Detection"])
+    print("[OK] Anomaly detection routes registered")
+except ImportError as e:
+    print(f"[WARNING] Anomaly detection routes not available: {e}")
+
+try:
+    from face_auth_routes import router as face_auth_router
+    app.include_router(face_auth_router, prefix="/face-auth", tags=["Face Authentication"])
+    print("[OK] Face authentication routes registered")
+except ImportError as e:
+    print(f"[WARNING] Face authentication routes not available: {e}")
+
+try:
+    from liveness_routes import router as liveness_router
+    app.include_router(liveness_router, prefix="/liveness", tags=["Liveness Detection"])
+    print("[OK] Liveness detection routes registered")
+except ImportError as e:
+    print(f"[WARNING] Liveness detection routes not available: {e}")
 
 # Establish MySQL database connection using environment variables
 try:
@@ -132,6 +161,169 @@ except Exception as err:
     print("Make sure MongoDB is running on your system")
     print("You can start MongoDB using: mongod --dbpath Database_API/mongodb_data")
     exit(1)
+
+# ===============================================
+# BLOCKCHAIN (WEB3) CONNECTION
+# ===============================================
+# Server-side Web3 connection to Ganache for automatic candidate sync
+# This eliminates the need for MetaMask or CLI commands
+
+w3 = None
+voting_contract = None
+blockchain_account = None
+
+def init_blockchain():
+    """Initialize Web3 connection and Voting contract for server-side blockchain operations."""
+    global w3, voting_contract, blockchain_account
+    try:
+        from web3 import Web3
+
+        # Connect to Ganache (local Ethereum node)
+        ganache_url = os.environ.get('GANACHE_URL', 'http://127.0.0.1:7545')
+        w3 = Web3(Web3.HTTPProvider(ganache_url))
+
+        if not w3.is_connected():
+            print(f"[WARNING] Cannot connect to Ganache at {ganache_url}")
+            print("[WARNING] Blockchain auto-sync will be disabled")
+            w3 = None
+            return False
+
+        # Get the first Ganache account (contract deployer / owner)
+        accounts = w3.eth.accounts
+        if not accounts:
+            print("[WARNING] No Ganache accounts available")
+            w3 = None
+            return False
+        blockchain_account = accounts[0]
+
+        # Load contract ABI and address from build artifacts
+        contract_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'build', 'contracts', 'Voting.json'
+        )
+
+        if not os.path.isfile(contract_path):
+            print(f"[WARNING] Contract artifacts not found at {contract_path}")
+            print("[WARNING] Please deploy the contract first: truffle migrate --reset")
+            w3 = None
+            return False
+
+        with open(contract_path, 'r') as f:
+            contract_json = json.load(f)
+
+        abi = contract_json['abi']
+        networks = contract_json.get('networks', {})
+
+        # Find deployed address (try network 5777, then any available)
+        deployed = networks.get('5777') or networks.get('1337')
+        if not deployed:
+            for net_id, net_data in networks.items():
+                if net_data.get('address'):
+                    deployed = net_data
+                    break
+
+        if not deployed or not deployed.get('address'):
+            print("[WARNING] Voting contract not deployed on any network")
+            print("[WARNING] Please deploy: truffle migrate --reset")
+            w3 = None
+            return False
+
+        contract_address = deployed['address']
+        voting_contract = w3.eth.contract(
+            address=Web3.to_checksum_address(contract_address),
+            abi=abi
+        )
+
+        # Verify the account is the contract owner
+        owner = voting_contract.functions.owner().call()
+        if owner.lower() != blockchain_account.lower():
+            print(f"[WARNING] Ganache account {blockchain_account} is not the contract owner ({owner})")
+            print("[WARNING] Using contract owner account instead")
+            blockchain_account = owner
+
+        count = voting_contract.functions.getCountCandidates().call()
+        print(f"[OK] Blockchain connected: Ganache at {ganache_url}")
+        print(f"[OK] Voting contract at: {contract_address}")
+        print(f"[OK] Using account: {blockchain_account}")
+        print(f"[OK] Candidates on blockchain: {count}")
+        return True
+
+    except ImportError:
+        print("[WARNING] web3 package not installed. Run: pip install web3")
+        print("[WARNING] Blockchain auto-sync will be disabled")
+        w3 = None
+        return False
+    except Exception as e:
+        print(f"[WARNING] Blockchain initialization failed: {e}")
+        print("[WARNING] Blockchain auto-sync will be disabled")
+        w3 = None
+        return False
+
+# Initialize blockchain on module load
+init_blockchain()
+
+
+async def add_candidate_to_blockchain(candidate_data: dict) -> dict:
+    """
+    Add a single candidate to the blockchain via server-side Web3.
+    No MetaMask needed — uses Ganache account directly.
+
+    Returns dict with 'success', 'tx_hash', 'error' keys.
+    """
+    global w3, voting_contract, blockchain_account
+
+    if not w3 or not voting_contract or not blockchain_account:
+        return {"success": False, "tx_hash": None, "error": "Blockchain not connected"}
+
+    try:
+        # Check if candidate already exists on blockchain (prevent duplicates)
+        count = voting_contract.functions.getCountCandidates().call()
+        for i in range(1, count + 1):
+            try:
+                bc_candidate = voting_contract.functions.getCandidate(i).call()
+                # bc_candidate[12] is candidateId
+                if str(bc_candidate[12]).lower().strip() == str(candidate_data.get('candidateId', '')).lower().strip():
+                    print(f"[BLOCKCHAIN] Candidate {candidate_data.get('candidateId')} already exists on blockchain (ID: {i})")
+                    return {
+                        "success": True,
+                        "tx_hash": "already_synced",
+                        "error": None,
+                        "already_existed": True
+                    }
+            except Exception:
+                continue
+
+        # Build transaction
+        tx = voting_contract.functions.addCandidate(
+            str(candidate_data.get('name', 'Unknown')),
+            int(candidate_data.get('age', 18)),
+            str(candidate_data.get('dateOfBirth', '01-01-2000')),
+            str(candidate_data.get('panNumber', 'XXXXX0000X')),
+            str(candidate_data.get('aadharNumber', '000000000000')).replace(' ', ''),
+            str(candidate_data.get('voterEpicNumber', 'XXX0000000')),
+            str(candidate_data.get('electionCenter', 'Default Election Center')),
+            str(candidate_data.get('party', 'Independent')),
+            str(candidate_data.get('candidateAddress', 'Not Provided')),
+            str(candidate_data.get('email', 'not@provided.com')),
+            str(candidate_data.get('phoneNumber', '0000000000')),
+            str(candidate_data.get('candidateId', 'UNKNOWN')),
+            str(candidate_data.get('candidatePassword', 'hashed_password'))
+        ).transact({
+            'from': blockchain_account,
+            'gas': 3000000
+        })
+
+        # Wait for receipt
+        receipt = w3.eth.wait_for_transaction_receipt(tx)
+        tx_hash = receipt['transactionHash'].hex()
+
+        print(f"[BLOCKCHAIN] ✅ Candidate '{candidate_data.get('name')}' added to blockchain. TX: {tx_hash}")
+        return {"success": True, "tx_hash": tx_hash, "error": None, "already_existed": False}
+
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[BLOCKCHAIN] ❌ Failed to add '{candidate_data.get('name')}' to blockchain: {error_msg}")
+        return {"success": False, "tx_hash": None, "error": error_msg}
 
 # ===============================================
 # STARTUP EVENT - Verify MongoDB Connection
@@ -315,14 +507,13 @@ async def login(voter_id: str, password: str):
             user_role = 'admin' if voter_id.startswith('A') else 'user'
         
         # Generate JWT token with user information
-        from datetime import timezone
         token_payload = {
             'voter_id': user['voter_id'],
             'role': user_role,
             'exp': datetime.now(timezone.utc) + timedelta(hours=24)  # Token expires in 24 hours
         }
         
-        token = jwt.encode(token_payload, os.environ.get('SECRET_KEY', 'default_secret'), algorithm='HS256')
+        token = jwt.encode(token_payload, SECRET_KEY_FALLBACK, algorithm='HS256')
         
         return {
             'success': True,
@@ -379,28 +570,61 @@ def get_role(voter_id, password):
 @app.post("/candidates")
 async def create_candidate(candidate: CandidateModel):
     """
-    Create a new candidate profile in MongoDB
+    Create a new candidate profile in MongoDB and AUTOMATICALLY sync to blockchain.
+    No MetaMask or CLI commands needed — server handles blockchain registration.
     
     Args:
         candidate (CandidateModel): Candidate data
     
     Returns:
-        dict: Created candidate information with MongoDB ID
+        dict: Created candidate information with MongoDB ID and blockchain status
     """
     try:
         # Convert pydantic model to dict and prepare for MongoDB
-        candidate_dict = candidate.dict()
+        candidate_dict = candidate.model_dump()
         
-        # Hash the password before storing (in production, use proper hashing)
-        import hashlib
+        # Keep the raw password for blockchain (contract stores as-is)
+        raw_password = candidate_dict['candidatePassword']
+        
+        # Hash the password before storing in MongoDB
         candidate_dict['candidatePassword'] = hashlib.sha256(
-            candidate_dict['candidatePassword'].encode()
+            raw_password.encode()
         ).hexdigest()
         
-        # Insert candidate into MongoDB
+        # Insert candidate into MongoDB first
         result = await candidates_collection.insert_one(candidate_dict)
+        mongo_id = str(result.inserted_id)
         
-        # Get the created candidate
+        # ========================================
+        # AUTO-SYNC TO BLOCKCHAIN (server-side)
+        # ========================================
+        blockchain_result = {"success": False, "tx_hash": None, "error": "Not attempted"}
+        
+        if w3 and voting_contract:
+            # Use SHA-256 hashed password for blockchain (consistent with sync-all endpoint)
+            blockchain_data = candidate.model_dump()
+            blockchain_data['candidatePassword'] = candidate_dict['candidatePassword']  # SHA-256 hash
+            
+            blockchain_result = await add_candidate_to_blockchain(blockchain_data)
+            
+            if blockchain_result["success"]:
+                # Update MongoDB with blockchain sync status
+                await candidates_collection.update_one(
+                    {"_id": result.inserted_id},
+                    {"$set": {
+                        "syncedToBlockchain": True,
+                        "blockchainAddress": blockchain_result["tx_hash"],
+                        "blockchainAccount": blockchain_account,
+                        "syncedAt": datetime.now().isoformat()
+                    }}
+                )
+                print(f"[AUTO-SYNC] ✅ Candidate '{candidate_dict.get('name')}' saved to MongoDB + blockchain")
+            else:
+                print(f"[AUTO-SYNC] ⚠️ Candidate saved to MongoDB but blockchain sync failed: {blockchain_result['error']}")
+        else:
+            print(f"[AUTO-SYNC] ⚠️ Blockchain not connected — candidate saved to MongoDB only")
+        
+        # Get the created candidate (with sync status updates)
         created_candidate = await candidates_collection.find_one(
             {"_id": result.inserted_id}
         )
@@ -411,7 +635,12 @@ async def create_candidate(candidate: CandidateModel):
         return {
             "message": "Candidate created successfully",
             "candidate": created_candidate,
-            "mongodb_id": str(result.inserted_id)
+            "mongodb_id": mongo_id,
+            "blockchain": {
+                "synced": blockchain_result["success"],
+                "tx_hash": blockchain_result.get("tx_hash"),
+                "error": blockchain_result.get("error")
+            }
         }
         
     except Exception as e:
@@ -419,6 +648,114 @@ async def create_candidate(candidate: CandidateModel):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create candidate: {str(e)}"
+        )
+
+
+@app.post("/candidates/sync-all")
+async def sync_all_candidates_to_blockchain():
+    """
+    Sync ALL unsynced candidates from MongoDB to blockchain (server-side).
+    Called by the 'Sync All to Blockchain' button — no MetaMask needed.
+    
+    Returns:
+        dict: Summary of sync results
+    """
+    if not w3 or not voting_contract:
+        # Try to reconnect
+        init_blockchain()
+        if not w3 or not voting_contract:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Blockchain not connected. Please ensure Ganache is running."
+            )
+    
+    try:
+        # Fetch all active candidates from MongoDB
+        candidates = []
+        async for candidate in candidates_collection.find({"isActive": True}):
+            candidates.append(candidate)
+        
+        if not candidates:
+            return {"message": "No candidates found in database", "synced": 0, "failed": 0, "already_synced": 0}
+        
+        success_count = 0
+        fail_count = 0
+        already_synced_count = 0
+        errors = []
+        
+        for candidate in candidates:
+            candidate_id_str = str(candidate["_id"])
+            
+            # Prepare data for blockchain
+            blockchain_data = {
+                "name": candidate.get("name", "Unknown"),
+                "age": candidate.get("age", 18),
+                "dateOfBirth": candidate.get("dateOfBirth", "01-01-2000"),
+                "panNumber": candidate.get("panNumber", "XXXXX0000X"),
+                "aadharNumber": candidate.get("aadharNumber", "000000000000"),
+                "voterEpicNumber": candidate.get("voterEpicNumber", "XXX0000000"),
+                "electionCenter": candidate.get("electionCenter", "Default Election Center"),
+                "party": candidate.get("party", "Independent"),
+                "candidateAddress": candidate.get("candidateAddress", "Not Provided"),
+                "email": candidate.get("email", "not@provided.com"),
+                "phoneNumber": candidate.get("phoneNumber", "0000000000"),
+                "candidateId": candidate.get("candidateId", "UNKNOWN"),
+                # Use stored password (SHA-256 hash) — consistent for all synced candidates
+                "candidatePassword": candidate.get("candidatePassword", "hashed_password")
+            }
+            
+            result = await add_candidate_to_blockchain(blockchain_data)
+            
+            if result["success"]:
+                if result.get("already_existed"):
+                    already_synced_count += 1
+                    # Still mark as synced in MongoDB if not already
+                    if not candidate.get("syncedToBlockchain"):
+                        await candidates_collection.update_one(
+                            {"_id": candidate["_id"]},
+                            {"$set": {
+                                "syncedToBlockchain": True,
+                                "blockchainAddress": result["tx_hash"],
+                                "blockchainAccount": blockchain_account,
+                                "syncedAt": datetime.now().isoformat()
+                            }}
+                        )
+                else:
+                    success_count += 1
+                    # Update MongoDB with blockchain info
+                    await candidates_collection.update_one(
+                        {"_id": candidate["_id"]},
+                        {"$set": {
+                            "syncedToBlockchain": True,
+                            "blockchainAddress": result["tx_hash"],
+                            "blockchainAccount": blockchain_account,
+                            "syncedAt": datetime.now().isoformat()
+                        }}
+                    )
+            else:
+                fail_count += 1
+                errors.append(f"{candidate.get('name', 'Unknown')}: {result['error']}")
+        
+        # Get final blockchain count
+        final_count = voting_contract.functions.getCountCandidates().call()
+        
+        return {
+            "message": "Sync complete",
+            "total_candidates": len(candidates),
+            "newly_synced": success_count,
+            "already_synced": already_synced_count,
+            "failed": fail_count,
+            "errors": errors,
+            "blockchain_total": int(final_count)
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in sync-all: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Sync failed: {str(e)}"
         )
 
 @app.get("/candidates")
@@ -541,11 +878,10 @@ async def update_candidate(candidate_id: str, candidate: CandidateModel):
     """
     try:
         # Convert pydantic model to dict
-        update_dict = candidate.dict()
+        update_dict = candidate.model_dump()
         
         # Hash password if provided
         if update_dict.get('candidatePassword'):
-            import hashlib
             update_dict['candidatePassword'] = hashlib.sha256(
                 update_dict['candidatePassword'].encode()
             ).hexdigest()
@@ -790,7 +1126,7 @@ async def set_voting_dates(voting_dates: VotingDatesModel):
     """
     try:
         # Convert pydantic model to dict
-        dates_dict = voting_dates.dict()
+        dates_dict = voting_dates.model_dump()
         
         # Deactivate any previous voting dates
         await mongo_db.voting_dates.update_many(
@@ -904,8 +1240,6 @@ async def candidate_login(login_data: CandidateLoginRequest):
             )
         
         # Generate JWT token
-        from datetime import timezone
-        secret_key = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
         token_data = {
             'candidateId': candidate['candidateId'],
             'name': candidate['name'],
@@ -913,7 +1247,7 @@ async def candidate_login(login_data: CandidateLoginRequest):
             'exp': datetime.now(timezone.utc) + timedelta(hours=24)
         }
         
-        token = jwt.encode(token_data, secret_key, algorithm='HS256')
+        token = jwt.encode(token_data, SECRET_KEY_FALLBACK, algorithm='HS256')
         
         return {
             "success": True,
@@ -948,10 +1282,9 @@ async def get_candidate_profile(request: Request):
             )
         
         token = auth_header.replace(BEARER_PREFIX, "")
-        secret_key = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
         
         try:
-            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            payload = jwt.decode(token, SECRET_KEY_FALLBACK, algorithms=['HS256'])
             candidate_id = payload.get('candidateId')
             
             if not candidate_id:
@@ -1019,10 +1352,9 @@ async def reset_candidate_password(request: Request, reset_data: PasswordResetRe
             )
         
         token = auth_header.replace(BEARER_PREFIX, "")
-        secret_key = os.environ.get('SECRET_KEY', 'ethervox-secret-key-2024')
         
         try:
-            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            payload = jwt.decode(token, SECRET_KEY_FALLBACK, algorithms=['HS256'])
             candidate_id = payload.get('candidateId')
             
             if not candidate_id:
@@ -1052,8 +1384,9 @@ async def reset_candidate_password(request: Request, reset_data: PasswordResetRe
                 detail=CANDIDATE_NOT_FOUND
             )
         
-        # Verify current password
-        if candidate.get("candidatePassword") != reset_data.currentPassword:
+        # Verify current password (hash before comparing since stored passwords are SHA256)
+        hashed_current = hashlib.sha256(reset_data.currentPassword.encode()).hexdigest()
+        if candidate.get("candidatePassword") != hashed_current:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Current password is incorrect"
@@ -1066,10 +1399,11 @@ async def reset_candidate_password(request: Request, reset_data: PasswordResetRe
                 detail="New password must be different from current password"
             )
         
-        # Update password
+        # Update password (hash before storing)
+        hashed_new = hashlib.sha256(reset_data.newPassword.encode()).hexdigest()
         result = await candidates_collection.update_one(
             {"candidateId": candidate_id},
-            {"$set": {"candidatePassword": reset_data.newPassword}}
+            {"$set": {"candidatePassword": hashed_new}}
         )
         
         if result.modified_count == 0:

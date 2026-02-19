@@ -4,7 +4,6 @@ Uses Isolation Forest, Autoencoders, and Graph-based detection
 """
 
 import numpy as np
-import pandas as pd
 from datetime import datetime, timedelta
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
@@ -243,12 +242,15 @@ class VotingAnomalyDetector:
             # Extract features for this vote
             features = self._extract_features([vote_record])
             
+            # Scale features before prediction (model was trained on scaled data)
+            features_scaled = self.scaler.transform(features)
+            
             # Predict
-            prediction = self.isolation_forest.predict(features)
+            prediction = self.isolation_forest.predict(features_scaled)
             
             # -1 = anomaly, 1 = normal
             if prediction[0] == -1:
-                anomaly_score = self.isolation_forest.score_samples(features)[0]
+                anomaly_score = self.isolation_forest.score_samples(features_scaled)[0]
                 return {
                     'type': 'ML_ANOMALY',
                     'severity': 'MEDIUM',
@@ -351,7 +353,7 @@ class VotingAnomalyDetector:
                     'type': 'IP',
                     'identifier': ip,
                     'vote_count': len(votes),
-                    'voter_ids': list(set(v['voter_id'] for v in votes))
+                    'voter_ids': list({v['voter_id'] for v in votes})
                 })
         
         # Check devices
@@ -361,7 +363,7 @@ class VotingAnomalyDetector:
                     'type': 'DEVICE',
                     'identifier': device,
                     'vote_count': len(votes),
-                    'voter_ids': list(set(v['voter_id'] for v in votes))
+                    'voter_ids': list({v['voter_id'] for v in votes})
                 })
         
         return flagged

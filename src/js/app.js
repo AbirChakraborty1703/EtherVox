@@ -14,66 +14,177 @@ window.App = {
   account: null,
   contracts: {},
 
+  // Lock to prevent concurrent time sync calls (race condition protection)
+  _syncLock: null,
 
   syncGanacheTime: async function () {
+    // If a sync is already in progress, wait for it instead of starting another.
+    // This prevents race conditions where two concurrent vote() calls both read
+    // the same stale drift and both call evm_increaseTime, doubling the offset.
+    if (App._syncLock) {
+      console.log('⏳ Time sync already in progress, waiting...');
+      return App._syncLock;
+    }
+    App._syncLock = App._doSyncGanacheTime();
     try {
-      // Get current blockchain timestamp
+      return await App._syncLock;
+    } finally {
+      App._syncLock = null;
+    }
+  },
+
+  _doSyncGanacheTime: async function () {
+    try {
+      // Get current blockchain timestamp from the latest mined block
       const block = await App.web3.eth.getBlock('latest');
-      const blockTime = Number(block.timestamp) * 1000;
-      const currentTime = Date.now();
-      const timeDiff = Math.floor((currentTime - blockTime) / 1000);
+      const blockTimestamp = Number(block.timestamp);       // seconds
+      const systemTimestamp = Math.floor(Date.now() / 1000); // seconds
+      const drift = systemTimestamp - blockTimestamp;         // positive = blockchain is behind, negative = blockchain is ahead
 
-      console.log('Blockchain time:', new Date(blockTime).toLocaleString());
-      console.log('System time:', new Date(currentTime).toLocaleString());
-      console.log('Time difference (seconds):', timeDiff);
+      console.log('Blockchain time:', new Date(blockTimestamp * 1000).toLocaleString());
+      console.log('System time:', new Date(systemTimestamp * 1000).toLocaleString());
+      console.log('Time difference (seconds):', drift);
 
-      // If blockchain is behind by more than 60 seconds, advance it
-      if (timeDiff > 60) {
-        console.log('Advancing Ganache time by', timeDiff, 'seconds...');
+      // Only sync if drift exceeds 5 seconds (tight threshold for voting accuracy)
+      if (Math.abs(drift) <= 5) {
+        console.log('✅ Blockchain time is in sync (drift: ' + drift + 's)');
+        return true;
+      }
 
-        // Make direct HTTP request to Ganache (bypassing MetaMask)
-        // Ganache typically runs on port 7545 or 8545
-        const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
+      console.log('Blockchain time is off by', drift, 'seconds — syncing to system time...');
 
-        for (const ganacheUrl of ganacheUrls) {
-          try {
-            // Use evm_increaseTime to advance blockchain time
-            const increaseTimeResponse = await fetch(ganacheUrl, {
+      const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
+
+      for (const ganacheUrl of ganacheUrls) {
+        try {
+          // ===== PRIMARY METHOD: evm_setTime (absolute, works both forward and backward) =====
+          // IMPORTANT: Ganache's evm_setTime expects MILLISECONDS (like Date.now()), NOT seconds.
+          // This sets the blockchain clock to the exact current system time regardless of direction.
+          const nowMs = Date.now(); // milliseconds since epoch
+          console.log('Calling evm_setTime with', nowMs, 'ms (' + new Date(nowMs).toLocaleString() + ')');
+
+          const setTimeResponse = await fetch(ganacheUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'evm_setTime',
+              params: [nowMs],
+              id: Date.now()
+            })
+          });
+
+          if (!setTimeResponse.ok) {
+            console.warn('evm_setTime returned non-OK status, trying next URL...');
+            continue;
+          }
+
+          // Mine a block so the new timestamp takes effect
+          await fetch(ganacheUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'evm_mine',
+              params: [],
+              id: Date.now() + 1
+            })
+          });
+
+          // Verify the sync actually worked
+          const verifyBlock = await App.web3.eth.getBlock('latest');
+          const newBlockTimestamp = Number(verifyBlock.timestamp);
+          const newSystemTimestamp = Math.floor(Date.now() / 1000);
+          const remainingDrift = Math.abs(newSystemTimestamp - newBlockTimestamp);
+
+          console.log('After evm_setTime: blockchain =', new Date(newBlockTimestamp * 1000).toLocaleString(),
+            '| Remaining drift:', remainingDrift + 's');
+
+          // If evm_setTime worked (drift now < 30s), we're good
+          if (remainingDrift <= 30) {
+            // Fine-tune with evm_increaseTime if still off by more than 5s
+            if (remainingDrift > 5) {
+              const fineDrift = newSystemTimestamp - newBlockTimestamp;
+              if (fineDrift > 0) {
+                await fetch(ganacheUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'evm_increaseTime',
+                    params: [fineDrift],
+                    id: Date.now() + 2
+                  })
+                });
+                await fetch(ganacheUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'evm_mine',
+                    params: [],
+                    id: Date.now() + 3
+                  })
+                });
+              }
+            }
+
+            const finalBlock = await App.web3.eth.getBlock('latest');
+            const finalDrift = Math.abs(Math.floor(Date.now() / 1000) - Number(finalBlock.timestamp));
+            console.log('✅ Ganache time synced via', ganacheUrl,
+              '| Final blockchain time:', new Date(Number(finalBlock.timestamp) * 1000).toLocaleString(),
+              '| Final drift:', finalDrift + 's');
+            return true;
+          }
+
+          // ===== FALLBACK: evm_setTime didn't work, try evm_increaseTime =====
+          // evm_increaseTime only works for FORWARD adjustment (positive values)
+          console.warn('evm_setTime did not reduce drift sufficiently (still', remainingDrift + 's). Trying evm_increaseTime...');
+
+          const freshDrift = Math.floor(Date.now() / 1000) - newBlockTimestamp;
+          if (freshDrift > 0) {
+            // Blockchain is behind — we can push it forward
+            await fetch(ganacheUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 jsonrpc: '2.0',
                 method: 'evm_increaseTime',
-                params: [timeDiff],
-                id: Date.now()
+                params: [freshDrift],
+                id: Date.now() + 4
+              })
+            });
+            await fetch(ganacheUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'evm_mine',
+                params: [],
+                id: Date.now() + 5
               })
             });
 
-            if (increaseTimeResponse.ok) {
-              // Mine a new block to apply the time change
-              await fetch(ganacheUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  jsonrpc: '2.0',
-                  method: 'evm_mine',
-                  params: [],
-                  id: Date.now() + 1
-                })
-              });
-
-              console.log('✅ Ganache time synced successfully via', ganacheUrl);
-              return true;
-            }
-          } catch (fetchError) {
-            console.log('Could not connect to', ganacheUrl);
+            const afterBlock = await App.web3.eth.getBlock('latest');
+            const afterDrift = Math.abs(Math.floor(Date.now() / 1000) - Number(afterBlock.timestamp));
+            console.log('✅ Ganache time synced via evm_increaseTime',
+              '| Blockchain time:', new Date(Number(afterBlock.timestamp) * 1000).toLocaleString(),
+              '| Remaining drift:', afterDrift + 's');
+          } else {
+            // Blockchain is AHEAD of system — evm_increaseTime can't go backwards
+            // evm_setTime with milliseconds is the only way; if it failed, we must restart Ganache
+            console.error('❌ Blockchain is', Math.abs(freshDrift), 's AHEAD of system time.',
+              'evm_setTime did not work. Please RESTART Ganache to reset the blockchain clock.');
           }
-        }
 
-        console.warn('Could not sync Ganache time - no Ganache endpoint responded');
-        return false;
+          return true;
+        } catch (fetchError) {
+          console.log('Could not connect to', ganacheUrl);
+        }
       }
-      return true; // No sync needed
+
+      console.warn('Could not sync Ganache time - no Ganache endpoint responded');
+      return false;
     } catch (error) {
       console.warn('Could not sync Ganache time:', error.message);
       return false;
@@ -625,6 +736,9 @@ window.App = {
         name: document.getElementById('name').value,
         age: parseInt(document.getElementById('age').value),
         dateOfBirth: document.getElementById('dateOfBirth').value,
+        panNumber: document.getElementById('panNumber') ? document.getElementById('panNumber').value : '',
+        aadharNumber: document.getElementById('aadharNumber') ? document.getElementById('aadharNumber').value : '',
+        voterEpicNumber: document.getElementById('voterEpicNumber') ? document.getElementById('voterEpicNumber').value : '',
         email: document.getElementById('email').value,
         phoneNumber: document.getElementById('phoneNumber').value,
         candidateAddress: document.getElementById('candidateAddress').value,
@@ -675,6 +789,9 @@ window.App = {
           formData.name,
           formData.age,
           formData.dateOfBirth,
+          formData.panNumber,
+          formData.aadharNumber,
+          formData.voterEpicNumber,
           formData.electionCenter,
           formData.party,
           formData.candidateAddress,
@@ -693,6 +810,9 @@ window.App = {
           formData.name,
           formData.age,
           formData.dateOfBirth,
+          formData.panNumber,
+          formData.aadharNumber,
+          formData.voterEpicNumber,
           formData.electionCenter,
           formData.party,
           formData.candidateAddress,
@@ -952,6 +1072,9 @@ window.App = {
         $("#msg").html("<p style='color: green;'>✅ Your vote has been recorded successfully!</p>");
         App.hasVoted = true;
         $("#voteButton").attr("disabled", true);
+
+        // Log vote to anomaly detection system
+        App.logVoteToAnomalyDetection(candidateID);
       } catch (txError) {
         console.log('Transaction error (checking if vote went through):', txError);
 
@@ -962,6 +1085,9 @@ window.App = {
           $("#msg").html("<p style='color: green;'>✅ Your vote has been recorded successfully!</p>");
           App.hasVoted = true;
           $("#voteButton").attr("disabled", true);
+
+          // Log vote to anomaly detection system
+          App.logVoteToAnomalyDetection(candidateID);
         } else {
           throw txError; // Re-throw if vote really failed
         }
@@ -1006,6 +1132,33 @@ window.App = {
       }
 
       $("#msg").html(`<p style='color: red;'>❌ Error: ${errorMsg}</p>`);
+    }
+  },
+
+  // Log vote to AI anomaly detection system
+  logVoteToAnomalyDetection: async function(candidateID) {
+    try {
+      const voterId = App.account || 'unknown';
+      const response = await fetch('http://127.0.0.1:8001/anomaly/log-vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voter_id: voterId,
+          candidate_id: parseInt(candidateID),
+          screen_resolution: window.screen.width + 'x' + window.screen.height,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🤖 Anomaly detection result:', result);
+        if (result.status === 'WARNING') {
+          console.warn('⚠️ Suspicious activity detected:', result.message);
+        }
+      }
+    } catch (err) {
+      // Non-blocking — anomaly logging should never break voting
+      console.log('Anomaly detection unavailable:', err.message);
     }
   },
 

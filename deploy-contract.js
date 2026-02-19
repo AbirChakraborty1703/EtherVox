@@ -4,7 +4,7 @@
  * This script deploys the Voting smart contract to the Ganache blockchain
  */
 
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const contract = require('@truffle/contract');
 const fs = require('fs');
 const path = require('path');

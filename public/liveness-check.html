@@ -374,7 +374,7 @@
     <script>
         // Configuration
         const API_BASE_URL = 'http://127.0.0.1:8001';
-        const VOTER_ID = localStorage.getItem('voter_id') || 'demo_voter_001'; // Get from login session
+        const VOTER_ID = sessionStorage.getItem('voter_id') || localStorage.getItem('voter_id') || 'demo_voter_001'; // Get from login session
 
         // State management
         let sessionId = null;
@@ -620,7 +620,7 @@
 
                     // Redirect to voting page after 2 seconds
                     setTimeout(() => {
-                        window.location.href = '/voting.html';
+                        window.location.href = '/index.html';
                     }, 2000);
                 } else {
                     showAlert('Liveness verification failed. Please try again.', 'error');

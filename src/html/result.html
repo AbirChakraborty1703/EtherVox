@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:7545 http://localhost:7545 ws: wss:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:7545 http://localhost:7545 https://cdnjs.cloudflare.com ws: wss:;">
   <title>EtherVox - Election Results</title>
   <link rel="stylesheet" type="text/css" href="/css/result.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -45,14 +45,12 @@
 
       <!-- Results Content -->
       <div class="results-content">
-        <div class="info-message">
-          <i class="fas fa-info-circle"></i>
-          <p>Results will be displayed here once voting is complete and the election period has ended.</p>
-        </div>
-
-        <!-- Placeholder for results - will be populated dynamically -->
+        <!-- Results will be populated dynamically by result.js -->
         <div id="resultsDisplay" class="results-display">
-          <!-- Results will be injected here via JavaScript -->
+          <div class="info-message">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading election results from blockchain...</p>
+          </div>
         </div>
       </div>
     </div>

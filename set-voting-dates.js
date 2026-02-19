@@ -3,13 +3,13 @@
  * Use this script to initialize voting dates for your election
  */
 
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
 // Connect to Ganache
-const web3 = new Web3('http://127.0.0.1:8545');
+const web3 = new Web3('http://127.0.0.1:7545');
 
 // Load contract ABI and get deployed address
 const contractPath = path.join(__dirname, 'build', 'contracts', 'Voting.json');

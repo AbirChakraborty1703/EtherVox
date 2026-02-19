@@ -31,7 +31,7 @@ async def log_vote_event(request: Request, vote_data: VoteLogRequest):
             'voter_id': vote_data.voter_id,
             'candidate_id': vote_data.candidate_id,
             'ip_address': ip_address,
-            'user_agent': user_agent,
+            'device_info': user_agent,  # anomaly_detector expects 'device_info'
             'screen_resolution': vote_data.screen_resolution,
             'timezone': vote_data.timezone,
             'region': vote_data.region
@@ -41,7 +41,7 @@ async def log_vote_event(request: Request, vote_data: VoteLogRequest):
         result = anomaly_detector.log_vote(vote_info)
         
         # If high-risk anomalies detected, return warning
-        if result['risk_score'] >= 60:
+        if result['anomaly_score'] >= 0.6:
             return {
                 **result,
                 'status': 'WARNING',
@@ -73,9 +73,10 @@ async def get_voting_statistics():
 @router.get("/flagged-voters")
 async def get_flagged_voters():
     """Get list of voters with suspicious activity"""
+    flagged = anomaly_detector.get_flagged_voters()
     return {
-        'flagged_voters': anomaly_detector.get_flagged_voters(),
-        'count': len(anomaly_detector.get_flagged_voters())
+        'flagged_voters': flagged,
+        'count': len(flagged)
     }
 
 @router.post("/train-model")
@@ -92,7 +93,7 @@ async def train_anomaly_model():
     else:
         return {
             'success': False,
-            'message': '❌ Not enough data to train model (need at least 50 votes)',
+            'message': '❌ Not enough data to train model (need at least 20 votes)',
             'votes_available': len(anomaly_detector.vote_log)
         }
 
@@ -118,7 +119,7 @@ async def health_check():
 async def reset_detector():
     """Reset all anomaly detection data (admin only)"""
     global anomaly_detector
-    from .anomaly_detection import VotingAnomalyDetector
+    from anomaly_detection_simple import VotingAnomalyDetector
     anomaly_detector = VotingAnomalyDetector()
     
     return {

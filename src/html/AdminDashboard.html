@@ -10,7 +10,7 @@
   <link rel="stylesheet" type="text/css" href="/css/admin-dashboard.css">
   <link rel="stylesheet" type="text/css" href="/css/video-background.css">
   <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -99,6 +99,45 @@
           <span>Configure Voting</span>
         </button>
       </div>
+
+      <!-- AI Anomaly Detection Card -->
+      <div class="dashboard-card" style="border-left: 4px solid #e74c3c;">
+        <div class="card-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="card-content">
+          <h3>AI Fraud Detection</h3>
+          <p>Monitor voting anomalies and suspicious activity</p>
+          <div class="card-stats">
+            <i class="fas fa-robot"></i>
+            <span id="anomalyStatus">Loading...</span>
+          </div>
+        </div>
+        <div id="anomalyDetails" style="padding: 10px 0; font-size: 13px; color: #666;"></div>
+        <button class="card-btn" onclick="refreshAnomalyStats()" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+          <i class="fas fa-sync-alt"></i>
+          <span>Refresh Stats</span>
+        </button>
+      </div>
+
+      <!-- Face Registration Card -->
+      <div class="dashboard-card" style="border-left: 4px solid #2ecc71;">
+        <div class="card-icon" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div class="card-content">
+          <h3>Face Registration</h3>
+          <p>Register voter face IDs for biometric authentication</p>
+          <div class="card-stats">
+            <i class="fas fa-camera"></i>
+            <span>Manage Face IDs</span>
+          </div>
+        </div>
+        <button class="card-btn" onclick="window.location.href='/face-register.html?Authorization=Bearer ' + sessionStorage.getItem('token')" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+          <i class="fas fa-arrow-right"></i>
+          <span>Open Face Registration</span>
+        </button>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -112,5 +151,41 @@
   <script src="/js/video-background.js"></script>
   <script src="/js/admin-dashboard.js"></script>
   <script src="/js/chatbot.js"></script>
+  <script>
+    // AI Anomaly Detection Stats
+    async function refreshAnomalyStats() {
+      try {
+        const [healthRes, statsRes, flaggedRes] = await Promise.all([
+          fetch('http://127.0.0.1:8001/anomaly/health'),
+          fetch('http://127.0.0.1:8001/anomaly/statistics'),
+          fetch('http://127.0.0.1:8001/anomaly/flagged-voters')
+        ]);
+        const health = await healthRes.json();
+        const stats = await statsRes.json();
+        const flagged = await flaggedRes.json();
+
+        document.getElementById('anomalyStatus').innerHTML =
+          health.status === 'operational'
+            ? '✅ System Active | ' + stats.total_votes + ' votes monitored'
+            : '❌ System Offline';
+
+        let details = '<div style="line-height:1.8;">';
+        details += '🔍 <b>IP Monitoring:</b> ' + health.detection_systems.ip_monitoring + '<br>';
+        details += '📱 <b>Device Tracking:</b> ' + health.detection_systems.device_tracking + '<br>';
+        details += '🤖 <b>ML Model:</b> ' + health.detection_systems.ml_model + '<br>';
+        details += '⚠️ <b>Flagged Voters:</b> ' + flagged.count;
+        if (flagged.count > 0) {
+          details += ' — <span style="color:#e74c3c;font-weight:600;">' + flagged.flagged_voters.map(f => f.voter_id).join(', ') + '</span>';
+        }
+        details += '</div>';
+        document.getElementById('anomalyDetails').innerHTML = details;
+      } catch (err) {
+        document.getElementById('anomalyStatus').textContent = '⚠️ Database API offline';
+        document.getElementById('anomalyDetails').innerHTML = '<span style="color:#e74c3c;">Cannot connect to http://127.0.0.1:8001. Ensure Database API is running.</span>';
+      }
+    }
+    // Auto-load on page open
+    document.addEventListener('DOMContentLoaded', refreshAnomalyStats);
+  </script>
 </body>
 </html>

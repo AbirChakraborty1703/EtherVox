@@ -5,9 +5,7 @@ Uses Isolation Forest ML algorithm with feature engineering
 
 from datetime import datetime, timedelta
 from collections import defaultdict
-import json
 from typing import List, Dict, Any
-import hashlib
 import numpy as np
 
 class VotingAnomalyDetector:

@@ -20,8 +20,9 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 import uuid
 from pymongo import MongoClient
-from .liveness_detection import get_liveness_detector, LivenessDetector
+from liveness_detection import get_liveness_detector, LivenessDetector
 import logging
+import os
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -29,9 +30,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# MongoDB connection for storing liveness check logs
-mongo_client = MongoClient('mongodb://localhost:27017/')
-mongo_db = mongo_client['voter_db']
+# MongoDB connection for storing liveness check logs - use same database as main.py
+MONGODB_URL = os.environ.get('MONGODB_URL', 'mongodb://localhost:27017')
+MONGODB_DB = os.environ.get('MONGODB_DB', 'ethervox_candidates')
+mongo_client = MongoClient(MONGODB_URL)
+mongo_db = mongo_client[MONGODB_DB]
 liveness_logs_collection = mongo_db['liveness_logs']
 
 # In-memory session storage (for production, use Redis or similar)

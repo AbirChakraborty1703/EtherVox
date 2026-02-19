@@ -27,9 +27,21 @@ urllib3==2.2.2
 pytest==8.3.2
 pytest-asyncio==0.24.0
 
-# CORS support (ULTRA-PATCHED VERSION)
-python-cors==1.7.0
+# CORS support (handled by FastAPI/Starlette middleware)
+# python-cors not needed
 
 # Additional security packages
 secure==0.3.0
 safety==3.2.6
+
+# AI/ML - Anomaly Detection
+numpy>=1.26.0
+scikit-learn>=1.5.0
+pandas>=2.2.0
+
+# AI/ML - Face Detection & Liveness
+opencv-python>=4.10.0
+mediapipe>=0.10.14
+
+# Password hashing
+bcrypt==4.2.0
