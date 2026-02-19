@@ -112,6 +112,13 @@ try:
 except ImportError as e:
     print(f"[WARNING] Liveness detection routes not available: {e}")
 
+try:
+    from chatbot_routes import router as chatbot_router
+    app.include_router(chatbot_router, prefix="/chatbot", tags=["AI Chatbot"])
+    print("[OK] AI Chatbot routes registered")
+except ImportError as e:
+    print(f"[WARNING] AI Chatbot routes not available: {e}")
+
 # Establish MySQL database connection using environment variables
 try:
     cnx = mysql.connector.connect(
