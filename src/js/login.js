@@ -276,7 +276,6 @@ async function authenticateUser(userId, password, expectedRole) {
   const token = userId; // Use userId as initial token
   
   const headers = {
-    'method': 'GET',
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   };
@@ -507,14 +506,19 @@ function clearMessages() {
   messageContainer.textContent = '';
 }
 
-function createRippleEffect(element) {
+function createRippleEffect(element, event) {
   const ripple = document.createElement('span');
   const rect = element.getBoundingClientRect();
   const size = Math.max(rect.width, rect.height);
   
   ripple.style.width = ripple.style.height = size + 'px';
-  ripple.style.left = (event.clientX - rect.left - size / 2) + 'px';
-  ripple.style.top = (event.clientY - rect.top - size / 2) + 'px';
+  if (event && event.clientX !== undefined) {
+    ripple.style.left = (event.clientX - rect.left - size / 2) + 'px';
+    ripple.style.top = (event.clientY - rect.top - size / 2) + 'px';
+  } else {
+    ripple.style.left = (rect.width / 2 - size / 2) + 'px';
+    ripple.style.top = (rect.height / 2 - size / 2) + 'px';
+  }
   ripple.classList.add('ripple');
   
   element.appendChild(ripple);

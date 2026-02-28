@@ -77,10 +77,7 @@ async function updateCandidatePassword() {
 
     // Connect to MongoDB
     console.log('[1/5] Connecting to MongoDB...');
-    client = await MongoClient.connect(MONGODB_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    client = await MongoClient.connect(MONGODB_URL);
     const db = client.db(MONGODB_DB);
     const candidatesCollection = db.collection(MONGODB_COLLECTION);
     console.log('✅ Connected to MongoDB\n');
@@ -144,8 +141,7 @@ async function updateCandidatePassword() {
       console.log('='.repeat(60));
       console.log(`Candidate ID: ${candidateId}`);
       console.log(`Name: ${candidate.name}`);
-      console.log(`New Password: ${newPassword}`);
-      console.log(`Password Hash: ${hashedPassword.substring(0, 40)}...`);
+      console.log(`Password Hash: ${hashedPassword.substring(0, 16)}...`);
       console.log('='.repeat(60) + '\n');
     } else {
       console.log('\n⚠️  Password was not updated (might be the same as before).');

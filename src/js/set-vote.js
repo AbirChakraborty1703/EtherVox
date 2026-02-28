@@ -276,8 +276,120 @@ async function submitVotingDates() {
       blockchainTimestamp = Math.floor(Date.now() / 1000);
     }
 
-    // Log blockchain vs browser time for debugging
-    console.log('Blockchain timestamp:', blockchainTimestamp, 'Start timestamp:', startTimestamp);
+    const jsTimestamp = Math.floor(Date.now() / 1000);
+    const timeDrift = blockchainTimestamp - jsTimestamp;
+
+    console.log('[SET-VOTE] Time comparison:', {
+      blockchainTime: blockchainTimestamp,
+      browserTime: jsTimestamp,
+      drift: timeDrift + 's (' + (timeDrift > 0 ? 'blockchain AHEAD' : 'blockchain BEHIND') + ')',
+      startTimestamp: startTimestamp,
+      endTimestamp: endTimestamp,
+      startMinusBlockchain: (startTimestamp - blockchainTimestamp) + 's ahead of blockchain'
+    });
+
+    // -----------------------------------------------
+    // SYNC BLOCKCHAIN TIME TO SYSTEM TIME (fix drift)
+    // This ensures blockchain time matches the admin's real clock,
+    // so timestamps entered by the user work as expected.
+    // -----------------------------------------------
+    if (Math.abs(timeDrift) > 5) {
+      console.log('[SET-VOTE] Blockchain clock is off by', timeDrift, 's — syncing to system time...');
+      showStatusMessage('⏳ Syncing blockchain clock to system time...', 'info');
+
+      const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
+      let synced = false;
+      for (const url of ganacheUrls) {
+        try {
+          // PRIMARY: evm_setTime with MILLISECONDS (works both forward and backward)
+          // Ganache expects milliseconds (like Date.now()), NOT seconds
+          const nowMs = Date.now();
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_setTime', params: [nowMs], id: 1 })
+          });
+          if (r.ok) {
+            // Mine a block so the new timestamp takes effect
+            await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_mine', params: [], id: 2 })
+            });
+            // Re-read blockchain time after sync
+            const freshBlock = await window.App.web3.eth.getBlock('latest');
+            blockchainTimestamp = Number(freshBlock.timestamp);
+            const remainingDrift = Math.abs(Math.floor(Date.now() / 1000) - blockchainTimestamp);
+            console.log('[SET-VOTE] After evm_setTime: blockchain =', new Date(blockchainTimestamp * 1000).toLocaleString(), '| Drift:', remainingDrift + 's');
+
+            // If evm_setTime worked well enough, fine-tune with evm_increaseTime if needed
+            if (remainingDrift <= 30 && remainingDrift > 5) {
+              const fineDrift = Math.floor(Date.now() / 1000) - blockchainTimestamp;
+              if (fineDrift > 0) {
+                await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_increaseTime', params: [fineDrift], id: 3 })
+                });
+                await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jsonrpc: '2.0', method: 'evm_mine', params: [], id: 4 })
+                });
+                const fineBlock = await window.App.web3.eth.getBlock('latest');
+                blockchainTimestamp = Number(fineBlock.timestamp);
+              }
+            }
+
+            const finalDrift = Math.abs(Math.floor(Date.now() / 1000) - blockchainTimestamp);
+            console.log('[SET-VOTE] ✅ Blockchain time synced to:', new Date(blockchainTimestamp * 1000).toLocaleString(), '| Final drift:', finalDrift + 's');
+            synced = true;
+            break;
+          }
+        } catch (e) { /* try next */ }
+      }
+      if (!synced) {
+        console.warn('[SET-VOTE] Could not sync blockchain time — will auto-adjust timestamps instead');
+      }
+    }
+
+    // Validate: start must be AFTER blockchain time (not just browser time)
+    // The smart contract checks: _startDate > block.timestamp
+    // If still behind after sync attempt, auto-adjust as last resort
+    if (startTimestamp <= blockchainTimestamp) {
+      const votingDuration = endTimestamp - startTimestamp; // preserve user's intended duration
+      const newStart = blockchainTimestamp + 180; // 3 minutes ahead of blockchain time
+      const newEnd = newStart + votingDuration;
+
+      console.warn('[SET-VOTE] Start time is NOT in the future relative to BLOCKCHAIN time!');
+      console.warn('[SET-VOTE] Blockchain time:', new Date(blockchainTimestamp * 1000).toLocaleString());
+      console.warn('[SET-VOTE] Your start time:', new Date(startTimestamp * 1000).toLocaleString());
+      console.warn('[SET-VOTE] AUTO-ADJUSTING: start=' + newStart + ' (' + new Date(newStart * 1000).toLocaleString() + '), end=' + newEnd + ' (' + new Date(newEnd * 1000).toLocaleString() + ')');
+
+      startTimestamp = newStart;
+      endTimestamp = newEnd;
+
+      showStatusMessage(
+        '⏳ Clock drift detected (' + Math.abs(timeDrift) + 's). ' +
+        'Auto-adjusted: start → ' + new Date(newStart * 1000).toLocaleTimeString() +
+        ', end → ' + new Date(newEnd * 1000).toLocaleTimeString() +
+        ' (blockchain time). Submitting...',
+        'info'
+      );
+    }
+
+    // Validate: minimum 30 minute duration (contract requires _endDate >= _startDate + 1800)
+    if (endTimestamp < startTimestamp + 1800) {
+      const minEnd = new Date((startTimestamp + 1800) * 1000);
+      showStatusMessage(
+        '❌ Voting duration must be at least 30 minutes. End time must be after ' +
+        minEnd.toLocaleTimeString(),
+        'error'
+      );
+      submitButton.disabled = false;
+      submitButton.innerHTML = '<i class="fas fa-save"></i> Save Voting Dates';
+      return;
+    }
 
     // Check if voting is already initialized
     let votingInitialized = false;

@@ -8,6 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:7545 http://localhost:7545 https://cdn.jsdelivr.net ws: wss:;">
   <title>EtherVox - Election Results</title>
   <link rel="stylesheet" type="text/css" href="/css/result.css">
+  <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- Web3.js Library -->
@@ -47,20 +48,20 @@
 
       <!-- Results Content -->
       <div class="results-content">
-        <div class="info-message">
-          <i class="fas fa-info-circle"></i>
-          <p>Results will be displayed here once voting is complete and the election period has ended.</p>
-        </div>
-
-        <!-- Placeholder for results - will be populated dynamically -->
+        <!-- Results will be populated dynamically by result.js -->
         <div id="resultsDisplay" class="results-display">
-          <!-- Results will be injected here via JavaScript -->
+          <div class="info-message">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading election results from blockchain...</p>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script src="/js/result.js"></script>
+  <script src="/js/permanent-metamask.js"></script>
+  <script src="/js/chatbot.js"></script>
 </body>
 
 </html>

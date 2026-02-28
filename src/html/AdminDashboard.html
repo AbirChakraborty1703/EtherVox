@@ -10,7 +10,7 @@
   <link rel="stylesheet" type="text/css" href="/css/admin-dashboard.css">
   <link rel="stylesheet" type="text/css" href="/css/video-background.css">
   <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
@@ -99,7 +99,204 @@
           <span>Configure Voting</span>
         </button>
       </div>
+
+      <!-- AI Anomaly Detection Card -->
+      <div class="dashboard-card anomaly-card">
+        <div class="card-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="card-content">
+          <h3>AI Fraud Detection</h3>
+          <p>Real-time anomaly detection powered by Isolation Forest ML</p>
+          <div class="card-stats">
+            <i class="fas fa-robot"></i>
+            <span id="anomalyStatus">Loading...</span>
+          </div>
+        </div>
+        <button class="card-btn" onclick="toggleAnomalyPanel()">
+          <i class="fas fa-expand-alt" id="anomalyToggleIcon"></i>
+          <span id="anomalyToggleText">Open Full Dashboard</span>
+        </button>
+      </div>
+
+      <!-- Face Registration Card -->
+      <div class="dashboard-card face-reg-card">
+        <div class="card-icon">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div class="card-content">
+          <h3>Face Registration</h3>
+          <p>Register voter face IDs for biometric authentication</p>
+          <div class="card-stats">
+            <i class="fas fa-camera"></i>
+            <span>Manage Face IDs</span>
+          </div>
+        </div>
+        <button class="card-btn" onclick="window.location.href='/face-register.html?Authorization=Bearer ' + sessionStorage.getItem('token')">
+          <i class="fas fa-arrow-right"></i>
+          <span>Open Face Registration</span>
+        </button>
+      </div>
     </div>
+
+    <!-- ========== AI FRAUD DETECTION FULL PANEL ========== -->
+    <div id="anomalyPanel" class="anomaly-panel hidden">
+      <!-- Panel Header -->
+      <div class="anomaly-panel-header">
+        <div class="anomaly-panel-title">
+          <div class="anomaly-shield-icon">
+            <i class="fas fa-shield-alt"></i>
+            <span class="shield-pulse"></span>
+          </div>
+          <div>
+            <h3>AI Fraud Detection Centre</h3>
+            <p id="panelSubtitle">Isolation Forest ML + 9 Rule-Based Heuristics</p>
+          </div>
+        </div>
+        <div class="anomaly-panel-actions">
+          <button class="anomaly-action-btn" onclick="trainModelManually()" title="Force ML Training">
+            <i class="fas fa-brain"></i> Train Model
+          </button>
+          <button class="anomaly-action-btn refresh-btn" onclick="refreshAnomalyStats()" title="Refresh Data">
+            <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
+          </button>
+          <button class="anomaly-action-btn close-btn" onclick="toggleAnomalyPanel()" title="Close Panel">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Stat Counters -->
+      <div class="anomaly-stat-row">
+        <div class="anomaly-stat-box">
+          <div class="stat-ring" id="ringVotes">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" class="ring-bg"/><circle cx="40" cy="40" r="36" class="ring-fg" id="ringVotesFg"/></svg>
+            <span class="ring-value" id="statTotalVotes">0</span>
+          </div>
+          <span class="stat-box-label">Votes Monitored</span>
+        </div>
+        <div class="anomaly-stat-box">
+          <div class="stat-ring danger" id="ringFlagged">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" class="ring-bg"/><circle cx="40" cy="40" r="36" class="ring-fg" id="ringFlaggedFg"/></svg>
+            <span class="ring-value" id="statFlagged">0</span>
+          </div>
+          <span class="stat-box-label">Flagged Votes</span>
+        </div>
+        <div class="anomaly-stat-box">
+          <div class="stat-ring warn" id="ringSuspicious">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" class="ring-bg"/><circle cx="40" cy="40" r="36" class="ring-fg" id="ringSuspiciousFg"/></svg>
+            <span class="ring-value" id="statSuspicious">0</span>
+          </div>
+          <span class="stat-box-label">Suspicious Voters</span>
+        </div>
+        <div class="anomaly-stat-box">
+          <div class="stat-ring info" id="ringIPs">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" class="ring-bg"/><circle cx="40" cy="40" r="36" class="ring-fg" id="ringIPsFg"/></svg>
+            <span class="ring-value" id="statIPs">0</span>
+          </div>
+          <span class="stat-box-label">Unique IPs</span>
+        </div>
+        <div class="anomaly-stat-box">
+          <div class="stat-ring info" id="ringDevices">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" class="ring-bg"/><circle cx="40" cy="40" r="36" class="ring-fg" id="ringDevicesFg"/></svg>
+            <span class="ring-value" id="statDevices">0</span>
+          </div>
+          <span class="stat-box-label">Unique Devices</span>
+        </div>
+        <div class="anomaly-stat-box">
+          <div class="stat-ring" id="ringScore">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" class="ring-bg"/><circle cx="40" cy="40" r="36" class="ring-fg" id="ringScoreFg"/></svg>
+            <span class="ring-value" id="statAvgScore">0</span>
+          </div>
+          <span class="stat-box-label">Avg Score</span>
+        </div>
+      </div>
+
+      <!-- Two-column: Detection Systems + ML Model -->
+      <div class="anomaly-two-col">
+        <!-- Detection Systems Grid -->
+        <div class="anomaly-section">
+          <h4><i class="fas fa-radar"></i> Detection Systems <span class="sys-count" id="sysActiveCount">0/10</span></h4>
+          <div class="detection-grid" id="detectionGrid">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- ML Model Card -->
+        <div class="anomaly-section ml-section">
+          <h4><i class="fas fa-brain"></i> Machine Learning Engine</h4>
+          <div class="ml-info-grid">
+            <div class="ml-info-row"><span class="ml-label">Algorithm</span><span class="ml-val" id="mlAlgorithm">Isolation Forest</span></div>
+            <div class="ml-info-row"><span class="ml-label">Status</span><span class="ml-val" id="mlStatus">—</span></div>
+            <div class="ml-info-row"><span class="ml-label">Training Samples</span><span class="ml-val" id="mlSamples">0</span></div>
+            <div class="ml-info-row"><span class="ml-label">Contamination</span><span class="ml-val" id="mlContamination">—</span></div>
+            <div class="ml-info-row"><span class="ml-label">Features</span><span class="ml-val" id="mlFeatures">15</span></div>
+            <div class="ml-info-row"><span class="ml-label">Accuracy</span><span class="ml-val" id="mlAccuracy">—</span></div>
+            <div class="ml-info-row"><span class="ml-label">Last Trained</span><span class="ml-val" id="mlLastTrained">Never</span></div>
+          </div>
+          <!-- Top Features Bar Chart -->
+          <div class="ml-features-section" id="mlFeaturesSection">
+            <h5>Top Feature Importance</h5>
+            <div id="featureBars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Most Common Flags -->
+      <div class="anomaly-section">
+        <h4><i class="fas fa-flag"></i> Most Triggered Rules</h4>
+        <div class="flag-bar-chart" id="flagBarChart">
+          <p class="no-data-msg">No flags yet — votes will populate this chart</p>
+        </div>
+      </div>
+
+      <!-- Flagged Voters Table -->
+      <div class="anomaly-section">
+        <h4><i class="fas fa-user-secret"></i> Flagged Voters <span class="badge" id="flaggedBadge">0</span></h4>
+        <div class="anomaly-table-wrap" id="flaggedTableWrap">
+          <table class="anomaly-table" id="flaggedTable">
+            <thead>
+              <tr>
+                <th>Voter ID</th>
+                <th>Risk</th>
+                <th>Score</th>
+                <th>Votes</th>
+                <th>IPs</th>
+                <th>Devices</th>
+                <th>Flags</th>
+                <th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody id="flaggedBody"></tbody>
+          </table>
+          <p class="no-data-msg" id="noFlaggedMsg">No flagged voters — the election is clean so far</p>
+        </div>
+      </div>
+
+      <!-- Recent Anomaly Feed -->
+      <div class="anomaly-section">
+        <h4><i class="fas fa-stream"></i> Live Anomaly Feed <span class="live-dot"></span></h4>
+        <div class="anomaly-feed" id="anomalyFeed">
+          <p class="no-data-msg" id="noFeedMsg">Waiting for anomalous events...</p>
+        </div>
+      </div>
+
+      <!-- Detection Rate Bar -->
+      <div class="anomaly-section">
+        <h4><i class="fas fa-chart-bar"></i> Detection Summary</h4>
+        <div class="detection-rate-bar">
+          <div class="rate-labels">
+            <span>Clean Votes</span>
+            <span id="detRateLabel">0%</span>
+            <span>Flagged Votes</span>
+          </div>
+          <div class="rate-track">
+            <div class="rate-fill" id="detRateFill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ========== END ANOMALY PANEL ========== -->
 
     <!-- Footer -->
     <div class="footer">
@@ -112,5 +309,261 @@
   <script src="/js/video-background.js"></script>
   <script src="/js/admin-dashboard.js"></script>
   <script src="/js/chatbot.js"></script>
+  <script>
+    // ===================================================================
+    // AI FRAUD DETECTION — Interactive Dashboard Controller
+    // ===================================================================
+    const API = 'http://127.0.0.1:8001/anomaly';
+    let anomalyPanelOpen = false;
+    let autoRefreshTimer = null;
+
+    // -- Detection system metadata --
+    const SYSTEMS = [
+      { key:'ip_monitoring',      icon:'fas fa-network-wired', label:'IP Monitoring' },
+      { key:'device_tracking',    icon:'fas fa-mobile-alt',    label:'Device Tracking' },
+      { key:'rapid_voting',       icon:'fas fa-bolt',          label:'Rapid Voting' },
+      { key:'burst_detection',    icon:'fas fa-bomb',          label:'Burst Detection' },
+      { key:'bot_pattern',        icon:'fas fa-robot',         label:'Bot Pattern' },
+      { key:'regional_spike',     icon:'fas fa-globe-americas',label:'Regional Spike' },
+      { key:'candidate_stuffing', icon:'fas fa-box-ballot',    label:'Candidate Stuffing' },
+      { key:'multi_ip_voter',     icon:'fas fa-project-diagram',label:'Multi-IP Voter' },
+      { key:'multi_device_voter', icon:'fas fa-tablets',       label:'Multi-Device Voter' },
+      { key:'ml_model',           icon:'fas fa-brain',         label:'ML Model' },
+    ];
+
+    // ---- Toggle panel open/close ----
+    function toggleAnomalyPanel() {
+      const panel = document.getElementById('anomalyPanel');
+      const icon = document.getElementById('anomalyToggleIcon');
+      const text = document.getElementById('anomalyToggleText');
+      anomalyPanelOpen = !anomalyPanelOpen;
+      panel.classList.toggle('hidden', !anomalyPanelOpen);
+      icon.className = anomalyPanelOpen ? 'fas fa-compress-alt' : 'fas fa-expand-alt';
+      text.textContent = anomalyPanelOpen ? 'Close Dashboard' : 'Open Full Dashboard';
+      if (anomalyPanelOpen) {
+        refreshAnomalyStats();
+        panel.scrollIntoView({ behavior:'smooth', block:'start' });
+        startAutoRefresh();
+      } else {
+        stopAutoRefresh();
+      }
+    }
+
+    function startAutoRefresh() { autoRefreshTimer = setInterval(refreshAnomalyStats, 15000); }
+    function stopAutoRefresh() { if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }
+
+    // ---- Animated counter ----
+    function animateValue(el, end, duration) {
+      const start = parseInt(el.textContent) || 0;
+      if (start === end) return;
+      const range = end - start;
+      const startTime = performance.now();
+      function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        el.textContent = Math.floor(start + range * progress);
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ---- SVG ring ----
+    function setRing(id, value, max) {
+      const fg = document.getElementById(id);
+      if (!fg) return;
+      const circumference = 2 * Math.PI * 36;
+      const pct = max > 0 ? Math.min(value / max, 1) : 0;
+      fg.style.strokeDasharray = circumference;
+      fg.style.strokeDashoffset = circumference * (1 - pct);
+    }
+
+    // ---- Main refresh ----
+    async function refreshAnomalyStats() {
+      const ri = document.getElementById('refreshIcon');
+      if (ri) ri.classList.add('fa-spin');
+      try {
+        const [healthRes, statsRes, flaggedRes, recentRes] = await Promise.all([
+          fetch(API + '/health'),
+          fetch(API + '/statistics'),
+          fetch(API + '/flagged-voters'),
+          fetch(API + '/recent-anomalies?hours=24'),
+        ]);
+        const health  = await healthRes.json();
+        const stats   = await statsRes.json();
+        const flagged = await flaggedRes.json();
+        const recent  = await recentRes.json();
+
+        // -- Top-level card status --
+        const statusEl = document.getElementById('anomalyStatus');
+        if (health.status === 'operational') {
+          statusEl.innerHTML = '<span class="status-dot green"></span> System Active &mdash; ' + stats.total_votes + ' votes monitored';
+        } else {
+          statusEl.innerHTML = '<span class="status-dot red"></span> System Offline';
+        }
+
+        // -- Stat counters --
+        animateValue(document.getElementById('statTotalVotes'), stats.total_votes, 600);
+        animateValue(document.getElementById('statFlagged'), stats.flagged_votes, 600);
+        animateValue(document.getElementById('statSuspicious'), stats.suspicious_voters, 600);
+        animateValue(document.getElementById('statIPs'), stats.unique_ips, 600);
+        animateValue(document.getElementById('statDevices'), stats.unique_devices, 600);
+        document.getElementById('statAvgScore').textContent = parseFloat(stats.average_anomaly_score).toFixed(2);
+
+        // -- Rings --
+        const maxR = Math.max(stats.total_votes, 1);
+        setRing('ringVotesFg', stats.total_votes, maxR);
+        setRing('ringFlaggedFg', stats.flagged_votes, maxR);
+        setRing('ringSuspiciousFg', stats.suspicious_voters, maxR);
+        setRing('ringIPsFg', stats.unique_ips, maxR);
+        setRing('ringDevicesFg', stats.unique_devices, maxR);
+        setRing('ringScoreFg', parseFloat(stats.average_anomaly_score) * 100, 100);
+
+        // -- Detection systems grid --
+        const grid = document.getElementById('detectionGrid');
+        let activeCount = 0;
+        grid.innerHTML = SYSTEMS.map(s => {
+          const val = (health.detection_systems && health.detection_systems[s.key]) || 'Inactive';
+          const active = val === 'Active';
+          if (active) activeCount++;
+          return '<div class="det-sys-card ' + (active ? 'active' : 'needs-action') + '">'
+            + '<i class="' + s.icon + '"></i>'
+            + '<span class="det-label">' + s.label + '</span>'
+            + '<span class="det-status">' + (active ? '<i class="fas fa-check-circle"></i> Active' : '<i class="fas fa-exclamation-triangle"></i> ' + val) + '</span>'
+            + '</div>';
+        }).join('');
+        document.getElementById('sysActiveCount').textContent = activeCount + '/' + SYSTEMS.length;
+
+        // -- ML model info --
+        const ml = stats.ml_stats || {};
+        document.getElementById('mlStatus').innerHTML = stats.model_trained
+          ? '<span class="ml-badge trained">Trained</span>'
+          : '<span class="ml-badge untrained">Awaiting Data</span>';
+        document.getElementById('mlSamples').textContent = ml.training_samples || 0;
+        document.getElementById('mlContamination').textContent = ml.contamination_rate
+          ? (ml.contamination_rate * 100).toFixed(1) + '%' : '—';
+        document.getElementById('mlFeatures').textContent = stats.feature_count || 15;
+        document.getElementById('mlAccuracy').textContent = ml.model_accuracy
+          ? ml.model_accuracy + '%' : '—';
+        document.getElementById('mlLastTrained').textContent = ml.last_trained
+          ? new Date(ml.last_trained).toLocaleString() : 'Never';
+
+        // -- Feature importance bars --
+        const fi = ml.feature_importance || {};
+        const fiKeys = Object.keys(fi);
+        const fiSection = document.getElementById('mlFeaturesSection');
+        if (fiKeys.length > 0) {
+          fiSection.style.display = 'block';
+          const maxImp = Math.max(...Object.values(fi), 0.01);
+          document.getElementById('featureBars').innerHTML = fiKeys
+            .sort((a,b) => fi[b] - fi[a]).slice(0,5)
+            .map(k => '<div class="feat-row"><span class="feat-name">' + k.replace(/_/g,' ') + '</span>'
+              + '<div class="feat-bar-track"><div class="feat-bar-fill" style="width:' + (fi[k]/maxImp*100).toFixed(1) + '%"></div></div>'
+              + '<span class="feat-val">' + fi[k].toFixed(3) + '</span></div>').join('');
+        } else {
+          fiSection.style.display = 'none';
+        }
+
+        // -- Most common flags chart --
+        const flagChart = document.getElementById('flagBarChart');
+        const mcf = stats.most_common_flags || {};
+        const mcfKeys = Object.keys(mcf);
+        if (mcfKeys.length > 0) {
+          const maxF = Math.max(...Object.values(mcf), 1);
+          flagChart.innerHTML = mcfKeys.sort((a,b) => mcf[b] - mcf[a]).map(k =>
+            '<div class="flag-row"><span class="flag-name">' + k + '</span>'
+            + '<div class="flag-track"><div class="flag-fill" style="width:' + (mcf[k]/maxF*100).toFixed(1) + '%">' + mcf[k] + '</div></div></div>'
+          ).join('');
+        } else {
+          flagChart.innerHTML = '<p class="no-data-msg">No flags yet — votes will populate this chart</p>';
+        }
+
+        // -- Detection rate bar --
+        const rate = stats.total_votes > 0 ? (stats.flagged_votes / stats.total_votes * 100) : 0;
+        document.getElementById('detRateLabel').textContent = rate.toFixed(1) + '% flagged';
+        document.getElementById('detRateFill').style.width = rate.toFixed(1) + '%';
+
+        // -- Flagged voters table --
+        const body = document.getElementById('flaggedBody');
+        const noFMsg = document.getElementById('noFlaggedMsg');
+        document.getElementById('flaggedBadge').textContent = flagged.count;
+        if (flagged.flagged_voters && flagged.flagged_voters.length > 0) {
+          noFMsg.style.display = 'none';
+          body.innerHTML = flagged.flagged_voters.map(v => {
+            const riskClass = v.risk_level === 'CRITICAL' ? 'risk-critical'
+              : v.risk_level === 'HIGH' ? 'risk-high'
+              : v.risk_level === 'MEDIUM' ? 'risk-medium' : 'risk-low';
+            return '<tr class="' + riskClass + '">'
+              + '<td><code>' + v.voter_id + '</code></td>'
+              + '<td><span class="risk-pill ' + riskClass + '">' + v.risk_level + '</span></td>'
+              + '<td>' + v.anomaly_score.toFixed(3) + '</td>'
+              + '<td>' + v.vote_count + '</td>'
+              + '<td>' + v.ip_count + '</td>'
+              + '<td>' + v.device_count + '</td>'
+              + '<td class="flag-cell">' + (v.flags||[]).map(f => '<span class="flag-tag">' + f.split(':')[0] + '</span>').join(' ') + '</td>'
+              + '<td>' + (v.last_seen ? new Date(v.last_seen).toLocaleTimeString() : '—') + '</td>'
+              + '</tr>';
+          }).join('');
+        } else {
+          noFMsg.style.display = 'block';
+          body.innerHTML = '';
+        }
+
+        // -- Recent anomaly feed --
+        const feed = document.getElementById('anomalyFeed');
+        const noFeedMsg = document.getElementById('noFeedMsg');
+        if (recent.anomalies && recent.anomalies.length > 0) {
+          noFeedMsg.style.display = 'none';
+          feed.innerHTML = recent.anomalies.slice(-20).reverse().map(a => {
+            const sev = a.anomaly_score >= 0.7 ? 'critical' : a.anomaly_score >= 0.5 ? 'high' : 'medium';
+            return '<div class="feed-item ' + sev + '">'
+              + '<span class="feed-time">' + new Date(a.timestamp).toLocaleTimeString() + '</span>'
+              + '<span class="feed-voter">' + a.voter_id + '</span>'
+              + '<span class="feed-score">' + a.anomaly_score.toFixed(2) + '</span>'
+              + '<span class="feed-flags">' + (a.flags||[]).map(f => f.split(':')[0]).join(', ') + '</span>'
+              + '</div>';
+          }).join('') + (noFeedMsg ? '' : '');
+        } else {
+          noFeedMsg.style.display = 'block';
+          feed.querySelectorAll('.feed-item').forEach(el => el.remove());
+        }
+
+      } catch (err) {
+        document.getElementById('anomalyStatus').innerHTML = '<span class="status-dot red"></span> Database API offline';
+      }
+      if (ri) ri.classList.remove('fa-spin');
+    }
+
+    // ---- Manual train ----
+    async function trainModelManually() {
+      try {
+        const res = await fetch(API + '/train-model', { method:'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Model trained successfully on ' + (data.stats?.training_samples || '?') + ' samples', 'success');
+        } else {
+          showToast(data.message || 'Training failed', 'warn');
+        }
+        refreshAnomalyStats();
+      } catch (e) {
+        showToast('Cannot reach API', 'error');
+      }
+    }
+
+    // ---- Toast notification ----
+    function showToast(msg, type) {
+      const existing = document.querySelector('.anomaly-toast');
+      if (existing) existing.remove();
+      const t = document.createElement('div');
+      t.className = 'anomaly-toast ' + type;
+      t.innerHTML = '<i class="fas ' + (type==='success'?'fa-check-circle':type==='warn'?'fa-exclamation-circle':'fa-times-circle') + '"></i> ' + msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.classList.add('show'), 10);
+      setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3500);
+    }
+
+    // Auto-load on page open
+    document.addEventListener('DOMContentLoaded', refreshAnomalyStats);
+  </script>
+  <script src="/js/permanent-metamask.js"></script>
 </body>
 </html>

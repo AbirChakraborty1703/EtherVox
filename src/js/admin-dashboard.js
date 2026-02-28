@@ -74,7 +74,7 @@ function updateAdminInfo() {
 // ===============================================
 // NAVIGATION FUNCTIONS
 // ===============================================
-function navigateToAddCandidate() {
+function navigateToAddCandidate(event) {
   const adminToken = localStorage.getItem('jwtTokenAdmin');
   
   console.log('[NAV] Navigating to AddCandidate');
@@ -88,7 +88,7 @@ function navigateToAddCandidate() {
   }
   
   // Add smooth transition animation
-  const card = event.target.closest('.dashboard-card');
+  const card = event?.target?.closest('.dashboard-card');
   if (card) {
     card.style.transform = 'scale(0.95)';
   }
@@ -101,7 +101,7 @@ function navigateToAddCandidate() {
   }, 200);
 }
 
-function navigateToSetVote() {
+function navigateToSetVote(event) {
   const adminToken = localStorage.getItem('jwtTokenAdmin');
   
   if (!adminToken) {
@@ -111,8 +111,10 @@ function navigateToSetVote() {
   }
   
   // Add smooth transition animation
-  const card = event.target.closest('.dashboard-card');
-  card.style.transform = 'scale(0.95)';
+  const card = event?.target?.closest('.dashboard-card');
+  if (card) {
+    card.style.transform = 'scale(0.95)';
+  }
   
   setTimeout(() => {
     window.location.href = `/SetVote.html?Authorization=Bearer ${adminToken}`;

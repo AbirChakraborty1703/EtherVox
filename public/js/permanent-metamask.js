@@ -40,12 +40,17 @@ class PermanentMetaMaskConnection {
     this.account = null;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = PERMANENT_METAMASK_CONFIG.reconnection.maxRetries;
+    this._domReady = false;
+    this._initCalled = false;
 
-    // Auto-start connection
-    this.init();
+    // Don't auto-init from constructor — let the IIFE inject the DOM first,
+    // then explicitly call init() after the status div is created.
   }
 
   async init() {
+    if (this._initCalled) return; // prevent double init
+    this._initCalled = true;
+    this._domReady = true;
     console.log('🦊 Initializing Permanent MetaMask Connection...');
 
     // Check if MetaMask is installed
@@ -57,46 +62,74 @@ class PermanentMetaMaskConnection {
     // Set up event listeners for permanent connection
     this.setupEventListeners();
 
-    // Attempt initial connection
-    await this.connect();
+    // Passively check existing connection (no popup)
+    await this.checkConnection();
 
-    // Set up auto-reconnection
+    // Set up auto-reconnection polling
     this.setupAutoReconnect();
   }
 
-  async connect() {
+  // Passive check — reads existing MetaMask state WITHOUT triggering popups
+  async checkConnection() {
     try {
-      console.log('🔗 Attempting MetaMask connection...');
+      console.log('🔍 Checking MetaMask connection status...');
 
-      // Update UI to show connecting state
-      this.updateUIConnecting();
-
-      // Add/switch to Ganache network automatically
-      await this.ensureCorrectNetwork();
-
-      // Request account access
+      // eth_accounts is passive — returns connected accounts without any popup
       const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
+        method: 'eth_accounts'
       });
 
-      if (accounts.length > 0) {
+      if (accounts && accounts.length > 0) {
         this.account = accounts[0];
         this.isConnected = true;
         this.reconnectAttempts = 0;
 
-        console.log('✅ MetaMask connected permanently!');
+        console.log('✅ MetaMask already connected!');
         console.log('🏦 Account:', this.account);
-
-        // Update UI to show connected state
         this.updateUI();
         return true;
+      } else {
+        // Not yet authorized — try eth_requestAccounts as fallback (may prompt)
+        console.log('🔗 No accounts found, requesting access...');
+        return await this.requestConnection();
       }
 
     } catch (error) {
-      console.error('❌ MetaMask connection failed:', error);
+      console.error('❌ MetaMask check failed:', error);
       this.handleConnectionError(error);
       return false;
     }
+  }
+
+  // Active request — only called when passive check finds no accounts
+  async requestConnection() {
+    try {
+      this.updateUIConnecting();
+
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      if (accounts && accounts.length > 0) {
+        this.account = accounts[0];
+        this.isConnected = true;
+        this.reconnectAttempts = 0;
+
+        console.log('✅ MetaMask connected!');
+        console.log('🏦 Account:', this.account);
+        this.updateUI();
+        return true;
+      }
+    } catch (error) {
+      console.error('❌ MetaMask request failed:', error);
+      this.handleConnectionError(error);
+      return false;
+    }
+  }
+
+  // Legacy connect method — kept for forceReconnect compatibility
+  async connect() {
+    return await this.checkConnection();
   }
 
   async ensureCorrectNetwork() {
@@ -166,12 +199,12 @@ class PermanentMetaMaskConnection {
   }
 
   setupAutoReconnect() {
-    // Check connection status every 10 seconds
+    // Passively poll connection status every 10 seconds
     setInterval(async () => {
       if (!this.isConnected && this.reconnectAttempts < this.maxReconnectAttempts) {
         console.log(`🔄 Auto-reconnect attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts}`);
         this.reconnectAttempts++;
-        await this.connect();
+        await this.checkConnection();
       }
     }, 10000);
 
@@ -189,9 +222,13 @@ class PermanentMetaMaskConnection {
     if (statusElement) {
       statusElement.innerHTML = `
         <div class="connection-status connecting">
-          🟡 Connecting to MetaMask...
+          <img class="mm-fox-icon" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" onerror="this.style.display='none'" />
+          <span class="mm-label">Connecting...</span>
         </div>
       `;
+      statusElement.style.display = 'block';
+      statusElement.style.opacity = '1';
+      statusElement.style.transform = 'translateY(0)';
     }
   }
 
@@ -202,29 +239,32 @@ class PermanentMetaMaskConnection {
       if (this.isConnected && this.account) {
         statusElement.innerHTML = `
           <div class="connection-status connected">
-            🟢 MetaMask Connected (Permanent)
-            <br>
-            <small>Account: ${this.account?.slice(0, 6)}...${this.account?.slice(-4)}</small>
+            <img class="mm-fox-icon" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" onerror="this.style.display='none'" />
+            <div class="mm-text">
+              <span class="mm-label">MetaMask Connected</span>
+              <span class="mm-account">${this.account?.slice(0, 6)}...${this.account?.slice(-4)}</span>
+            </div>
           </div>
         `;
 
-        // Auto-hide notification after 2 seconds
+        // Auto-hide notification after 3 seconds with slide-down animation
         setTimeout(() => {
           statusElement.style.opacity = '0';
-          statusElement.style.transform = 'translateX(120%)';
+          statusElement.style.transform = 'translateY(20px)';
           setTimeout(() => {
             statusElement.style.display = 'none';
-          }, 300);
-        }, 2000);
+          }, 400);
+        }, 3000);
       } else {
         statusElement.innerHTML = `
           <div class="connection-status disconnected">
-            🔴 MetaMask Disconnected
+            <img class="mm-fox-icon" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" onerror="this.style.display='none'" />
+            <span class="mm-label">Disconnected</span>
           </div>
         `;
         statusElement.style.display = 'block';
         statusElement.style.opacity = '1';
-        statusElement.style.transform = 'translateX(0)';
+        statusElement.style.transform = 'translateY(0)';
       }
     }
 
@@ -238,11 +278,7 @@ class PermanentMetaMaskConnection {
   handleConnectionError(error) {
     if (error.code === 4001) {
       console.log('🚫 User rejected connection');
-      // Show friendly message and retry
-      setTimeout(() => {
-        console.log('🔄 Retrying connection in 5 seconds...');
-        this.connect();
-      }, 5000);
+      // Don't auto-retry on explicit user rejection
     } else {
       console.error('❌ Connection error:', error);
     }
@@ -288,59 +324,116 @@ window.permanentMetaMask = new PermanentMetaMaskConnection();
 window.forceReconnectMetaMask = () => window.permanentMetaMask.forceReconnect();
 window.getMetaMaskStatus = () => window.permanentMetaMask.getStatus();
 
-// Auto-start on page load
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 EtherVox Permanent MetaMask Connection Ready!');
+// Inject the connection status div into the DOM
+// Use a self-executing setup to handle both "DOM loading" and "already loaded" cases
+(function injectStatusDiv() {
+  function createStatusDiv() {
+    // Don't create if it already exists
+    if (document.getElementById('connectionStatus')) return;
 
-  // Add connection status indicator to page
-  const statusHTML = `
-    <div id="connectionStatus" class="permanent-connection-status">
-      <div class="connection-status connecting">
-        🟡 Connecting to MetaMask...
+    const statusHTML = `
+      <div id="connectionStatus" class="permanent-connection-status">
+        <div class="connection-status connecting">
+          <img class="mm-fox-icon" src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" onerror="this.style.display='none'" />
+          <span class="mm-label">Connecting...</span>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+    document.body.insertAdjacentHTML('afterbegin', statusHTML);
+    console.log('🚀 EtherVox MetaMask status badge injected');
 
-  document.body.insertAdjacentHTML('afterbegin', statusHTML);
-});
+    // Now that the DOM element exists, initialize the connection manager
+    if (window.permanentMetaMask) {
+      window.permanentMetaMask.init();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createStatusDiv);
+  } else {
+    // DOM already ready
+    createStatusDiv();
+  }
+})();
 
 // CSS for connection status (auto-inject)
 const permanentConnectionCSS = `
 <style>
 .permanent-connection-status {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  bottom: 20px;
+  left: 20px;
   z-index: 10000;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .connection-status {
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all 0.3s ease;
+  min-width: 160px;
+}
+
+.mm-fox-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
+.mm-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mm-label {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.mm-account {
+  font-size: 11px;
+  opacity: 0.85;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
 }
 
 .connection-status.connecting {
-  background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
-  color: #2d3436;
-  border: 2px solid #e17055;
+  background: rgba(45, 52, 54, 0.85);
+  color: #fdcb6e;
+  border: 1px solid rgba(253, 203, 110, 0.4);
+}
+
+.connection-status.connecting .mm-fox-icon {
+  animation: mmPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes mmPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
 }
 
 .connection-status.connected {
-  background: linear-gradient(135deg, #00b894, #00cec9);
+  background: rgba(0, 184, 148, 0.9);
   color: white;
-  border: 2px solid #00a085;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .connection-status.disconnected {
-  background: linear-gradient(135deg, #ff7675, #fd79a8);
-  color: white;
-  border: 2px solid #e84393;
+  background: rgba(45, 52, 54, 0.85);
+  color: #ff7675;
+  border: 1px solid rgba(255, 118, 117, 0.4);
 }
 
 .metamask-install-prompt {
