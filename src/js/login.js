@@ -199,21 +199,43 @@ async function handleUserLogin(event) {
   }
   
   // Show loading state
-  setLoadingState(submitButton, true, 'Verifying...');
+  setLoadingState(submitButton, true, 'Verifying credentials...');
   
   try {
+    // STEP 1: Authenticate with ID and Password
     const response = await authenticateUser(voterId, password, 'user');
     
     if (response.success) {
-      showMessage('🎉 Voter authentication successful! Entering voting portal...', 'success');
+      showMessage('✅ Step 1/2: Password verified! Checking face authentication...', 'success');
       
-      // Store user token
-      localStorage.setItem('jwtTokenVoter', response.data.token);
+      // Store temporary user data
+      const userData = {
+        voterId: voterId,
+        token: response.data.token,
+        role: response.data.role
+      };
       
-      // Redirect to voting interface
-      setTimeout(() => {
-        window.location.replace(`index.html?Authorization=Bearer ${response.data.token}`);
-      }, 1500);
+      // STEP 2: Check if user has face data registered
+      const hasFaceData = await checkFaceRegistration(voterId);
+      
+      if (hasFaceData) {
+        // User has face data - proceed to face verification
+        showMessage('🔐 Step 2/2: Please verify your face to complete login', 'info');
+        setLoadingState(submitButton, false);
+        
+        // Show face verification modal
+        await showFaceVerificationModal(userData);
+      } else {
+        // No face data - redirect to registration page
+        showMessage('⚠️ Face authentication required! Redirecting to face registration...', 'info');
+        
+        // Store user data for face registration page
+        localStorage.setItem('pendingVoterLogin', JSON.stringify(userData));
+        
+        setTimeout(() => {
+          window.location.href = 'face-register.html?voter_id=' + encodeURIComponent(voterId);
+        }, 2000);
+      }
       
     } else {
       throw new Error('Invalid voter credentials');
@@ -221,9 +243,166 @@ async function handleUserLogin(event) {
     
   } catch (error) {
     console.error('User login failed:', error);
-    showMessage(`❌ Voter Login Failed: ${error.message}`, 'error');
+    showMessage(`❌ Login Failed: ${error.message}`, 'error');
     setLoadingState(submitButton, false);
   }
+}
+
+// ===============================================
+// Two-Step Verification Helper Functions
+// ===============================================
+
+/**
+ * Check if voter has face authentication registered
+ */
+async function checkFaceRegistration(voterId) {
+  try {
+    const response = await fetch(`http://127.0.0.1:8001/face-auth/face-registered/${encodeURIComponent(voterId)}`);
+    
+    if (!response.ok) {
+      console.warn('Could not check face registration status');
+      return false;
+    }
+    
+    const data = await response.json();
+    console.log('Face registration check:', data);
+    return data.registered === true;
+    
+  } catch (error) {
+    console.error('Error checking face registration:', error);
+    return false;
+  }
+}
+
+/**
+ * Show face verification modal for two-step authentication
+ */
+async function showFaceVerificationModal(userData) {
+  return new Promise((resolve, reject) => {
+    // Create modal HTML
+    const modalHTML = `
+      <div id="faceVerificationModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:16px;padding:30px;max-width:520px;width:90%;text-align:center;">
+          <h3 style="margin:0 0 15px;font-family:Poppins,sans-serif;color:#333;">
+            <i class="fas fa-shield-alt" style="color:#667eea;"></i> Step 2: Face Verification
+          </h3>
+          <p style="color:#666;font-size:14px;margin-bottom:15px;">Position your face in the center and look at the camera</p>
+          <div id="faceVideoContainer" style="position:relative;display:inline-block;width:100%;max-width:480px;">
+            <video id="faceVideo" autoplay muted playsinline style="width:100%;border-radius:10px;background:#000;display:block;"></video>
+            <canvas id="faceCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:10px;pointer-events:none;"></canvas>
+          </div>
+          <div id="faceStatus" style="margin:15px 0;font-family:Poppins,sans-serif;font-size:14px;color:#666;">Initializing camera...</div>
+          <div style="display:flex;gap:10px;justify-content:center;">
+            <button id="faceVerifyBtn" disabled style="padding:12px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:Poppins,sans-serif;">
+              <i class="fas fa-shield-alt"></i> Verify Face
+            </button>
+            <button id="faceCancelBtn" style="padding:12px 30px;background:#6c757d;color:white;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:Poppins,sans-serif;">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add modal to page
+    const modalDiv = document.createElement('div');
+    modalDiv.innerHTML = modalHTML;
+    document.body.appendChild(modalDiv);
+    
+    const modal = document.getElementById('faceVerificationModal');
+    const video = document.getElementById('faceVideo');
+    const canvas = document.getElementById('faceCanvas');
+    const status = document.getElementById('faceStatus');
+    const verifyBtn = document.getElementById('faceVerifyBtn');
+    const cancelBtn = document.getElementById('faceCancelBtn');
+    
+    let statusInterval = null;
+    
+    // Initialize face authentication
+    (async () => {
+      try {
+        // Load face-api.js models
+        await window.faceAuth.loadModels();
+        
+        // Initialize camera
+        await window.faceAuth.initializeCamera(video, canvas);
+        
+        status.textContent = '✅ Camera ready — position your face in view';
+        status.style.color = '#28a745';
+        verifyBtn.disabled = false;
+        
+        // Monitor face detection
+        statusInterval = setInterval(() => {
+          if (window.faceAuth.faceDetected) {
+            status.textContent = '✅ Face detected! Click Verify Face to continue.';
+            status.style.color = '#28a745';
+            verifyBtn.disabled = false;
+          } else {
+            status.textContent = '⚠️ No face detected — look at the camera';
+            status.style.color = '#ff9800';
+            verifyBtn.disabled = true;
+          }
+        }, 500);
+        
+      } catch (error) {
+        console.error('Face verification initialization error:', error);
+        status.textContent = '❌ Camera initialization failed: ' + error.message;
+        status.style.color = '#dc3545';
+      }
+    })();
+    
+    // Verify button handler
+    verifyBtn.onclick = async () => {
+      try {
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        status.textContent = '🔍 Verifying your face...';
+        status.style.color = '#667eea';
+        
+        const result = await window.faceAuth.authenticateByFace();
+        
+        if (result.success && result.voter_id === userData.voterId) {
+          // Face verification successful
+          clearInterval(statusInterval);
+          status.textContent = '✅ Face verified! Logging you in...';
+          status.style.color = '#28a745';
+          
+          window.faceAuth.stopCamera();
+          
+          // Store token and redirect
+          localStorage.setItem('jwtTokenVoter', userData.token);
+          
+          setTimeout(() => {
+            modal.remove();
+            window.location.replace(`index.html?Authorization=Bearer ${userData.token}`);
+            resolve(true);
+          }, 1500);
+          
+        } else if (result.success && result.voter_id !== userData.voterId) {
+          // Face verified but wrong person
+          throw new Error('Face verification failed: This face is registered to a different voter ID');
+        } else {
+          throw new Error('Face not recognized. Please try again.');
+        }
+        
+      } catch (error) {
+        console.error('Face verification error:', error);
+        status.textContent = '❌ ' + error.message;
+        status.style.color = '#dc3545';
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = '<i class="fas fa-shield-alt"></i> Verify Face';
+      }
+    };
+    
+    // Cancel button handler
+    cancelBtn.onclick = () => {
+      if (statusInterval) clearInterval(statusInterval);
+      window.faceAuth.stopCamera();
+      modal.remove();
+      showMessage('Face verification cancelled. Please try logging in again.', 'info');
+      reject(new Error('Face verification cancelled'));
+    };
+  });
 }
 
 // ===============================================

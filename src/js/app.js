@@ -57,7 +57,6 @@ window.App = {
 
       console.log('Blockchain time is off by', drift, 'seconds — syncing to system time...');
 
-
       const ganacheUrls = ['http://127.0.0.1:7545', 'http://127.0.0.1:8545'];
 
       for (const ganacheUrl of ganacheUrls) {
@@ -182,16 +181,6 @@ window.App = {
               'evm_setTime did not work. Please RESTART Ganache to reset the blockchain clock.');
           }
 
-          return true;
-        } catch (fetchError) {
-          console.log('Could not connect to', ganacheUrl);
-        }
-                const newBlock = await App.web3.eth.getBlock('latest');
-                console.log('✅ Ganache time reset successfully. New blockchain time:', new Date(Number(newBlock.timestamp) * 1000).toLocaleString());
-                return true;
-              }
-            }
-          } catch (fetchError) {
           return true;
         } catch (fetchError) {
           console.log('Could not connect to', ganacheUrl);
@@ -778,10 +767,6 @@ window.App = {
                 <i class="fas fa-flag"></i> ${partyName}
               </span>
             </div>
-          </div>
-          <div class="candidate-votes">
-            <div class="vote-count">${voteCount}</div>
-            <div class="vote-label">Votes</div>
           </div>
           <div class="candidate-select">
             <input type="radio" name="candidate" value="${candidateId}" id="candidate${index}" style="display:none;">

@@ -5,54 +5,13 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdn.jsdelivr.net https://cdnjs.cloudflare.com ws: wss:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://upload.wikimedia.org; media-src 'self' blob:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 https://cdn.jsdelivr.net https://cdnjs.cloudflare.com ws: wss:;">
   <title>EtherVox - Secure Login Portal</title>
   <link rel="stylesheet" type="text/css" href="/css/login.css">
   <link rel="stylesheet" type="text/css" href="/css/video-background.css">
   <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    .face-login-btn {
-      width: 100%;
-      padding: 14px 24px;
-      margin-top: 12px;
-      border: 2px solid rgba(102, 126, 234, 0.5);
-      border-radius: 12px;
-      background: rgba(102, 126, 234, 0.08);
-      color: #764ba2;
-      font-size: 15px;
-      font-weight: 600;
-      font-family: 'Poppins', sans-serif;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      transition: all 0.3s ease;
-    }
-    .face-login-btn:hover {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-color: transparent;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102,126,234,0.35);
-    }
-    .face-login-divider {
-      display: flex;
-      align-items: center;
-      margin: 16px 0 8px;
-      gap: 12px;
-      font-size: 13px;
-      color: #999;
-    }
-    .face-login-divider::before, .face-login-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: rgba(0,0,0,0.1);
-    }
-  </style>
 </head>
 
 <body>
@@ -238,12 +197,6 @@
             <span>Enter Voting Portal</span>
             <div class="btn-glow"></div>
           </button>
-
-          <div class="face-login-divider">or</div>
-          <button type="button" class="face-login-btn" id="faceLoginBtn">
-            <i class="fas fa-camera"></i>
-            <span>Login with Face ID</span>
-          </button>
         </form>
       </div>
 
@@ -301,112 +254,6 @@
   <script src="/js/face-auth.js"></script>
   <script src="/js/login.js" type="module"></script>
   <script src="/js/chatbot.js"></script>
-  <script>
-    // Face Login Handler
-    document.addEventListener('DOMContentLoaded', function() {
-      const faceLoginBtn = document.getElementById('faceLoginBtn');
-      if (faceLoginBtn) {
-        faceLoginBtn.addEventListener('click', async function() {
-          try {
-            faceLoginBtn.disabled = true;
-            faceLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing camera...';
-            
-            // Load models
-            await window.faceAuth.loadModels();
-            
-            // Create video element for camera
-            let videoModal = document.getElementById('faceVideoModal');
-            if (!videoModal) {
-              videoModal = document.createElement('div');
-              videoModal.id = 'faceVideoModal';
-              videoModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-              videoModal.innerHTML = `
-                <div style="background:white;border-radius:16px;padding:30px;max-width:520px;width:90%;text-align:center;">
-                  <h3 style="margin:0 0 15px;font-family:Poppins,sans-serif;color:#333;"><i class="fas fa-camera" style="color:#667eea;"></i> Face Authentication</h3>
-                  <p style="color:#666;font-size:14px;margin-bottom:15px;">Position your face in the center and look at the camera</p>
-                  <div id="faceVideoContainer" style="position:relative;display:inline-block;width:100%;max-width:480px;">
-                    <video id="faceVideo" autoplay muted playsinline style="width:100%;border-radius:10px;background:#000;display:block;"></video>
-                    <canvas id="faceCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:10px;pointer-events:none;"></canvas>
-                  </div>
-                  <div id="faceStatus" style="margin:15px 0;font-family:Poppins,sans-serif;font-size:14px;color:#666;">Starting camera...</div>
-                  <div style="display:flex;gap:10px;justify-content:center;">
-                    <button id="faceAuthBtn" disabled style="padding:12px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:Poppins,sans-serif;"><i class="fas fa-sign-in-alt"></i> Authenticate</button>
-                    <button id="faceCancelBtn" style="padding:12px 30px;background:#6c757d;color:white;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-family:Poppins,sans-serif;"><i class="fas fa-times"></i> Cancel</button>
-                  </div>
-                </div>
-              `;
-              document.body.appendChild(videoModal);
-            } else {
-              videoModal.style.display = 'flex';
-            }
-            
-            const video = document.getElementById('faceVideo');
-            const canvas = document.getElementById('faceCanvas');
-            const status = document.getElementById('faceStatus');
-            
-            // Initialize camera with canvas overlay for live face detection
-            await window.faceAuth.initializeCamera(video, canvas);
-            status.textContent = 'Face scanning active — look at the camera.';
-            status.style.color = '#28a745';
-            document.getElementById('faceAuthBtn').disabled = false;
-
-            // Continuously update status based on detection state
-            const _statusInterval = setInterval(() => {
-              if (window.faceAuth.faceDetected) {
-                status.textContent = '✅ Face detected! Click Authenticate.';
-                status.style.color = '#28a745';
-                document.getElementById('faceAuthBtn').disabled = false;
-              } else {
-                status.textContent = '⚠ No face detected — look at the camera';
-                status.style.color = '#ff9800';
-              }
-            }, 500);
-            
-            // Cancel button
-            document.getElementById('faceCancelBtn').onclick = function() {
-              clearInterval(_statusInterval);
-              window.faceAuth.stopCamera();
-              videoModal.style.display = 'none';
-              faceLoginBtn.disabled = false;
-              faceLoginBtn.innerHTML = '<i class="fas fa-camera"></i> <span>Login with Face ID</span>';
-            };
-            
-            // Authenticate button
-            document.getElementById('faceAuthBtn').onclick = async function() {
-              try {
-                status.textContent = 'Scanning face...';
-                status.style.color = '#667eea';
-                const result = await window.faceAuth.authenticateByFace();
-                
-                if (result.success) {
-                  clearInterval(_statusInterval);
-                  status.textContent = '✅ Face recognized! Logging in...';
-                  status.style.color = '#28a745';
-                  // Store token and redirect
-                  sessionStorage.setItem('token', result.token);
-                  sessionStorage.setItem('voter_id', result.voter_id);
-                  if (result.role) sessionStorage.setItem('role', result.role);
-                  window.faceAuth.stopCamera();
-                  setTimeout(() => { window.location.href = '/index.html?Authorization=Bearer ' + result.token; }, 1000);
-                }
-              } catch (err) {
-                status.textContent = '❌ ' + (err.message || 'Face not recognized. Try again or use password.');
-                status.style.color = '#dc3545';
-              }
-            };
-            
-            faceLoginBtn.disabled = false;
-            faceLoginBtn.innerHTML = '<i class="fas fa-camera"></i> <span>Login with Face ID</span>';
-          } catch (err) {
-            console.error('Face login error:', err);
-            alert('Face authentication failed to initialize: ' + err.message);
-            faceLoginBtn.disabled = false;
-            faceLoginBtn.innerHTML = '<i class="fas fa-camera"></i> <span>Login with Face ID</span>';
-          }
-        });
-      }
-    });
-  </script>
 </body>
 
 </html>

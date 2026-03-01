@@ -5,55 +5,59 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:7545 http://localhost:7545 https://cdn.jsdelivr.net ws: wss:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://upload.wikimedia.org; connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:8001 http://localhost:8001 http://127.0.0.1:7545 http://localhost:7545 https://cdn.jsdelivr.net ws: wss:;">
   <title>EtherVox - Election Results</title>
   <link rel="stylesheet" type="text/css" href="/css/result.css">
+  <link rel="stylesheet" type="text/css" href="/css/video-background.css">
   <link rel="stylesheet" type="text/css" href="/css/chatbot.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- Web3.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
 </head>
 
 <body>
-  <!-- Background -->
+  <!-- Ethereum Background Image with Ultra HD Crystal Clear Animated Effects -->
   <div class="video-background">
     <div class="video-overlay crystal"></div>
     <div class="glow-effect"></div>
+    <div class="particle-layer"></div>
+    <div class="shimmer-effect"></div>
   </div>
 
-  <!-- Main Container -->
-  <div class="main-container">
-    <!-- Header -->
-    <div class="header">
-      <div class="logo-section">
-        <div class="logo-wrapper">
-          <i class="fas fa-vote-yea logo-icon"></i>
-          <h1 class="logo-text">EtherVox</h1>
-        </div>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-brand">
+        <i class="fas fa-vote-yea"></i>
+        <span>EtherVox</span>
       </div>
-      <div class="header-nav">
-        <a href="/" class="nav-link">
-          <i class="fas fa-arrow-left"></i> Back to Login
+      <div class="navbar-menu">
+        <a href="/" class="navbar-item">
+          <i class="fas fa-arrow-left"></i>
+          <span>Back to Login</span>
         </a>
       </div>
     </div>
+  </nav>
 
-    <!-- Results Container -->
-    <div class="results-container">
-      <div class="results-header">
-        <h2><i class="fas fa-chart-bar"></i> Election Results</h2>
-        <p class="subtitle">Live voting results powered by blockchain</p>
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div class="welcome-icon">
+        <i class="fas fa-chart-bar"></i>
       </div>
+      <h1>Election Results</h1>
+      <p class="welcome-subtitle">Live voting results powered by Ethereum blockchain</p>
+    </div>
 
-      <!-- Results Content -->
-      <div class="results-content">
-        <!-- Results will be populated dynamically by result.js -->
-        <div id="resultsDisplay" class="results-display">
-          <div class="info-message">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading election results from blockchain...</p>
-          </div>
+    <!-- Results Content -->
+    <div class="results-content">
+      <!-- Results will be populated dynamically by result.js -->
+      <div id="resultsDisplay" class="results-display">
+        <div class="info-message">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Loading election results from blockchain...</p>
         </div>
       </div>
     </div>
